@@ -484,7 +484,7 @@ EOF
 				# Make cache while we're at it.
 				# Don't do it for the resource forks Mac OS X loves to upload :-(
 				if ($filename !~ /^\._/) {
-					Sesse::pr0n::Common::ensure_cached($r, $filename, $newid, -1, -1, 1, 80, 64, 320, 256);
+					Sesse::pr0n::Common::ensure_cached($r, $filename, $newid, -1, -1, 1, 80, 64, 320, 256, -1, -1);
 				}
 				
 				# OK, we got this far, commit

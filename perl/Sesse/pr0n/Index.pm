@@ -56,7 +56,7 @@ sub handler {
 		if (defined($val) && $val =~ /^(\d+)$/) {
 			$settings{$s} = $val;
 		}
-		if ($s eq "num" && defined($val) && $val == -1) {
+		if (($s eq "num" || $s eq "xres" || $s eq "yres") && defined($val) && $val == -1) {
 			$settings{$s} = $val;
 		}
 	}
@@ -144,8 +144,10 @@ sub handler {
 
 			my $filename = $ref->{'filename'};
 			my $uri = $filename;
-			if (defined($xres) && defined($yres)) {
+			if (defined($xres) && defined($yres) && $xres != -1) {
 				$uri = "${xres}x$yres/$infobox$filename";
+			} elsif (defined($xres) && $xres == -1) {
+				$uri = "original/$infobox$filename";
 			}
 
 			$r->print("    <p><a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
@@ -185,8 +187,10 @@ sub handler {
 
 			my $filename = $ref->{'filename'};
 			my $uri = $filename;
-			if (defined($xres) && defined($yres)) {
+			if (defined($xres) && defined($yres) && $xres != -1) {
 				$uri = "${xres}x$yres/$infobox$filename";
+			} elsif (defined($xres) && $xres == -1) {
+				$uri = "original/$infobox$filename";
 			}
 
 			my $selected = $ref->{'selected'} ? ' checked="checked"' : '';
@@ -221,8 +225,10 @@ sub handler {
 
 			my $filename = $ref->{'filename'};
 			my $uri = $filename;
-			if (defined($xres) && defined($yres)) {
+			if (defined($xres) && defined($yres) && $xres != -1) {
 				$uri = "${xres}x$yres/$infobox$filename";
+			} elsif (defined($xres) && $xres == -1) {
+				$uri = "original/$infobox$filename";
 			}
 			
 			$r->print("      <a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
@@ -252,16 +258,23 @@ sub print_changes {
 	$r->print("    <p>$title:\n");
 
 	for my $a (@$alternatives) {
-		# Parse the current alternative
-		my ($v1, $v2) = split /x/, $a;
+		my $text;
 		my %newsettings = %$settings;
 
-		if (defined($v1) && defined($v2)) {
+		if (ref $a) {
+			my ($v1, $v2);
+			($text, $v1, $v2) = @$a;
+			
 			$newsettings{$var1} = $v1;
 			$newsettings{$var2} = $v2;
 		} else {
-			$newsettings{$var1} = undef;
-			$newsettings{$var2} = undef;
+			$text = $a;
+
+			# Parse the current alternative
+			my ($v1, $v2) = split /x/, $a;
+
+			$newsettings{$var1} = $v1;
+			$newsettings{$var2} = $v2;
 		}
 
 		$r->print("      ");
@@ -269,9 +282,9 @@ sub print_changes {
 		# Check if these settings are current (print only label)
 		if (eq_with_undef($settings->{$var1}, $newsettings{$var1}) &&
 		    eq_with_undef($settings->{$var2}, $newsettings{$var2})) {
-			$r->print($a);
+			$r->print($text);
 		} else {
-			Sesse::pr0n::Common::print_link($r, $a, "/$event/", \%newsettings, $defsettings);
+			Sesse::pr0n::Common::print_link($r, $text, "/$event/", \%newsettings, $defsettings);
 		}
 		$r->print("\n");
 	}
@@ -289,7 +302,9 @@ sub print_viewres {
 	my ($r, $event, $settings, $defsettings) = @_;
 	my @alternatives = qw(320x256 512x384 640x480 800x600 1024x768 1280x960);
 	chomp (my $unlimited = Sesse::pr0n::Templates::fetch_template($r, 'viewres-unlimited'));
-	push @alternatives, $unlimited;
+	chomp (my $original = Sesse::pr0n::Templates::fetch_template($r, 'viewres-original'));
+	push @alternatives, [ $unlimited, undef, undef ];
+	push @alternatives, [ $original, -1, -1 ];
 
 	print_changes($r, $event, 'viewres', $settings, $defsettings,
 		      'xres', 'yres', \@alternatives);

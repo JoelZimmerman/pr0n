@@ -269,7 +269,7 @@ sub ensure_cached {
 	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres, @otherres) = @_;
 
 	my $fname = get_disk_location($r, $id);
-	unless (defined($xres) && ($xres < $dbheight || $yres < $dbwidth || $dbwidth == -1 || $dbheight == -1)) {
+	unless (defined($xres) && ($xres < $dbheight || $yres < $dbwidth || $dbwidth == -1 || $dbheight == -1 || $xres == -1)) {
 		return ($fname, 0);
 	}
 
@@ -341,9 +341,11 @@ sub ensure_cached {
 				$quality = 80;
 			}
 
-			$cimg->Resize(width=>$nwidth, height=>$nheight, filter=>$filter);
+			if ($xres != -1) {
+				$cimg->Resize(width=>$nwidth, height=>$nheight, filter=>$filter);
+			}
 
-			if (($nwidth >= 800 || $nheight >= 600) && $infobox == 1) {
+			if (($nwidth >= 800 || $nheight >= 600 || $xres == -1) && $infobox == 1) {
 				make_infobox($cimg, $info, $r);
 			}
 
