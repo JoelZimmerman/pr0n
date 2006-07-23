@@ -2,7 +2,6 @@ use Sesse::pr0n::Common;
 use Sesse::pr0n::Listing;
 use Sesse::pr0n::Index;
 use Sesse::pr0n::Image;
-use Sesse::pr0n::Single;
 use Sesse::pr0n::Rotate;
 use Sesse::pr0n::Select;
 use Sesse::pr0n::WebDAV;
@@ -37,8 +36,6 @@ sub handler {
 	} elsif ($uri =~ m#^/usage/([a-zA-Z0-9.-]+)$#) {
 		$r->sendfile(Sesse::pr0n::Common::get_base($r) . "usage/$1");
 		return Apache2::Const::OK;
-	} elsif ($uri =~ m#^/single/?$#) {
-		return Sesse::pr0n::Single::handler($r);
 	} elsif ($uri =~ m#^/rotate$#) {
 		return Sesse::pr0n::Rotate::handler($r);
 	} elsif ($uri =~ m#^/select$#) {
