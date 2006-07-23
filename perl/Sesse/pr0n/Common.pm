@@ -26,13 +26,19 @@ BEGIN {
 	use Exporter ();
 	our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 
+	use Sesse::pr0n::Config;
+	eval {
+		require Sesse::pr0n::Config_local;
+	};
+
 	$VERSION     = "v2.04";
 	@ISA         = qw(Exporter);
 	@EXPORT      = qw(&error &dberror);
 	%EXPORT_TAGS = qw();
 	@EXPORT_OK   = qw(&error &dberror);
 
-	our $dbh = DBI->connect("dbi:Pg:dbname=pr0n;host=127.0.0.1", "pr0n", "EsVdwImY")
+	our $dbh = DBI->connect("dbi:Pg:dbname=pr0n;host=" . $Sesse::pr0n::Config::db_host,
+		$Sesse::pr0n::Config::db_username, $Sesse::pr0n::Config::db_password)
 		or die "Couldn't connect to PostgreSQL database: " . DBI->errstr;
 	our $mimetypes = new MIME::Types;
 	
@@ -134,7 +140,8 @@ sub get_dbh {
 	if (!(defined($dbh) && $dbh->ping)) {
 		# Try to reconnect
 		Apache2::ServerUtil->server->log_error("Lost contact with PostgreSQL server, trying to reconnect...");
-		unless ($dbh = DBI->connect("dbi:Pg:dbname=pr0n;host=127.0.0.1", "pr0n", "EsVdwImY")) {
+		unless ($dbh = DBI->connect("dbi:Pg:dbname=pr0n;host=" . $Sesse::pr0n::Config::db_host,
+			$Sesse::pr0n::Config::db_user, $Sesse::pr0n::Config::db_password)) {
 			$dbh = undef;
 			die "Couldn't connect to PostgreSQL database";
 		}
