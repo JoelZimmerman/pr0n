@@ -1,0 +1,50 @@
+td, body, p, div {
+	font-family: verdana,helvetica; 
+	font-size: 10px;
+}
+
+/* The content of the posts (body of text) */
+body {
+	background: #fcfcfc;
+	color: #000000;
+	font: 12px verdana,arial,helvetica,sans-serif;
+	scrollbar-3dlight-color: #d1d7dc;
+	scrollbar-arrow-color: #006699;
+	scrollbar-darkshadow-color: #98aab1;
+	scrollbar-face-color: #dee3e7;
+	scrollbar-highlight-color: #ffffff;
+	scrollbar-shadow-color: #dee3e7;
+	scrollbar-track-color: #efefef;
+}
+
+/* General page style */
+a:link,a:active,a:visited,a.postlink {
+	color: #006699;
+	text-decoration: underline;
+}
+a:hover {
+	color: #dd6900;
+	text-decoration: none;
+}
+
+/* This is the border line & background colour round the entire page */
+.bodyline {
+	background: #ffffff;
+	border: 1px solid #98aab1;
+}
+
+/* Form elements */
+select, input, textarea {
+	border-color: #006699;
+	color: #000000;
+	font: normal 10px Verdana,Arial,Helvetica,sans-serif;
+}
+input {
+	background-color: #FCFCFC /* url(images/navbar.jpg) */;
+	border-width: 1px;
+}
+textarea {
+	background-color: #FCFCFC;
+	border-width: 1px;
+}
+

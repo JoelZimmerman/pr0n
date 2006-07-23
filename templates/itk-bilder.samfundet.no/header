@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+"http://www.w3.org/TR/xhtml11/DTD/xhtml11-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="no">
+
+<head>
+	<title>IT-komiteen</title>
+	<link rel="stylesheet" type="text/css" href="http://itk.samfundet.no/include/style.css" media="screen" />
+	<link rel="stylesheet" type="text/css" href="http://itk.samfundet.no/include/printstyle.css" media="print"/>
+</head>
+
+<body>
+
+<div class="sidebar">
+
+<p class="logo">
+	<a href="/"><img src="http://itk.samfundet.no/images/itkinside.png" width="149" height="134" alt="ITK Inside" /></a><br />
+	IT-komiteen
+</p>
+
+<p class="box">
+	<a href="http://itk.samfundet.no/">Hovedside</a><br />
+	<a href="http://itk.samfundet.no/instruks/">Instruks</a><br />
+
+	<a href="http://itk.samfundet.no/medlemmer/">Medlemmer</a><br />
+	<a href="http://itk.samfundet.no/dok/">Dokumentasjon</a><br />
+	<a href="http://itk.samfundet.no/arkiv/">Arkiv</a><br />
+	<a href="/">Bilder</a><br />
+	<a href="http://itk.samfundet.no/intern/">Interne sider</a><br />
+</p>
+
+<p class="box">
+	<a href="http://itk.samfundet.no/dok-filer/samfundet-ca.crt">SSL-rotsertifikat</a><br />
+
+	<a href="https://lists.samfundet.no/amsit">Mailinglister: Amsit</a><br />
+	<a href="https://lists.samfundet.no/">Mailinglister: Mailman</a><br />
+</p>
+
+<p class="box">
+%QUOTES%
+</p>
+
+<div class="powered">
+	<a href="http://www.debian.org/"><img src="http://itk.samfundet.no/images/debian.png" width="88" height="30" alt="Powered by Debian" /></a>
+	<a href="http://validator.w3.org/check/referer"><img src="http://itk.samfundet.no/images/valid-xhtml11.png" width="88" height="31" alt="Valid XHTML 1.1" /></a>
+</div>
+
+</div>
+
+<div class="content">
+
+<h1>%TITLE%</h1>
+
+

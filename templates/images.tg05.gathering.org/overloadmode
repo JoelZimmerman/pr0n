@@ -1,0 +1,6 @@
+    <p><strong>Note:</strong> <em>System has automatically entered overload
+      mode due to high traffic. No server-side scaling (whether of thumbnails
+      or of full-sized images) will be done, so only those already cached will
+      work; in addition, the default amount of images shown per page has been
+      set to 100 instead of unlimited. We apologize for the inconvenience;
+      please come back when the load has settled. :-)</em></p>

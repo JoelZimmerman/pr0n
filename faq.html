@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE
+  html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <title>pr0n FAQ</title>
+    <link rel="stylesheet" href="/pr0n.css" type="text/css" />
+  </head>
+  <body>
+    <h1>pr0n FAQ</h1>
+    <p>Last updated July 16th, 2006</p>
+
+    <h2>So, what is this pr0n thing anyway?</h2>
+    
+    <p>pr0n is my very own gallery system. It is used on a few different
+      host names, most notably at <a href="http://pr0n.sesse.net/">pr0n.sesse.net</a>
+      to show images I and others have taken at events I care about (some
+      more than others, of course).</p>
+
+    <h2>Why the name? Is this some kind of fetish site?</h2>
+
+    <p>The name "pr0n" (scriptkiddie-speak for "porn", of course) was just seen
+      as a very good fit for an image gallery. :-) There is no (and will not
+      be any) adult content on this site.</p>
+
+    <h2>Can I upload my own images here?</h2>
+
+    <p>Yes, you can, as long as they're related to one of the events already
+      here. Contact me (see the bottom of the page) for more information.</p>
+
+    <h2>Can I download all the pictures for viewing?</h2>
+   
+    <p>Sorry, no. First of all, please don't use any "web mirroring" program to
+      download all the images -- of course, I can't stop you, but you're
+      putting a lot of unneccessary load on the system. There are two main
+      reasons for not downloading all the pictures: First, there is a
+      question of copyright; not all images here are taken by me, and I've
+      been given permission to display them here, not to pass them on. Second,
+      keep in mind that some of the events contain over 2GB of images --
+      do you really need all that? I'd advise you to crank up the thumbnail
+      size to the maximum possible size instead; it's quite comfortable to
+      browse images on without having to click back and forth all the time.</p>
+
+    <h2>I just changed thumbnail resolution, why is everything so slow?</h2>
+
+    <p>Probably the requested size was never generated before, so the server
+       has to scale all the images. As the scaling method used is geared
+       towards getting good-quality, sharp thumbnails, not speed, this can
+       take a while. It's all getting cached on disk for later re-use, though,
+       so the next time somebody views the same images in that resolution,
+       it will be snappy as usual.</p>
+
+    <h2>Why didn't you just throw up Gallery?</h2>
+
+    <p>Because it didn't fit my needs, and the same goes for all other systems
+      I've seen. I wanted something no-nonsense that would work for <em>my</em>
+      purposes -- I don't want to click around endlessly just to watch some
+      pictures. Others are of course free to do as they wish, I can't impose
+      my will on anybody :-)</p>
+
+    <h2>What are the primary features of pr0n?</h2>
+
+    <p>Mostly that it's no-nonsense and just works, without being in your way.
+      Also, it has dynamical rescaling (of good quality -- proper,
+      sharp thumbnails, no crappy nearest-neighbor scaling) of both thumbnails
+      and images (most client-side scaling sucks quality-wise, unfortunately),
+      an easy-to-use <a href="http://www.webdav.org/">WebDAV</a>-based upload
+      interface and in general good performance (being a set of persistent,
+      optimized Perl modules; I've seen it throw out over 300 hits a second,
+      but I won't guarantee it would withstand a Slashdot attack ;-) ). Also,
+      it has quite OK skinning capabilities, so it's able to adapt into
+      different designs quite easily.</p>
+
+    <h2>What hardware/software does it run on?</h2>
+      
+    <p>pr0n currently runs on an Athlon 64 X2 3800+ with 2GB RAM and ordinary
+      SATA disks. (The server does a lot of other stuff besides running pr0n, of
+      course.) pr0n itself is a custom-made system by myself, tightly coupled
+      into <a href="http://www.apache.org/">Apache</a> 2.0, <a
+      href="http://perl.apache.org/">mod_perl</a> 2.0 and <a
+      href="http://www.imagemagick.org/">ImageMagick</a> 6.x (as well as various
+      other Perl modules), using <a
+      href="http://www.postgresql.org/">PostgreSQL</a> 8.1 as the back-end
+      database for metadata et al. The base operating system is <a
+      href="http://www.debian.org/">Debian</a> etch (ie. “testing”).</p>
+
+    <p>The Perl modules aren't really that big -- we're talking about only
+      approx. 1500 lines of code (of which ~30% is the WebDAV part; I should
+      really make that a bit cleaner once). Most of the real work is done by
+      the software on which pr0n builds on.</p>
+
+    <h2>How much data is there in there, anyway?</h2>
+
+    <p>At the time of writing, approximately 44GB of image data (that is, over
+      35000 different images), plus cache, plus metadata in the SQL database.
+      (These numbers are growing rather rapidly, so they could be outdated at
+      any given time.)</p>
+
+    <h2>Can I get the source?</h2>
+
+    <p>Probably, but are you sure you can get it to work? It's
+      non-trivial to set up, as it depends on pre-release software and a lot of
+      custom configuring; this is not a pre-made, user friendly package for your
+      favourite Linux distribution. You can probably get a tarball, but I'm not
+      going to hold your hand configuring it. :-) If you really want to try,
+      contact me (see the bottom of the page) and we'll see what we can do.</p>
+
+    <h2>Will you implement feature X?</h2>
+
+    <p>Probably not; I have a lot of things to do besides programming new
+      features. Also, I'm not really sure if I want tons of stupid people
+      writing stupid comments under my images, or icky HTML pages with
+      "previous" and "next" buttons instead of just getting directly to
+      the images :-) If you really have a novel or cool feature, feel
+      free to contact me (see below).</p>
+
+    <h2>Is the upload WebDAV server RFC-compliant?</h2>
+
+    <p>Unfortunately, no. When and if somebody makes a sane framework for
+      making WebDAV servers I can use, it probably will, but ATM it's just
+      too much work for what I need it for. It would be a lot easier if
+      I only had to support WebDAV level 1, but due to silly restrictions
+      in Mac OS X' WebDAV client I have to support WebDAV level 2 as well,
+      and, well, most of that is faked. ;-) In addition, there are multiple
+      minor features in the system (like autorenaming files on name clashes)
+      that just aren't easy to adapt to WebDAV. The WebDAV service is
+      restricted, though, so I guess rather few people will get hurt just
+      because I'm not fully compliant ;-)</p>
+
+    <h2>How do I get in touch with you?</h2>
+
+    <p>Try <a href="mailto:sgunderson@bigfoot.com">e-mail</a>, or reach me
+      on IRC as Sesse on EFnet, IRCnet, Freenode or OFTC.</p>
+
+    <hr />
+    <p class="footer">pr0n v2.04,
+      &copy; 2004-2006 <a href="http://www.sesse.net/">Steinar H. Gunderson</a>.</p>
+  </body>
+</html>

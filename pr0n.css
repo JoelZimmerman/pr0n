@@ -1,0 +1,19 @@
+body {
+	background-color: white;
+	color: black;
+	font-family: verdana, arial, helvetica, sans-serif;
+	font-size: smaller;
+}
+a {
+	text-decoration: none;
+}
+.footer {
+	font-size: smaller;
+	margin-top: 0;
+}
+h2.date {
+	font-size: 1em;
+}
+img {
+	border: 1px solid black;
+}
