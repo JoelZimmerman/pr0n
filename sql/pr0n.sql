@@ -7,7 +7,7 @@ CREATE TABLE events (
 );
 
 CREATE TABLE images (
-    id integer serial NOT NULL PRIMARY KEY REFERENCES events(id),
+    id serial NOT NULL PRIMARY KEY REFERENCES events(id),
     event character varying NOT NULL,
     filename character varying NOT NULL,
     width integer DEFAULT -1 NOT NULL,
