@@ -2,8 +2,13 @@ CREATE TABLE events (
     id character varying NOT NULL PRIMARY KEY,
     date character varying NOT NULL,
     name character varying NOT NULL,
-    vhost character varying NOT NULL,
-    last_picture timestamp without time zone DEFAULT '1970-01-01 00:00:00'::timestamp without time zone NOT NULL
+    vhost character varying NOT NULL
+);
+
+-- In a separate table to avoid deadlocks.
+CREATE TABLE last_picture_cache ( 
+   event varchar PRIMARY KEY references events ( id ),
+   last_picture timestamp without time zone
 );
 
 CREATE TABLE images (
