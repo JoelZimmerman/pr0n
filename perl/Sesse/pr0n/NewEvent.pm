@@ -42,6 +42,9 @@ sub handler {
 		$dbh->do("INSERT INTO events (id,date,name,vhost) VALUES (?,?,?,?)",
 			undef, $id, $date, $desc, $r->get_server_name)
 			or dberror($r, "Kunne ikke sette inn ny hendelse");
+		$dbh->do("INSERT INTO last_picture_cache (event,last_picture) VALUES (?,NULL)",
+			undef, $id)
+			or dberror($r, "Kunne ikke sette inn ny cache-rad");
 		$r->print("    <p>Hendelsen '$id' lagt til.</p>");
 	}
 	
