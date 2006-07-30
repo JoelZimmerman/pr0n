@@ -192,8 +192,8 @@ sub update_width_height {
 
 	# update the last_picture cache as well (this should of course be done
 	# via a trigger, but this is less complicated :-) )
-	$dbh->do('UPDATE events SET last_picture=(SELECT COALESCE(MAX(date),\'1970-01-01 00:00:00\') FROM images WHERE event=events.id) WHERE id=(SELECT event FROM images WHERE id=?)',
-		undef, $id)
+	$dbh->do('UPDATE events SET last_picture=GREATEST(last_picture, ?) FROM images WHERE event=events.id) WHERE id=(SELECT event FROM images WHERE id=?)',
+		undef, $datetime, $id)
 		or die "Couldn't update last_picture in SQL: $!";
 }
 
