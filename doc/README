@@ -1,0 +1,85 @@
+pr0n is copyright Steinar H. Gunderson <sgunderson@bigfoot.com>. Everything
+(that includes the Perl code, the configuration snippets, the database schema,
+the CSS, the templates, any HTML or JavaScript and any documentation, but _not_
+any of the images on pr0n.sesse.net etc.) is licensed under the GNU General
+Public License, version 2. For the full license text, see the COPYING file.
+
+Documentation? Forget it; if you can't set it up, use something else. You can
+have a typical Apache 2 vhost snippet, though:
+
+<VirtualHost *:8008>
+    ServerAdmin sgunderson@bigfoot.com
+    DocumentRoot /srv/pr0n.sesse.net
+    ServerName pr0n.sesse.net
+    ServerAlias pr0n.sesse.net bilder.knatten.com pannekake.samfundet.no
+
+    LogLevel info
+    ErrorLog /var/log/apache2/error-pr0n.sesse.net.log
+    CustomLog /var/log/apache2/access-pr0n.sesse.net.log combined
+
+    ServerSignature On
+    PerlSwitches -wT
+    
+    # Keep this on during debugging
+#    PerlModule Apache2::Reload
+#    PerlInitHandler Apache2::Reload
+#    PerlSetVar ReloadAll Off
+#    PerlSetVar ReloadModules "Sesse::pr0n::*"
+#    PerlSetVar ReloadConstantRedefineWarnings Off
+
+    # Share the loadavg module
+    PerlModule Sesse::pr0n::Overload
+
+    PerlSetVar ImageBase /srv/pr0n.sesse.net/
+    PerlSetVar TemplateBase /srv/pr0n.sesse.net/templates
+    PerlSetVar OverloadMode Off
+    PerlSetVar OverloadEnableThreshold 100.0
+    PerlSetVar OverloadDisableThreshold 5.0
+
+    # All URLs are handled by the central pr0n module
+    <Location />
+        SetHandler modperl
+        PerlResponseHandler Sesse::pr0n::pr0n
+    </Location>                                            
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerAdmin sgunderson@bigfoot.com
+    DocumentRoot /srv/pr0n.sesse.net
+    ServerName pr0n.sesse.net
+    ServerAlias pr0n.sesse.net bilder.knatten.com pannekake.samfundet.no
+
+    LogLevel info
+    ErrorLog /var/log/apache2/error-pr0n.sesse.net.log
+    CustomLog /var/log/apache2/access-pr0n.sesse.net.log combined
+
+    ServerSignature On
+    PerlSwitches -wT
+    
+    SSLEngine on
+    SSLCertificateFile ssl/pr0n.sesse.net.crt
+    SSLCertificateKeyFile ssl/pr0n.sesse.net.key
+    
+    # Keep this on during debugging
+#    PerlModule Apache2::Reload
+#    PerlInitHandler Apache2::Reload
+#    PerlSetVar ReloadAll Off
+#    PerlSetVar ReloadModules "Sesse::pr0n::*"
+#    PerlSetVar ReloadConstantRedefineWarnings Off
+
+    # Share the loadavg module
+    PerlModule Sesse::pr0n::Overload
+
+    PerlSetVar ImageBase /srv/pr0n.sesse.net/
+    PerlSetVar TemplateBase /srv/pr0n.sesse.net/templates
+    PerlSetVar OverloadMode Off
+    PerlSetVar OverloadEnableThreshold 100.0
+    PerlSetVar OverloadDisableThreshold 5.0
+
+    # All URLs are handled by the central pr0n module
+    <Location />
+        SetHandler modperl
+        PerlResponseHandler Sesse::pr0n::pr0n
+    </Location>                                            
+</VirtualHost>
+
