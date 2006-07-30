@@ -288,7 +288,6 @@ sub ensure_cached {
 
 		# NEF files aren't autodetected
 		$fname = "NEF:$fname" if ($filename =~ /\.nef$/i);
-		$r->log->warn("Generating $fname for $filename");
 		
 		my $err = $magick->Read($fname);
 		if ($err) {
