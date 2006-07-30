@@ -438,9 +438,11 @@ sub make_infobox {
 	}
 
 	if (defined($info->{'Flash'})) {
-		if ($info->{'Flash'} =~ /did not fire/ || $info->{'Flash'} =~ /No Flash/) {
+		if ($info->{'Flash'} =~ /did not fire/i ||
+		    $info->{'Flash'} =~ /no flash/i ||
+		    $info->{'Flash'} =~ /not fired/i)  {
 			push @lines, "No flash";
-		} elsif ($info->{'Flash'} =~ /fired/) {
+		} elsif ($info->{'Flash'} =~ /fired/i) {
 			push @lines, "Flash";
 		} else {
 			push @lines, $info->{'Flash'};
