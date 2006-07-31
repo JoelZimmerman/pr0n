@@ -30,7 +30,7 @@ sub handler {
 		 $uri =~ m#^/usage/([a-zA-Z0-9_.]+)$#) {
 		$uri =~ s#^/##;
 		$r->content_type(Sesse::pr0n::Common::get_mimetype_from_filename($uri));
-		$r->sendfile(Sesse::pr0n::Common::get_base($r) . $uri);
+		$r->sendfile(Sesse::pr0n::Common::get_base($r) . 'files/' . $uri);
 		return Apache2::Const::OK;
 	} elsif ($uri eq '/newevent.html') {
 		$r->content_type('text/html; charset=utf-8');
