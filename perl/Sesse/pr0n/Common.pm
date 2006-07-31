@@ -393,7 +393,12 @@ sub make_infobox {
 		push @lines, "$1-$2-$3 $4:$5";
 	}
 
-	push @lines, $info->{'Model'} if (defined($info->{'Model'}));
+	if (defined($info->{'Model'})) {
+		my $model = $info->{'Model'}; 
+		$model =~ s/^\s+//;
+		$model =~ s/\s+$//;
+		push @lines, $model;
+	}
 	
 	# classic fields
 	if (defined($info->{'FocalLength'}) && $info->{'FocalLength'} =~ /^(\d+)(?:\.\d+)?(?:mm)?$/) {
