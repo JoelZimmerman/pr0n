@@ -117,10 +117,10 @@ sub scale_aspect {
 	return ($width, $height);
 }
 
-sub print_link {
-	my ($r, $title, $baseurl, $param, $defparam) = @_;
-	my $str = "<a href=\"$baseurl";
+sub get_query_string {
+	my ($param, $defparam) = @_;
 	my $first = 1;
+	my $str = "";
 
 	while (my ($key, $value) = each %$param) {
 		next unless defined($value);
@@ -130,8 +130,12 @@ sub print_link {
 		$str .= "$key=$value";
 		$first = 0;
 	}
-	
-	$str .= "\">$title</a>";
+	return $str;
+}
+
+sub print_link {
+	my ($r, $title, $baseurl, $param, $defparam) = @_;
+	my $str = "<a href=\"$baseurl" . get_query_string($param, $defparam) . "\">$title</a>";
 	$r->print($str);
 }
 
