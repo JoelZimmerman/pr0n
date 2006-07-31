@@ -22,6 +22,10 @@ sub handler {
 		 $uri eq '/skoyen.css' ||
 		 $uri eq '/blah.png' ||
 		 $uri eq '/faq.html' ||
+		 $uri eq '/pr0n-fullscreen.css' ||
+		 $uri eq '/pr0n-fullscreen.js' ||
+		 $uri eq '/previous.png' ||
+		 $uri eq '/next.png' ||
 		 $uri =~ m#^/usage/([a-zA-Z0-9_.]+)$#) {
 		$uri =~ s#^/##;
 		$r->content_type(Sesse::pr0n::Common::get_mimetype_from_filename($uri));

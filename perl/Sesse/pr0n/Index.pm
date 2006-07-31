@@ -50,6 +50,7 @@ sub handler {
 	}
 		
 	my %settings = %defsettings;
+	my $fullscreen = (defined($apr->param('fullscreen')) && $apr->param('fullscreen') eq '1');
 
 	for my $s qw(thumbxres thumbyres xres yres start num all infobox rot sel) {
 		my $val = $apr->param($s);
@@ -102,142 +103,151 @@ sub handler {
 		or dberror($r, "image enumeration");
 
 	# Print the page itself
-	Sesse::pr0n::Common::header($r, "$name [$event]");
-	Sesse::pr0n::Templates::print_template($r, "date", { date => $date });
-
-	if (Sesse::pr0n::Overload::is_in_overload($r)) {
-		Sesse::pr0n::Templates::print_template($r, "overloadmode");
-	}
-
-	print_thumbsize($r, $event, \%settings, \%defsettings);
-	print_viewres($r, $event, \%settings, \%defsettings);
-	print_pagelimit($r, $event, \%settings, \%defsettings);
-	print_infobox($r, $event, \%settings, \%defsettings);
-	print_nextprev($r, $event, \%settings, \%defsettings);
-	print_selected($r, $event, \%settings, \%defsettings) if ($num_selected > 0);
-
-	my $toclose = 0;
-	my $lastupl = "";
-	
-	# Print out all thumbnails
-	if ($rot == 1) {
-		$r->print("    <form method=\"post\" action=\"/rotate\">\n");
-	
+	if ($fullscreen) {
+		$r->content_type("text/html; charset=utf-8");
+		Sesse::pr0n::Templates::print_template($r, "fullscreen-header", { title => "$name [$event]" });
 		while (my $ref = $q->fetchrow_hashref()) {
-			my $imgsz = "";
-			my $takenby = $ref->{'takenby'};
-			if (defined($ref->{'day'})) {
-				 $takenby .= ", " . $ref->{'day'};
-			}
-
-			if ($takenby ne $lastupl) {
-				$lastupl = $takenby;
-				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
-			}
-			if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
-				my $width = $ref->{'width'};
-				my $height = $ref->{'height'};
-					
-				($width, $height) = Sesse::pr0n::Common::scale_aspect($width, $height, $thumbxres, $thumbyres);
-				$imgsz = " width=\"$width\" height=\"$height\"";
-			}
-
-			my $filename = $ref->{'filename'};
-			my $uri = $filename;
-			if (defined($xres) && defined($yres) && $xres != -1) {
-				$uri = "${xres}x$yres/$infobox$filename";
-			} elsif (defined($xres) && $xres == -1) {
-				$uri = "original/$infobox$filename";
-			}
-
-			$r->print("    <p><a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
-			$r->print("      90 <input type=\"checkbox\" name=\"rot-" .
-				$ref->{'id'} . "-90\" />\n");
-			$r->print("      180 <input type=\"checkbox\" name=\"rot-" .
-				$ref->{'id'} . "-180\" />\n");
-			$r->print("      270 <input type=\"checkbox\" name=\"rot-" .
-				$ref->{'id'} . "-270\" />\n");
-			$r->print("      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" .
-				"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Del <input type=\"checkbox\" name=\"del-" . $ref->{'id'} . "\" /></p>\n");
+			$r->print("        \"" . $ref->{'filename'} . "\",\n");
 		}
-		$r->print("      <input type=\"submit\" value=\"Rotate\" />\n");
-		$r->print("    </form>\n");
-	} elsif ($sel == 1) {
-		$r->print("    <form method=\"post\" action=\"/select\">\n");
-		$r->print("      <input type=\"hidden\" name=\"event\" value=\"$event\" />\n");
-	
-		while (my $ref = $q->fetchrow_hashref()) {
-			my $imgsz = "";
-			my $takenby = $ref->{'takenby'};
-			if (defined($ref->{'day'})) {
-				 $takenby .= ", " . $ref->{'day'};
-			}
-
-			if ($takenby ne $lastupl) {
-				$lastupl = $takenby;
-				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
-			}
-			if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
-				my $width = $ref->{'width'};
-				my $height = $ref->{'height'};
-					
-				($width, $height) = Sesse::pr0n::Common::scale_aspect($width, $height, $thumbxres, $thumbyres);
-				$imgsz = " width=\"$width\" height=\"$height\"";
-			}
-
-			my $filename = $ref->{'filename'};
-			my $uri = $filename;
-			if (defined($xres) && defined($yres) && $xres != -1) {
-				$uri = "${xres}x$yres/$infobox$filename";
-			} elsif (defined($xres) && $xres == -1) {
-				$uri = "original/$infobox$filename";
-			}
-
-			my $selected = $ref->{'selected'} ? ' checked="checked"' : '';
-
-			$r->print("    <p><a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
-			$r->print("      <input type=\"checkbox\" name=\"sel-" .
-				$ref->{'id'} . "\"$selected /></p>\n");
-		}
-		$r->print("      <input type=\"submit\" value=\"Select\" />\n");
-		$r->print("    </form>\n");
+		Sesse::pr0n::Templates::print_template($r, "fullscreen-footer", { vhost => $r->get_server_name, event => $event, start => $settings{'start'} - 1 });
 	} else {
-		while (my $ref = $q->fetchrow_hashref()) {
-			my $imgsz = "";
-			my $takenby = $ref->{'takenby'};
-			if (defined($ref->{'day'})) {
-				 $takenby .= ", " . $ref->{'day'};
-			}
+		Sesse::pr0n::Common::header($r, "$name [$event]");
+		Sesse::pr0n::Templates::print_template($r, "date", { date => $date });
 
-			if ($takenby ne $lastupl) {
-				$r->print("    </p>\n\n") if ($lastupl ne "");
-				$lastupl = $takenby;
-				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
-				$r->print("    <p>\n");
-			}
-			if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
-				my $width = $ref->{'width'};
-				my $height = $ref->{'height'};
-					
-				($width, $height) = Sesse::pr0n::Common::scale_aspect($width, $height, $thumbxres, $thumbyres);
-				$imgsz = " width=\"$width\" height=\"$height\"";
-			}
-
-			my $filename = $ref->{'filename'};
-			my $uri = $filename;
-			if (defined($xres) && defined($yres) && $xres != -1) {
-				$uri = "${xres}x$yres/$infobox$filename";
-			} elsif (defined($xres) && $xres == -1) {
-				$uri = "original/$infobox$filename";
-			}
-			
-			$r->print("      <a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
+		if (Sesse::pr0n::Overload::is_in_overload($r)) {
+			Sesse::pr0n::Templates::print_template($r, "overloadmode");
 		}
-		$r->print("    </p>\n");
-	}
 
-	print_nextprev($r, $event, \%settings, \%defsettings);
-	Sesse::pr0n::Common::footer($r);
+		print_thumbsize($r, $event, \%settings, \%defsettings);
+		print_viewres($r, $event, \%settings, \%defsettings);
+		print_pagelimit($r, $event, \%settings, \%defsettings);
+		print_infobox($r, $event, \%settings, \%defsettings);
+		print_nextprev($r, $event, \%settings, \%defsettings);
+		print_selected($r, $event, \%settings, \%defsettings) if ($num_selected > 0);
+
+		my $toclose = 0;
+		my $lastupl = "";
+		
+		# Print out all thumbnails
+		if ($rot == 1) {
+			$r->print("    <form method=\"post\" action=\"/rotate\">\n");
+		
+			while (my $ref = $q->fetchrow_hashref()) {
+				my $imgsz = "";
+				my $takenby = $ref->{'takenby'};
+				if (defined($ref->{'day'})) {
+					 $takenby .= ", " . $ref->{'day'};
+				}
+
+				if ($takenby ne $lastupl) {
+					$lastupl = $takenby;
+					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
+				}
+				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
+					my $width = $ref->{'width'};
+					my $height = $ref->{'height'};
+						
+					($width, $height) = Sesse::pr0n::Common::scale_aspect($width, $height, $thumbxres, $thumbyres);
+					$imgsz = " width=\"$width\" height=\"$height\"";
+				}
+
+				my $filename = $ref->{'filename'};
+				my $uri = $filename;
+				if (defined($xres) && defined($yres) && $xres != -1) {
+					$uri = "${xres}x$yres/$infobox$filename";
+				} elsif (defined($xres) && $xres == -1) {
+					$uri = "original/$infobox$filename";
+				}
+
+				$r->print("    <p><a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
+				$r->print("      90 <input type=\"checkbox\" name=\"rot-" .
+					$ref->{'id'} . "-90\" />\n");
+				$r->print("      180 <input type=\"checkbox\" name=\"rot-" .
+					$ref->{'id'} . "-180\" />\n");
+				$r->print("      270 <input type=\"checkbox\" name=\"rot-" .
+					$ref->{'id'} . "-270\" />\n");
+				$r->print("      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" .
+					"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Del <input type=\"checkbox\" name=\"del-" . $ref->{'id'} . "\" /></p>\n");
+			}
+			$r->print("      <input type=\"submit\" value=\"Rotate\" />\n");
+			$r->print("    </form>\n");
+		} elsif ($sel == 1) {
+			$r->print("    <form method=\"post\" action=\"/select\">\n");
+			$r->print("      <input type=\"hidden\" name=\"event\" value=\"$event\" />\n");
+		
+			while (my $ref = $q->fetchrow_hashref()) {
+				my $imgsz = "";
+				my $takenby = $ref->{'takenby'};
+				if (defined($ref->{'day'})) {
+					 $takenby .= ", " . $ref->{'day'};
+				}
+
+				if ($takenby ne $lastupl) {
+					$lastupl = $takenby;
+					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
+				}
+				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
+					my $width = $ref->{'width'};
+					my $height = $ref->{'height'};
+						
+					($width, $height) = Sesse::pr0n::Common::scale_aspect($width, $height, $thumbxres, $thumbyres);
+					$imgsz = " width=\"$width\" height=\"$height\"";
+				}
+
+				my $filename = $ref->{'filename'};
+				my $uri = $filename;
+				if (defined($xres) && defined($yres) && $xres != -1) {
+					$uri = "${xres}x$yres/$infobox$filename";
+				} elsif (defined($xres) && $xres == -1) {
+					$uri = "original/$infobox$filename";
+				}
+
+				my $selected = $ref->{'selected'} ? ' checked="checked"' : '';
+
+				$r->print("    <p><a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
+				$r->print("      <input type=\"checkbox\" name=\"sel-" .
+					$ref->{'id'} . "\"$selected /></p>\n");
+			}
+			$r->print("      <input type=\"submit\" value=\"Select\" />\n");
+			$r->print("    </form>\n");
+		} else {
+			while (my $ref = $q->fetchrow_hashref()) {
+				my $imgsz = "";
+				my $takenby = $ref->{'takenby'};
+				if (defined($ref->{'day'})) {
+					 $takenby .= ", " . $ref->{'day'};
+				}
+
+				if ($takenby ne $lastupl) {
+					$r->print("    </p>\n\n") if ($lastupl ne "");
+					$lastupl = $takenby;
+					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
+					$r->print("    <p>\n");
+				}
+				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
+					my $width = $ref->{'width'};
+					my $height = $ref->{'height'};
+						
+					($width, $height) = Sesse::pr0n::Common::scale_aspect($width, $height, $thumbxres, $thumbyres);
+					$imgsz = " width=\"$width\" height=\"$height\"";
+				}
+
+				my $filename = $ref->{'filename'};
+				my $uri = $filename;
+				if (defined($xres) && defined($yres) && $xres != -1) {
+					$uri = "${xres}x$yres/$infobox$filename";
+				} elsif (defined($xres) && $xres == -1) {
+					$uri = "original/$infobox$filename";
+				}
+				
+				$r->print("      <a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
+			}
+			$r->print("    </p>\n");
+		}
+
+		print_nextprev($r, $event, \%settings, \%defsettings);
+		Sesse::pr0n::Common::footer($r);
+	}
 
 	return Apache2::Const::OK;
 }

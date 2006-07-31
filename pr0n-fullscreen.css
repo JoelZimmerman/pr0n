@@ -1,0 +1,45 @@
+body {
+	background-color: black;
+	color: white;
+	margin: 0;
+	padding: 0;
+}
+.container {
+	text-align: center;
+/*	border: 1px solid red; */
+}
+img {
+	vertical-align: middle;
+}
+
+#previous {
+	position: absolute;
+	bottom: 0px;
+	left: 0px;
+	z-index: 1;
+}
+#next {
+	position: absolute;
+	bottom: 0px;
+	right: 0px;
+	z-index: 1;
+}
+#preload {
+	position: absolute;
+	left: -2px;
+	top: -2px;
+	width: 1px;
+	height: 1px;
+}
+
+/* IE5/6 madness */
+html
+{
+	overflow: hidden;
+}
+
+body
+{
+	height: 100%;
+	overflow: auto;
+}
