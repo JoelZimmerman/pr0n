@@ -70,8 +70,11 @@ function prepare_preload(img, width, height, evt, filename)
 		preload.parentNode.removeChild(preload);
 	}
 		
-//	img.onload = function() { display_image(width, height, evt, filename, "preload"); }
-	img.onload = "display_image(" + width + "," + height + ",\"" + evt + "\",\"" + filename + "\",\"preload\");";
+	if (document.all) {  // IE-specific
+		img.onload = "display_image(" + width + "," + height + ",\"" + evt + "\",\"" + filename + "\",\"preload\");";
+	} else {
+		img.onload = function() { display_image(width, height, evt, filename, "preload"); }
+	}
 }
 
 function relayout()
