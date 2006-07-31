@@ -234,7 +234,7 @@ function key_up(which) {
 	} else if (which == 27) {   // escape
 		set_opacity("close", 0.7);
 		do_close();
-	} else if (which == 32) {   // space
+	} else if (which == 32 && global_select) {   // space
 		select_image(global_image_list[global_image_num]);
 	}
 }

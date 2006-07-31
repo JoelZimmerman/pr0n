@@ -3,6 +3,7 @@ var global_vhost = "%VHOST%";
 var global_evt = "%EVENT%";
 var global_return_url = "%RETURNURL%";
 var global_image_num = %START%;
+var global_select = %SEL%;
 //-->
     </script>
     <script type="text/JavaScript" src="/pr0n-fullscreen.js"></script>

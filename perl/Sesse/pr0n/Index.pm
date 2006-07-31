@@ -123,7 +123,8 @@ sub handler {
 			vhost => $r->get_server_name,
 			event => $event,
 			start => $settings{'start'} - 1,
-			returnurl => $returnurl
+			returnurl => $returnurl,
+			sel => $settings{'sel'},
 		});
 	} else {
 		Sesse::pr0n::Common::header($r, "$name [$event]");
