@@ -116,6 +116,9 @@ sub handler {
 		my $returnurl = "http://" . $r->get_server_name . "/" . $event . "/" .
 			Sesse::pr0n::Common::get_query_string(\%settings_no_fullscreen, \%defsettings);
 
+		# *whistle*
+		$returnurl =~ s/&amp;/&/g;
+
 		Sesse::pr0n::Templates::print_template($r, "fullscreen-footer", {
 			vhost => $r->get_server_name,
 			event => $event,
