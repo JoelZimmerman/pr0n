@@ -92,7 +92,7 @@ sub handler {
 	my $q;
 	my $where = ($all == 0) ? ' AND selected=\'t\'' : '';
 
-	if (defined($start) && defined($num)) {
+	if (defined($start) && defined($num) && !$settings{'fullscreen'}) {
 		$q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE event=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename LIMIT $num OFFSET " . ($start-1))
 			or dberror($r, "prepare()");
 	} else {
