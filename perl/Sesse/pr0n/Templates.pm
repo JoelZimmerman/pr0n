@@ -58,6 +58,7 @@ sub fetch_template {
 
 	my $base = $r->dir_config('TemplateBase');
 	open TEMPLATE, "<$base/$dir/$template"
+		or ($dir ne 'default' and open TEMPLATE, "<$base/default/$template")
 		or Sesse::pr0n::Common::error($r, "Couldn't open $dir/$template: $!");
 
 	local $/;
