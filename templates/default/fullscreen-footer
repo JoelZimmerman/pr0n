@@ -1,6 +1,7 @@
 ];
 var global_vhost = "%VHOST%";
 var global_evt = "%EVENT%";
+var global_return_url = "%RETURNURL%";
 var global_image_num = %START%;
 //-->
     </script>
@@ -10,6 +11,7 @@ var global_image_num = %START%;
     <div class="container" id="main"></div>
     <img id="previous" src="/previous.png" alt="&lt;-" onmousedown="if (can_go_previous()) set_opacity('previous', 1.0)" onmouseup="if (can_go_previous()) { set_opacity('previous', 0.7); go_previous(); }" onmouseout="if (can_go_previous()) { set_opacity('previous', 0.7); }" />
     <img id="next" src="/next.png" alt="-&gt;" onmousedown="if (can_go_next()) set_opacity('next', 1.0)" onmouseup="if (can_go_next()) { set_opacity('next', 0.7); go_next(); }" onmouseout="if (can_go_next()) { set_opacity('next', 0.7); }" />
+    <img id="close" src="/close.png" alt="x" onmousedown="set_opacity('close', 1.0)" onmouseup="set_opacity('close', 0.7); do_close();" onmouseout="set_opacity('close', 0.7);" />
   </body>
 </html>
 

@@ -98,6 +98,7 @@ function relayout()
 
 	set_opacity("previous", can_go_previous() ? 0.7 : 0.1);
 	set_opacity("next", can_go_next() ? 0.7 : 0.1);
+	set_opacity("close", 0.7);
 }
 
 function set_opacity(id, amount)
@@ -202,6 +203,11 @@ function key_up(which) {
 			go_previous();
 		}
 	}
+}
+
+function do_close()
+{
+	window.location = global_return_url;
 }
 
 // enable the horrible horrible IE PNG hack

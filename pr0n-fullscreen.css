@@ -26,6 +26,13 @@ img {
 	right: 0px;
 	z-index: 1;
 }
+#close {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	z-index: 1;
+}
+
 #preload {
 	position: absolute;
 	left: -2000px;

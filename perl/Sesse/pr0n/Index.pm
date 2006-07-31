@@ -42,6 +42,7 @@ sub handler {
 		infobox => 1,
 		rot => 0,
 		sel => 0,
+		fullscreen => 0,
 	);
 	
 	# Reduce the front page load when in overload mode.
@@ -50,9 +51,8 @@ sub handler {
 	}
 		
 	my %settings = %defsettings;
-	my $fullscreen = (defined($apr->param('fullscreen')) && $apr->param('fullscreen') eq '1');
 
-	for my $s qw(thumbxres thumbyres xres yres start num all infobox rot sel) {
+	for my $s qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen) {
 		my $val = $apr->param($s);
 		if (defined($val) && $val =~ /^(\d+)$/) {
 			$settings{$s} = $val;
@@ -103,13 +103,25 @@ sub handler {
 		or dberror($r, "image enumeration");
 
 	# Print the page itself
-	if ($fullscreen) {
+	if ($settings{'fullscreen'}) {
 		$r->content_type("text/html; charset=utf-8");
 		Sesse::pr0n::Templates::print_template($r, "fullscreen-header", { title => "$name [$event]" });
 		while (my $ref = $q->fetchrow_hashref()) {
 			$r->print("        \"" . $ref->{'filename'} . "\",\n");
 		}
-		Sesse::pr0n::Templates::print_template($r, "fullscreen-footer", { vhost => $r->get_server_name, event => $event, start => $settings{'start'} - 1 });
+
+		my %settings_no_fullscreen = %settings;
+		$settings_no_fullscreen{'fullscreen'} = 0;
+
+		my $returnurl = "http://" . $r->get_server_name . "/" . $event . "/" .
+			Sesse::pr0n::Common::get_query_string(\%settings_no_fullscreen, \%defsettings);
+
+		Sesse::pr0n::Templates::print_template($r, "fullscreen-footer", {
+			vhost => $r->get_server_name,
+			event => $event,
+			start => $settings{'start'} - 1,
+			returnurl => $returnurl
+		});
 	} else {
 		Sesse::pr0n::Common::header($r, "$name [$event]");
 		Sesse::pr0n::Templates::print_template($r, "date", { date => $date });

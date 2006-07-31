@@ -26,6 +26,7 @@ sub handler {
 		 $uri eq '/pr0n-fullscreen.js' ||
 		 $uri eq '/previous.png' ||
 		 $uri eq '/next.png' ||
+		 $uri eq '/close.png' ||
 		 $uri =~ m#^/usage/([a-zA-Z0-9_.]+)$#) {
 		$uri =~ s#^/##;
 		$r->content_type(Sesse::pr0n::Common::get_mimetype_from_filename($uri));
