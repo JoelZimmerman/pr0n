@@ -5,12 +5,12 @@ function find_width()
 		return [window.innerWidth, window.innerHeight];
 	} else if (document.documentElement && (document.documentElement.clientWidth || document.documentElement.clientHeight)) {
 		// IE 6+ in 'standards compliant mode'
-		return [document.documentElement.clientWidth, document.documentElement.clientHeight - 42];
+		return [document.documentElement.clientWidth, document.documentElement.clientHeight];
 	} else if (document.body && (document.body.clientWidth || document.body.clientHeight)) {
 		// IE 4-compatible
 		return [document.body.clientWidth, document.body.clientHeight];
 	}
-	return (null,null);
+	return [null,null];
 }
 
 /*
@@ -95,9 +95,6 @@ function relayout()
 	main.style.width = adjusted_size[0] + "px";
 	main.style.height = adjusted_size[1] + "px";
 	main.style.lineHeight = adjusted_size[1] + "px"; 
-	if (document.all) {  // IE-specific
-		main.style.fontSize = adjusted_size[1] + "px";
-	}
 
 	set_opacity("previous", can_go_previous() ? 0.7 : 0.1);
 	set_opacity("next", can_go_next() ? 0.7 : 0.1);

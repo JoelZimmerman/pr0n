@@ -1,12 +1,14 @@
-body {
-	background-color: black;
-	color: white;
+* {
 	margin: 0;
 	padding: 0;
 }
+
+body {
+	background-color: black;
+	color: white;
+}
 .container {
 	text-align: center;
-/*	border: 1px solid red; */
 }
 img {
 	vertical-align: middle;
@@ -26,8 +28,8 @@ img {
 }
 #preload {
 	position: absolute;
-	left: -2px;
-	top: -2px;
+	left: -2000px;
+	top: -2000px;
 	width: 1px;
 	height: 1px; 
 /*	left: 10px;
@@ -37,13 +39,10 @@ img {
 }
 
 /* IE5/6 madness */
-html
-{
+html {
 	overflow: hidden;
 }
-
 body
 {
 	height: 100%;
-	overflow: auto;
 }
