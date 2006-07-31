@@ -1,3 +1,30 @@
+var req;
+
+function init_ajax()
+{
+	req = false;
+
+	if (window.XMLHttpRequest) {
+		// Mozilla/Safari
+		try {
+			req = new XMLHttpRequest();
+		} catch(e) {
+			req = false;
+		}
+	} else if (window.ActiveXObject) {
+		// IE/Windows
+		try {
+			req = new ActiveXObject("Msxml2.XMLHTTP");
+		} catch(e) {
+			try {
+				req = new ActiveXObject("Microsoft.XMLHTTP");
+			} catch(e) {
+				req = false;
+			}
+		}
+	}
+}
+
 function find_width()
 {
 	if (typeof(window.innerWidth) == 'number') {
@@ -207,12 +234,67 @@ function key_up(which) {
 	} else if (which == 27) {   // escape
 		set_opacity("close", 0.7);
 		do_close();
+	} else if (which == 32) {   // space
+		select_image(global_image_list[global_image_num]);
+	}
+}
+
+function select_image(filename)
+{
+	if (!req)
+		return;
+
+	draw_text("Selecting " + filename + "...");
+	
+	req.open("POST", "http://" + global_vhost + "/select", false);
+	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	req.send("mode=single&event=" + global_evt + "&filename=" + filename);
+
+	setTimeout("fade_text(0.99)", 30);
+}
+
+function fade_text(opacity)
+{
+	set_opacity("text", opacity);
+	if (opacity > 0.0) {
+		opacity -= 0.03;
+		if (opacity < 0.0)
+			opacity = 0.0;
+		setTimeout("fade_text(" + opacity + ")", 30);
+	} else {
+		var text = document.getElementById("text");
+		if (text != null) {
+			text.parentNode.removeChild(text);
+		}
 	}
 }
 
 function do_close()
 {
 	window.location = global_return_url;
+}
+
+function draw_text(msg)
+{
+	// remove any text we might have left
+	var text = document.getElementById("text");
+	if (text != null) {
+		text.parentNode.removeChild(text);
+	}
+
+	text = document.createElement("p");
+	text.id = "text";
+	text.style.position = "absolute";
+	text.style.color = "white";
+	text.style.lineHeight = "24px";
+	text.style.font = "24px verdana, arial, sans-serif";
+	text.innerHTML = msg;
+
+	var main = document.getElementById("main");
+	main.appendChild(text);
+
+	text.style.left = (main.clientWidth - text.clientWidth) / 2 + "px";
+	text.style.top = (main.clientHeight - text.clientHeight) / 2 + "px";
 }
 
 // enable the horrible horrible IE PNG hack

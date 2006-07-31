@@ -10,7 +10,7 @@ body {
 .container {
 	text-align: center;
 }
-img {
+img, #text {
 	vertical-align: middle;
 }
 
