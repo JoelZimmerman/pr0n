@@ -139,6 +139,7 @@ sub handler {
 		print_infobox($r, $event, \%settings, \%defsettings);
 		print_nextprev($r, $event, \%settings, \%defsettings);
 		print_selected($r, $event, \%settings, \%defsettings) if ($num_selected > 0);
+		print_fullscreen($r, $event, \%settings, \%defsettings);
 
 		my $toclose = 0;
 		my $lastupl = "";
@@ -487,6 +488,19 @@ sub print_selected {
 	}
 	
 	$r->print('</p>');
+}
+
+sub print_fullscreen {
+	my ($r, $event, $settings, $defsettings) = @_;
+
+	chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'fullscreen'));
+
+	my %newsettings = %$settings;
+	$newsettings{'fullscreen'} = 1;
+
+        $r->print("    <p>");
+	Sesse::pr0n::Common::print_link($r, $title, "/$event/", \%newsettings, $defsettings);
+	$r->print("</p>\n");
 }
 	
 1;
