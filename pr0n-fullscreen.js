@@ -188,6 +188,8 @@ function key_down(which)
 		if (can_go_previous()) {
 			set_opacity("previous", 0.99);
 		}
+	} else if (which == 27) {   // escape
+		set_opacity("close", 0.99);
 	}
 }
 
@@ -202,6 +204,9 @@ function key_up(which) {
 			set_opacity("previous", 0.7);
 			go_previous();
 		}
+	} else if (which == 27) {   // escape
+		set_opacity("close", 0.7);
+		do_close();
 	}
 }
 
