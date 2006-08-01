@@ -10,6 +10,19 @@ body {
 .container {
 	text-align: center;
 }
+
+/* IE centering hacks */
+#iehack {
+	position: absolute;
+	_top: 50%;
+	_left: 50%;
+}
+#image {
+	_position: relative;
+	_top: -50%;
+	_left: -50%;
+}
+
 img, #text {
 	vertical-align: middle;
 }

@@ -82,7 +82,7 @@ function display_image(width, height, evt, filename, element_id)
 		img.src = url;
 	}
 	
-	var main = document.getElementById("main");
+	var main = document.getElementById("iehack");
 	main.appendChild(img);
 
 	return img;
