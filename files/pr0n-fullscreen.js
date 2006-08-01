@@ -310,6 +310,6 @@ function ie_png_hack()
 		previous.outerHTML = "<span id=\"previous\" style=\"display: inline-block; position: absolute; bottom: 0px; right: 0px; width: 50px; height: 50px; filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + previous.src + "')\" onmousedown=\"if (can_go_previous()) set_opacity('previous', 1.0)\" onmouseup=\"if (can_go_previous()) { set_opacity('previous', 0.7); go_previous(); }\" onmouseout=\"if (can_go_previous()) { set_opacity('previous', 0.7); }\" />";
 		
 		var close = document.getElementById("close");
-		close.outerHTML = "<span id=\"close\" style=\"display: inline-block; position: absolute; top: 0px; right: 0px; width: 50px; height: 50px; filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + close.src + "')\" onmousedown=\"if (can_go_close()) set_opacity('close', 1.0)\" onmouseup=\"if (can_go_close()) { set_opacity('close', 0.7); go_close(); }\" onmouseout=\"if (can_go_close()) { set_opacity('close', 0.7); }\" />";
+		close.outerHTML = "<span id=\"close\" style=\"display: inline-block; position: absolute; top: 0px; right: 0px; width: 50px; height: 50px; filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + close.src + "')\" onmousedown=\"set_opacity('close', 1.0)\" onmouseup=\"set_opacity('close', 0.7); do_close();\" onmouseout=\"set_opacity('close', 0.7);\" />";
 	}
 }
