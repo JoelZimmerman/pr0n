@@ -11,10 +11,12 @@ var global_select = %SEL%;
     <script type="text/JavaScript" src="/pr0n-fullscreen.js"></script>
   </head>
   <body onload="init_ajax(); relayout(); window.onresize = relayout;" onkeydown="key_down(event.which);" onkeyup="key_up(event.which);">
-    <div class="container" id="main"></div>
-    <img id="previous" src="/previous.png" alt="&lt;-" onmousedown="if (can_go_previous()) set_opacity('previous', 1.0)" onmouseup="if (can_go_previous()) { set_opacity('previous', 0.7); go_previous(); }" onmouseout="if (can_go_previous()) { set_opacity('previous', 0.7); }" />
-    <img id="next" src="/next.png" alt="-&gt;" onmousedown="if (can_go_next()) set_opacity('next', 1.0)" onmouseup="if (can_go_next()) { set_opacity('next', 0.7); go_next(); }" onmouseout="if (can_go_next()) { set_opacity('next', 0.7); }" />
-    <img id="close" src="/close.png" alt="x" onmousedown="set_opacity('close', 1.0)" onmouseup="set_opacity('close', 0.7); do_close();" onmouseout="set_opacity('close', 0.7);" />
+    <div>
+      <div class="container" id="main"></div>
+      <img id="previous" src="/previous.png" alt="&lt;-" onmousedown="if (can_go_previous()) set_opacity('previous', 1.0)" onmouseup="if (can_go_previous()) { set_opacity('previous', 0.7); go_previous(); }" onmouseout="if (can_go_previous()) { set_opacity('previous', 0.7); }" />
+      <img id="next" src="/next.png" alt="-&gt;" onmousedown="if (can_go_next()) set_opacity('next', 1.0)" onmouseup="if (can_go_next()) { set_opacity('next', 0.7); go_next(); }" onmouseout="if (can_go_next()) { set_opacity('next', 0.7); }" />
+      <img id="close" src="/close.png" alt="x" onmousedown="set_opacity('close', 1.0)" onmouseup="set_opacity('close', 0.7); do_close();" onmouseout="set_opacity('close', 0.7);" />
+    </div>
   </body>
 </html>
 
