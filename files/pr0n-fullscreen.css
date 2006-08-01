@@ -13,7 +13,7 @@ body {
 
 /* IE centering hacks */
 #iehack {
-	position: absolute;
+	_position: absolute;
 	_top: 50%;
 	_left: 50%;
 }
