@@ -16,9 +16,9 @@ sub handler {
 	# Find the event and file name
 	my ($event,$filename,$xres,$yres);
 	my $infobox = 1;
-	if ($r->uri =~ m#^/([a-zA-Z0-9-]+)/original/([a-zA-Z0-9._-]+)$#) {
+	if ($r->uri =~ m#^/([a-zA-Z0-9-]+)/original/(nobox/)?([a-zA-Z0-9._-]+)$#) {
 		$event = $1;
-		$filename = $2;
+		$filename = $3;
 	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)/(nobox/)?([a-zA-Z0-9._-]+)$#) {
 		$event = $1;
 		$filename = $5;
