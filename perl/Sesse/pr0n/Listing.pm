@@ -9,7 +9,7 @@ sub handler {
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 
         # Internal? (Ugly?)
-	if ($r->get_server_name =~ /internal/) {
+	if ($r->get_server_name =~ /internal/ || $r->get_server_name =~ /skoyen\.bilder\.knatten\.com/) {
 		my $user = Sesse::pr0n::Common::check_access($r);
 		if (!defined($user)) {
 			return Apache2::Const::OK;
