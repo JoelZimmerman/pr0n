@@ -169,7 +169,7 @@ sub handler {
 				}
 
 				my $filename = $ref->{'filename'};
-				my $uri = $filename;
+				my $uri = $infobox . $filename;
 				if (defined($xres) && defined($yres) && $xres != -1) {
 					$uri = "${xres}x$yres/$infobox$filename";
 				} elsif (defined($xres) && $xres == -1) {
@@ -212,7 +212,7 @@ sub handler {
 				}
 
 				my $filename = $ref->{'filename'};
-				my $uri = $filename;
+				my $uri = $infobox . $filename;
 				if (defined($xres) && defined($yres) && $xres != -1) {
 					$uri = "${xres}x$yres/$infobox$filename";
 				} elsif (defined($xres) && $xres == -1) {
@@ -250,7 +250,7 @@ sub handler {
 				}
 
 				my $filename = $ref->{'filename'};
-				my $uri = $filename;
+				my $uri = $infobox . $filename;
 				if (defined($xres) && defined($yres) && $xres != -1) {
 					$uri = "${xres}x$yres/$infobox$filename";
 				} elsif (defined($xres) && $xres == -1) {
