@@ -34,7 +34,7 @@ sub handler {
 		return Apache2::Const::OK;
 	} elsif ($uri eq '/newevent.html') {
 		$r->content_type('text/html; charset=utf-8');
-		$r->sendfile(Sesse::pr0n::Common::get_base($r) . "newevent.html");
+		$r->sendfile(Sesse::pr0n::Common::get_base($r) . "files/newevent.html");
 		return Apache2::Const::OK;
 	} elsif ($uri =~ m#^/webdav#) {
 		return Sesse::pr0n::WebDAV::handler($r);
