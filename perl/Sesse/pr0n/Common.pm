@@ -145,7 +145,7 @@ sub get_dbh {
 		# Try to reconnect
 		Apache2::ServerUtil->server->log_error("Lost contact with PostgreSQL server, trying to reconnect...");
 		unless ($dbh = DBI->connect("dbi:Pg:dbname=pr0n;host=" . $Sesse::pr0n::Config::db_host,
-			$Sesse::pr0n::Config::db_user, $Sesse::pr0n::Config::db_password)) {
+			$Sesse::pr0n::Config::db_username, $Sesse::pr0n::Config::db_password)) {
 			$dbh = undef;
 			die "Couldn't connect to PostgreSQL database";
 		}
