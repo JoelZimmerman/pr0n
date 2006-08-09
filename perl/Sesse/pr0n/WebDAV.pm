@@ -456,8 +456,8 @@ EOF
 		{
 			# Enable transactions and error raising temporarily
 			local $dbh->{AutoCommit} = 0;
-			
 			local $dbh->{RaiseError} = 1;
+			my $fname;
 
 			# Try to insert this new file
 			eval {
@@ -468,7 +468,7 @@ EOF
 					undef, $newid, $event, $user, $takenby, $filename);
 
 				# Now save the file to disk
-				my $fname = Sesse::pr0n::Common::get_disk_location($r, $newid);
+				$fname = Sesse::pr0n::Common::get_disk_location($r, $newid);
 				open NEWFILE, ">$fname"
 					or die "$fname: $!";
 
@@ -499,6 +499,7 @@ EOF
 				# Some error occurred, rollback and bomb out
 				$dbh->rollback;
 				dberror($r, "Transaction aborted because $@");
+				unlink($fname);
 			}
 		}
 
