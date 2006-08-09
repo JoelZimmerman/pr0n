@@ -9,6 +9,10 @@ use MIME::Base64;
 sub handler {
 	my $r = shift;
 	my $dbh = Sesse::pr0n::Common::get_dbh();
+	
+	# We ignore the body, but we _must_ consume it fully before
+	# we output anything, or Squid will get seriously confused
+	$r->discard_request_body;
 
 	$r->headers_out->{'DAV'} = "1,2";
 
