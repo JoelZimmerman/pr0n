@@ -206,7 +206,6 @@ EOF
      </propstat>
   </response>
 EOF
-				$r->log->info("Full list");
 			}
 
 			$r->print("</multistatus>\n");
