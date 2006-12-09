@@ -144,8 +144,13 @@ function set_opacity(id, amount)
 				elem.style.filter = "";
 			}
 			elem.style.filter += "alpha(opacity=" + (amount*100.0) + ")";
-		} else {
-			elem.filters.alpha.opacity = (amount * 100.0);
+		} else {	
+			// ugh? this seems to break in color index mode...
+			if (typeof(elem.filters) == 'unknown') {
+				elem.style.filter = "alpha(opacity=" + (amount*100.0) + ")";
+			} else {
+				elem.filters.alpha.opacity = (amount * 100.0);
+			}
 		}
 	} else {                             // no alpha support
 		if (amount > 0.5) {
