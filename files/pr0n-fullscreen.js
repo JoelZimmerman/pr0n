@@ -96,12 +96,14 @@ function prepare_preload(img, width, height, evt, filename)
 		preload.src = "";
 		preload.parentNode.removeChild(preload);
 	}
-		
-	if (document.all) {  // IE-specific
-		img.onload = "display_image(" + width + "," + height + ",\"" + evt + "\",\"" + filename + "\",\"preload\");";
+
+	// grmf -- IE doesn't fire onload if the image was loaded from cache, so check for
+	// completeness first; should at least be _somewhat_ better
+	if (img.complete) {
+		display_image(width, height, evt, filename, "preload");
 	} else {
-		img.onload = function() { display_image(width, height, evt, filename, "preload"); }
-	}
+		img.onload = function() { display_image(width, height, evt, filename, "preload"); };
+	}	
 }
 
 function relayout()
