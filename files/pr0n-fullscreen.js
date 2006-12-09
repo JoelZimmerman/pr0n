@@ -70,7 +70,7 @@ function display_image(width, height, evt, filename, element_id)
 	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/" + filename;
 	var img = document.getElementById(element_id);
 	if (img != null) {
-		img.src = "";
+		img.src = "data:";
 		img.parentNode.removeChild(img);
 	}
 
@@ -93,7 +93,7 @@ function prepare_preload(img, width, height, evt, filename)
 	// cancel any pending preload
 	var preload = document.getElementById("preload");
 	if (preload != null) {
-		preload.src = "";
+		preload.src = "data:";
 		preload.parentNode.removeChild(preload);
 	}
 
