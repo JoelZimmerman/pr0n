@@ -182,10 +182,10 @@ sub update_width_height {
 	# Also find the date taken if appropriate (from the EXIF tag etc.)
 	my $info = Image::ExifTool::ImageInfo(get_disk_location($r, $id));
 	my $datetime = undef;
-
+			
 	if (defined($info->{'DateTimeOriginal'})) {
 		# Parse the date and time over to ISO format
-		if ($info->{'DateTimeOriginal'} =~ /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)$/ && $1 > 1990) {
+		if ($info->{'DateTimeOriginal'} =~ /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)(?:\+\d\d:\d\d)?$/ && $1 > 1990) {
 			$datetime = "$1-$2-$3 $4:$5:$6";
 		}
 	}
