@@ -107,7 +107,7 @@ sub handler {
 		$r->content_type("text/html; charset=utf-8");
 		Sesse::pr0n::Templates::print_template($r, "fullscreen-header", { title => "$name [$event]" });
 		while (my $ref = $q->fetchrow_hashref()) {
-			$r->print("        \"" . $ref->{'filename'} . "\",\n");
+			$r->print("        \"" . $infobox . $ref->{'filename'} . "\",\n");
 		}
 
 		my %settings_no_fullscreen = %settings;
