@@ -500,7 +500,7 @@ EOF
 			if ($@) {
 				# Some error occurred, rollback and bomb out
 				$dbh->rollback;
-				dberror($r, "Transaction aborted because $@");
+				error($r, "Transaction aborted because $@");
 				unlink($fname);
 			}
 		}
