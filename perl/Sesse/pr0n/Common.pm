@@ -128,7 +128,7 @@ sub get_query_string {
 		next unless defined($value);
 		next if (defined($defparam->{$key}) && $value == $defparam->{$key});
 	
-		$str .= ($first) ? "?" : '&amp;';
+		$str .= ($first) ? "?" : ';';
 		$str .= "$key=$value";
 		$first = 0;
 	}
