@@ -11,6 +11,7 @@ use Apache2::Const -compile => ':common';
 use Apache2::Log;
 use ModPerl::Util;
 
+use Carp;
 use DBI;
 use DBD::Pg;
 use Image::Magick;
@@ -67,6 +68,7 @@ sub error {
         footer($r);
 
 	$r->log->error($err);
+	$r->log->error("Stack trace follows: " . Carp::longmess());
 
 	ModPerl::Util::exit();
 }
