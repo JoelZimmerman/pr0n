@@ -77,12 +77,18 @@ sub handler {
 		$num = undef;
 	}
 
-	my $ref = $dbh->selectrow_hashref('SELECT * FROM events WHERE id=? AND vhost=?',
+	my $ref = $dbh->selectrow_hashref('SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE id=? AND vhost=?',
 		undef, $event, $r->get_server_name)
 		or error($r, "Could not find event $event", 404, "File not found");
 
 	my $name = $ref->{'name'};
 	my $date = $ref->{'date'};
+	$r->set_last_modified($ref->{'last_update'});
+		                
+	# If the client can use cache, do so
+	if ((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
+		return $rc;
+	}
 	
 	# Count the number of selected images.
 	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE event=? AND selected=\'t\'", undef, $event);

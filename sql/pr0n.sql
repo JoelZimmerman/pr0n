@@ -2,7 +2,8 @@ CREATE TABLE events (
     id character varying NOT NULL PRIMARY KEY,
     date character varying NOT NULL,
     name character varying NOT NULL,
-    vhost character varying NOT NULL
+    vhost character varying NOT NULL,
+    last_update timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- In a separate table to avoid deadlocks.
