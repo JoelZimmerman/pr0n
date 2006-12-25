@@ -134,8 +134,12 @@ sub get_query_string {
 }
 
 sub print_link {
-	my ($r, $title, $baseurl, $param, $defparam) = @_;
-	my $str = "<a href=\"$baseurl" . get_query_string($param, $defparam) . "\">$title</a>";
+	my ($r, $title, $baseurl, $param, $defparam, $accesskey) = @_;
+	my $str = "<a href=\"$baseurl" . get_query_string($param, $defparam) . "\"";
+	if (defined($accesskey) && length($accesskey) == 1) {
+		$str .= " accesskey=\"$accesskey\"";
+	}
+	$str .= ">$title</a>";
 	$r->print($str);
 }
 

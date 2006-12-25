@@ -437,7 +437,8 @@ sub print_nextprev {
 		my %newsettings = %$settings;
 		$newsettings{'start'} = $newstart;
 		chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'prevpage'));
-		Sesse::pr0n::Common::print_link($r, "$title ($newstart-$newend)\n", "/$event/", \%newsettings, $defsettings);
+		chomp (my $accesskey = Sesse::pr0n::Templates::fetch_template($r, 'prevaccesskey'));
+		Sesse::pr0n::Common::print_link($r, "$title ($newstart-$newend)\n", "/$event/", \%newsettings, $defsettings, $accesskey);
 	}
 
 	# This
@@ -455,7 +456,8 @@ sub print_nextprev {
 		my %newsettings = %$settings;
 		$newsettings{'start'} = $newstart;
 		chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'nextpage'));
-		Sesse::pr0n::Common::print_link($r, "$title ($newstart-$newend)", "/$event/", \%newsettings, $defsettings);
+		chomp (my $accesskey = Sesse::pr0n::Templates::fetch_template($r, 'nextaccesskey'));
+		Sesse::pr0n::Common::print_link($r, "$title ($newstart-$newend)", "/$event/", \%newsettings, $defsettings, $accesskey);
 	}
 
 	$r->print("    </p>\n");
