@@ -37,7 +37,7 @@ sub handler {
 		$r->set_content_length($size);	
 		$r->set_last_modified($mtime);
 
-		if((my $rc = $r->meets_conditions) != OK) {
+		if((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
 			return $rc;
 		}
 
