@@ -580,7 +580,7 @@ EOF
 		$dbh->do('DELETE FROM images WHERE event=? AND filename=?;',
 			undef, $event, $filename)
 			or dberror($r, "Couldn't remove file");
-		$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE event=?',
+		$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=?',
 			undef, $event)
 			or dberror($r, "Couldn't invalidate cache");
 		$r->status(200);
