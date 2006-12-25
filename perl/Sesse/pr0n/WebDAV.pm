@@ -466,7 +466,7 @@ EOF
 					
 				$dbh->do('INSERT INTO images (id,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?);',
 					undef, $newid, $event, $user, $takenby, $filename);
-				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE event=?',
+				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=?',
 					undef, $event);
 
 				# Now save the file to disk
