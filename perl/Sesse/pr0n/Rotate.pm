@@ -37,7 +37,7 @@ sub handler {
 				if ($rotval == 90 || $rotval == 270) {
 					my $q = $dbh->do('UPDATE images SET height=width,width=height WHERE id=?', undef, $id)
 						or dberror($r, "Size clear of $id failed");
-					$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE event=( SELECT event FROM images WHERE id=? )',
+					$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=( SELECT event FROM images WHERE id=? )',
 						undef, $id)
 						or dberror($r, "Cache invalidation at $id failed");
 				}
@@ -46,7 +46,7 @@ sub handler {
 				{
 
 					eval {
-						$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE event=( SELECT event FROM images WHERE id=? )',
+						$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=( SELECT event FROM images WHERE id=? )',
 							undef, $id);
 						$dbh->do('INSERT INTO deleted_images SELECT * FROM images WHERE id=?',
 							undef, $id);
