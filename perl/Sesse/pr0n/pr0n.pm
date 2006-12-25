@@ -29,7 +29,18 @@ sub handler {
 		 $uri eq '/close.png' ||
 		 $uri =~ m#^/usage/([a-zA-Z0-9_.]+)$#) {
 		$uri =~ s#^/##;
+		my $fname = Sesse::pr0n::Common::get_base($r) . 'files/' . $uri;
+		my (undef, undef, undef, undef, undef, undef, undef, $size, undef, $mtime) = stat($fname)
+			or error($r, "stat of $fname: $!");
+
 		$r->content_type(Sesse::pr0n::Common::get_mimetype_from_filename($uri));
+		$r->set_content_length($size);	
+		$r->set_last_modified($mtime);
+
+		if((my $rc = $r->meets_conditions) != OK) {
+			return $rc;
+		}
+
 		$r->sendfile(Sesse::pr0n::Common::get_base($r) . 'files/' . $uri);
 		return Apache2::Const::OK;
 	} elsif ($uri eq '/newevent.html') {
