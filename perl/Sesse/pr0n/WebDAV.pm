@@ -466,6 +466,8 @@ EOF
 					
 				$dbh->do('INSERT INTO images (id,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?);',
 					undef, $newid, $event, $user, $takenby, $filename);
+				$dbh->do('UPDATE images SET last_update=CURRENT_TIMESTAMP WHERE event=?',
+					undef, $event);
 
 				# Now save the file to disk
 				$fname = Sesse::pr0n::Common::get_disk_location($r, $newid);
@@ -578,6 +580,9 @@ EOF
 		$dbh->do('DELETE FROM images WHERE event=? AND filename=?;',
 			undef, $event, $filename)
 			or dberror($r, "Couldn't remove file");
+		$dbh->do('UPDATE images SET last_update=CURRENT_TIMESTAMP WHERE event=?',
+			undef, $event)
+			or dberror($r, "Couldn't invalidate cache");
 		$r->status(200);
 		$r->print("OK");
 
