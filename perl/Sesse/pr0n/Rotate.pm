@@ -43,6 +43,8 @@ sub handler {
 				{
 
 					eval {
+						$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE event=( SELECT event FROM images WHERE id=? )',
+							undef, $id);
 						$dbh->do('INSERT INTO deleted_images SELECT * FROM images WHERE id=?',
 								undef, $id);
 						$dbh->do('DELETE FROM images WHERE id=?',
