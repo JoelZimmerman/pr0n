@@ -85,5 +85,5 @@ have a typical Apache 2 vhost snippet, though:
 
 Also, mod_deflate is recommended; just install it and use the default
 configuration, and it will work transparently. (You might want to add
-text/css to the list of compressed formats, but it's not really _that_
-important.)
+text/css and application/x-javascript to the list of compressed
+formats, but it's not really _that_ important.)
