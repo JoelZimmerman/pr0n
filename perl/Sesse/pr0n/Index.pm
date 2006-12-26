@@ -34,8 +34,8 @@ sub handler {
 	my %defsettings = (
 		thumbxres => 80,
 		thumbyres => 64,
-		xres => undef,
-		yres => undef,
+		xres => -1,
+		yres => -1,
 		start => 1,
 		num => -1,
 		all => 1,
@@ -44,6 +44,11 @@ sub handler {
 		sel => 0,
 		fullscreen => 0,
 	);
+	
+	# Any NEF files => default to processing
+	my $ref = $dbh->selectrow_hashref('SELECT * FROM images WHERE event=? AND LOWER(filename) LIKE \'%.nef\' LIMIT 1',
+		undef, $event)
+		and $defsettings{'xres'} = $defsettings{'yres'} = undef;
 	
 	# Reduce the front page load when in overload mode.
 	if (Sesse::pr0n::Overload::is_in_overload($r)) {
