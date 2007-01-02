@@ -18,7 +18,7 @@ function OnNext()
 		if (form.existing.checked) {
 			var dataTag = xml.createNode(1, "formdata", "");
 			dataTag.setAttribute("name", "event");
-			dataTag.text = "test"; //form.existingevent.value; FIXME
+			dataTag.text = form.existingevent.value;
 			postTag.appendChild(dataTag);
 		} else {
 			var dataTag = xml.createNode(1, "formdata", "");
