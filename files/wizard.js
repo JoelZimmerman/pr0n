@@ -8,10 +8,12 @@ function OnNext()
 	var xml = window.external.Property("TransferManifest");
 	var files = xml.selectNodes("transfermanifest/filelist/file");
 	var form = document.getElementById('form1');
+	var vhost = ((window.location+"").split("/"))[2];
+	var evname;
 
 	for (i = 0; i < files.length; i++) {
 		var postTag = xml.createNode(1, "post", "");
-		postTag.setAttribute("href", "http://pr0n-internal.sesse.net/webdav/upload/");
+		postTag.setAttribute("href", "http://" + vhost + "/webdav/upload/");
 		postTag.setAttribute("name", "image");
 
 		// event
@@ -20,6 +22,8 @@ function OnNext()
 			dataTag.setAttribute("name", "event");
 			dataTag.text = form.existingevent.value;
 			postTag.appendChild(dataTag);
+
+			evname = form.existingevent.value;
 		} else {
 			var dataTag = xml.createNode(1, "formdata", "");
 			dataTag.setAttribute("name", "neweventid");
@@ -35,6 +39,8 @@ function OnNext()
 			dataTag.setAttribute("name", "neweventdesc");
 			dataTag.text = form.neweventdesc.value;
 			postTag.appendChild(dataTag);
+			
+			evname = form.neweventid.value;
 		}
 
 		// who took this
@@ -56,9 +62,11 @@ function OnNext()
 
 	var uploadTag = xml.createNode(1, "uploadinfo", "");
 	var htmluiTag = xml.createNode(1, "htmlui", "");
-	htmluiTag.text = "http://pr0n.sesse.net/test/";
+	htmluiTag.text = "http://" + vhost + "/" + evname + "/";
 	uploadTag.appendChild(htmluiTag);
-	
+
+	xml.documentElement.appendChild(uploadTag);
+
 	window.external.FinalNext();
 }
 
