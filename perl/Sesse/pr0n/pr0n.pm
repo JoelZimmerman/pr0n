@@ -6,6 +6,8 @@ use Sesse::pr0n::Rotate;
 use Sesse::pr0n::Select;
 use Sesse::pr0n::WebDAV;
 use Sesse::pr0n::NewEvent;
+use Sesse::pr0n::Registry;
+use Sesse::pr0n::Wizard;
 
 package Sesse::pr0n::pr0n;
 use strict;	
@@ -27,6 +29,9 @@ sub handler {
 		 $uri eq '/previous.png' ||
 		 $uri eq '/next.png' ||
 		 $uri eq '/close.png' ||
+		 $uri eq '/wizard.js' ||
+		 $uri eq '/wizard.css' ||
+		 $uri eq '/pr0n.ico' ||
 		 $uri =~ m#^/usage/([a-zA-Z0-9_.]+)$#) {
 		$uri =~ s#^/##;
 		my $fname = Sesse::pr0n::Common::get_base($r) . 'files/' . $uri;
@@ -58,6 +63,10 @@ sub handler {
 		return Sesse::pr0n::Select::handler($r);
 	} elsif ($uri =~ m#^/newevent$#) {
 		return Sesse::pr0n::NewEvent::handler($r);
+	} elsif ($uri =~ m#^/registry$#) {
+		return Sesse::pr0n::Registry::handler($r);
+	} elsif ($uri =~ m#^/wizard$#) {
+		return Sesse::pr0n::Wizard::handler($r);
 	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/?$#) {
 		return Sesse::pr0n::Index::handler($r);
 	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/(\d+x\d+/|original/)?(nobox/)?[a-zA-Z0-9._-]+$#) {
