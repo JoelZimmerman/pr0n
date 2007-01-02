@@ -549,6 +549,27 @@ EOF
 		if (defined($takenby_given) && $takenby_given !~ /^\s*$/ && $takenby_given !~ /[<>&]/ && length($takenby_given) <= 100) {
 			$takenby = $takenby_given;
 		}
+		
+		my $ne_id = Sesse::pr0n::Common::guess_charset($apr->param('neweventid'));
+		my $ne_date = Sesse::pr0n::Common::guess_charset($apr->param('neweventdate'));
+		my $ne_desc = Sesse::pr0n::Common::guess_charset($apr->param('neweventdesc'));
+		if (defined($ne_id)) {
+			# Trying to add a new event, let's see if it already exists
+			my $q = $dbh->prepare('SELECT COUNT(*) AS cnt FROM events WHERE id=? AND vhost=?')
+				or dberror($r, "Couldn't prepare event count");
+			$q->execute($ne_id, $r->get_server_name)
+				or dberror($r, "Couldn't execute event count");
+			my $ref = $q->fetchrow_hashref;
+
+			if ($ref->{'cnt'} == 0) {
+				my @errors = Sesse::pr0n::Common::add_new_event($dbh, $ne_id, $ne_date, $ne_desc, $r->get_server_name);
+				if (scalar @errors > 0) {
+					die "Couldn't add new event $ne_id: " . join(', ', @errors);
+				}
+			}
+
+			$event = $ne_id;
+		}
 
 		# Remove evil characters
 		if ($filename =~ /[^a-zA-Z0-9._-]/) {
