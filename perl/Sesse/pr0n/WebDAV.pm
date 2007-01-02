@@ -544,13 +544,7 @@ EOF
 		}
 		
 		# Ugh, Windows XP seems to be sending this in... something that's not UTF-8, at least
-		my $takenby_given;
-		eval {
-			$takenby_given = Encode::decode("utf-8", $apr->param('takenby'), Encode::FB_CROAK);
-		};
-		if ($@) {
-			$takenby_given = Encode::decode("iso8859-1", $apr->param('takenby'));
-		}
+		my $takenby_given = Sesse::pr0n::Common::guess_charset($apr->param('takenby'));
 
 		if (defined($takenby_given) && $takenby_given !~ /^\s*$/ && $takenby_given !~ /[<>&]/ && length($takenby_given) <= 100) {
 			$takenby = $takenby_given;

@@ -554,6 +554,20 @@ sub add_new_event {
 	return ();
 }
 
+sub guess_charset {
+	my $text = shift;
+	my $decoded;
+
+	eval {
+		$decoded = Encode::decode("utf-8", $text, Encode::FB_CROAK);
+	};
+	if ($@) {
+		$decoded = Encode::decode("iso8859-1", $text);
+	}
+
+	return $decoded;
+}
+
 1;
 
 
