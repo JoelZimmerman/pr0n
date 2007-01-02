@@ -12,6 +12,7 @@ use Apache2::Log;
 use ModPerl::Util;
 
 use Carp;
+use Encode;
 use DBI;
 use DBD::Pg;
 use Image::Magick;

@@ -5,6 +5,8 @@ use warnings;
 use Sesse::pr0n::Common qw(error dberror);
 use Digest::SHA1;
 use MIME::Base64;
+use Apache2::Request;
+use Apache2::Upload;
 
 sub handler {
 	my $r = shift;
@@ -522,7 +524,115 @@ EOF
 
 		return Apache2::Const::OK;
 	}
+	
+	# Used by the XP publishing wizard -- largely the same as the code above
+	# but vastly simplified. Should we refactor?
+	if ($r->method eq "POST") {
+		my $apr = Apache2::Request->new($r);
+		my $client_size = $apr->param('size');
+		my $event = $apr->param('event');
+				
+		my $file = $apr->upload('image');
+		my $filename = $file->filename();
+		if ($client_size != $file->size()) {
+			$r->content_type('text/plain; charset="utf-8"');
+			$r->status(403);
+			$r->print("Client-size resizing detected; refusing automatically");
 
+			$r->log->info("Client-size resized upload of $event/$filename detected");
+			return Apache2::Const::OK;
+		}
+		
+		# Ugh, Windows XP seems to be sending this in... something that's not UTF-8, at least
+		my $takenby_given;
+		eval {
+			$takenby_given = Encode::decode("utf-8", $apr->param('takenby'), Encode::FB_CROAK);
+		};
+		if ($@) {
+			$takenby_given = Encode::decode("iso8859-1", $apr->param('takenby'));
+		}
+
+		if (defined($takenby_given) && $takenby_given !~ /^\s*$/ && $takenby_given !~ /[<>&]/ && length($takenby_given) <= 100) {
+			$takenby = $takenby_given;
+		}
+
+		# Remove evil characters
+		if ($filename =~ /[^a-zA-Z0-9._-]/) {
+			$filename =~ tr/a-zA-Z0-9.-/_/c;
+		}
+		
+		# Get the new ID
+		my $ref = $dbh->selectrow_hashref("SELECT NEXTVAL('imageid_seq') AS id;");
+		my $newid = $ref->{'id'};
+		if (!defined($newid)) {
+			dberror($r, "Couldn't get new ID");
+		}
+		
+		# Autorename if we need to
+		{
+			my $ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS numfiles FROM images WHERE event=? AND filename=?",
+				undef, $event, $filename)
+				or dberror($r, "Couldn't check for existing files");
+			if ($ref->{'numfiles'} > 0) {
+				$r->log->info("Renaming $filename to $newid.jpeg");
+				$filename = "$newid.jpeg";
+			}
+		}
+		
+		{
+			# Enable transactions and error raising temporarily
+			local $dbh->{AutoCommit} = 0;
+			local $dbh->{RaiseError} = 1;
+			my $fname;
+
+			# Try to insert this new file
+			eval {
+				$dbh->do('INSERT INTO images (id,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?);',
+					undef, $newid, $event, $user, $takenby, $filename);
+				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=?',
+					undef, $event);
+
+				# Now save the file to disk
+				$fname = Sesse::pr0n::Common::get_disk_location($r, $newid);
+				open NEWFILE, ">$fname"
+					or die "$fname: $!";
+
+				my $buf;
+				$file->slurp($buf);
+				print NEWFILE $buf or die "write($fname): $!";
+				close NEWFILE or die "close($fname): $!";
+				
+				# Orient stuff correctly
+				system("/usr/bin/exifautotran", $fname) == 0
+					or die "/usr/bin/exifautotran: $!";
+
+				# Make cache while we're at it.
+				Sesse::pr0n::Common::ensure_cached($r, $filename, $newid, -1, -1, 1, 80, 64, 320, 256, -1, -1);
+				
+				# OK, we got this far, commit
+				$dbh->commit;
+
+				$r->log->notice("Successfully wrote $event/$filename to $fname");
+			};
+			if ($@) {
+				# Some error occurred, rollback and bomb out
+				$dbh->rollback;
+				error($r, "Transaction aborted because $@");
+				unlink($fname);
+		
+				$r->content_type('text/plain; charset="utf-8"');
+				$r->status(500);
+				$r->print("Error: $@");
+			}
+		}
+
+		$r->content_type('text/plain; charset="utf-8"');
+		$r->status(201);
+		$r->print("OK");
+
+		return Apache2::Const::OK;
+	}
+	
 	# Yes, we fake locks. :-)
 	if ($r->method eq "LOCK") {
 		if ($r->uri !~ m#^/webdav/upload/([a-zA-Z0-9-]+)/(autorename/)?([a-zA-Z0-9._-]+)$#) {
@@ -601,7 +711,7 @@ EOF
 		$r->print("Sorry, you do not have access to that feature.");
 		return Apache2::Const::OK;
 	}
-	
+
 	$r->content_type('text/plain; charset=utf-8');
 	$r->log->error("unknown method " . $r->method);
 	$r->status(500);
