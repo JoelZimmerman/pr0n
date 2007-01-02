@@ -59,11 +59,6 @@ function OnNext()
 	htmluiTag.text = "http://pr0n.sesse.net/test/";
 	uploadTag.appendChild(htmluiTag);
 	
-	/*var target = xml.createNode(1, "target", "");
-	target.setAttribute("href", "https://pr0n-internal.sesse.net/webdav/upload/test/");
-	uploadTag.appendChild(target); */
-
-	xml.documentElement.appendChild(uploadTag);
 	window.external.FinalNext();
 }
 
