@@ -82,7 +82,7 @@ sub handler {
 		$num = undef;
 	}
 
-	my $ref = $dbh->selectrow_hashref('SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE id=? AND vhost=?',
+	$ref = $dbh->selectrow_hashref('SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE id=? AND vhost=?',
 		undef, $event, $r->get_server_name)
 		or error($r, "Could not find event $event", 404, "File not found");
 
