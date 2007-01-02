@@ -526,6 +526,34 @@ sub gcd {
 	return gcd($b, $a % $b);
 }
 
+sub add_new_event {
+	my ($dbh, $id, $date, $desc, $vhost) = @_;
+	my @errors = ();
+
+	if (!defined($id) || $id =~ /^\s*$/ || $id !~ /^([a-zA-Z0-9-]+)$/) {
+		push @errors, "Manglende eller ugyldig ID.";
+	}
+	if (!defined($date) || $date =~ /^\s*$/ || $date =~ /[<>&]/ || length($date) > 100) {
+		push @errors, "Manglende eller ugyldig dato.";
+	}
+	if (!defined($desc) || $desc =~ /^\s*$/ || $desc =~ /[<>&]/ || length($desc) > 100) {
+		push @errors, "Manglende eller ugyldig beskrivelse.";
+	}
+	
+	if (scalar @errors > 0) {
+		return @errors;
+	}
+		
+	$dbh->do("INSERT INTO events (id,date,name,vhost) VALUES (?,?,?,?)",
+		undef, $id, $date, $desc, $vhost)
+		or return ("Kunne ikke sette inn ny hendelse" . $dbh->errstr);
+	$dbh->do("INSERT INTO last_picture_cache (event,last_picture) VALUES (?,NULL)",
+		undef, $id)
+		or return ("Kunne ikke sette inn ny cache-rad" . $dbh->errstr);
+
+	return ();
+}
+
 1;
 
 

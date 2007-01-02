@@ -15,36 +15,19 @@ sub handler {
 	}
 
 	Sesse::pr0n::Common::header($r, "Legger til ny hendelse");
-
-	my $ok = 1;
-
+	
 	my $id = $apr->param('id');
-	if (!defined($id) || $id =~ /^\s*$/ || $id !~ /^([a-zA-Z0-9-]+)$/) {
-		$r->print("    <p>Feil: Manglende eller ugyldig ID.</p>\n");
-		$ok = 0;
-	}
-
 	my $date = $apr->param('date');
-	if (!defined($date) || $date =~ /^\s*$/ || $date =~ /[<>&]/ || length($date) > 100) {
-		$r->print("    <p>Feil: Manglende eller ugyldig dato.</p>\n");
-		$ok = 0;
-	}
-	
 	my $desc = $apr->param('desc');
-	if (!defined($desc) || $desc =~ /^\s*$/ || $desc =~ /[<>&]/ || length($desc) > 100) {
-		$r->print("    <p>Feil: Manglende eller ugyldig beskrivelse.</p>\n");
-		$ok = 0;
-	}
+
+	my @errors = Sesse::pr0n::Common::add_new_event($dbh, $id, $date, $desc, $r->get_server_name);
 	
-	if ($ok == 0) {
+	if (scalar @errors > 0) {
+		for my $err (@errors) {
+			$r->print("    <p>Feil: $err</p>\n");
+		}
 		$r->print("    <p>Rett opp i feilene over før du går videre.</p>\n");
 	} else {
-		$dbh->do("INSERT INTO events (id,date,name,vhost) VALUES (?,?,?,?)",
-			undef, $id, $date, $desc, $r->get_server_name)
-			or dberror($r, "Kunne ikke sette inn ny hendelse");
-		$dbh->do("INSERT INTO last_picture_cache (event,last_picture) VALUES (?,NULL)",
-			undef, $id)
-			or dberror($r, "Kunne ikke sette inn ny cache-rad");
 		$r->print("    <p>Hendelsen '$id' lagt til.</p>");
 	}
 	
