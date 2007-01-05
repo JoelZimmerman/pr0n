@@ -159,6 +159,7 @@ sub handler {
 		# Print out all thumbnails
 		if ($rot == 1) {
 			$r->print("    <form method=\"post\" action=\"/rotate\">\n");
+			$r->print("      <input type=\"hidden\" name=\"event\" value=\"$event\" />\n");
 		
 			while (my $ref = $q->fetchrow_hashref()) {
 				my $imgsz = "";

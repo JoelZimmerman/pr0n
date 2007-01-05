@@ -63,6 +63,10 @@ sub handler {
 			}
 		}
 	}
+	
+	my $event = $apr->param('event');
+	$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=?', undef, $event)
+		or dberror($r, "Cache invalidation failed");
 
 	Sesse::pr0n::Common::footer($r);
 
