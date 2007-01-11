@@ -362,7 +362,12 @@ sub ensure_cached {
 			# Strip EXIF tags etc.
 			$cimg->Strip();
 
-			$err = $cimg->write(filename=>$cachename, quality=>$quality);
+			if (($nwidth >= 640 && $nheight >= 480) ||
+			    ($nwidth >= 480 && $nheight >= 640)) {
+				$err = $cimg->write(filename=>$cachename, quality=>$quality, interlace=>'Plane');
+			} else {
+				$err = $cimg->write(filename=>$cachename, quality=>$quality);
+			}
 
 			undef $cimg;
 
