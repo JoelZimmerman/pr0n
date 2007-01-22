@@ -86,8 +86,8 @@ sub handler {
 		undef, $event, $r->get_server_name)
 		or error($r, "Could not find event $event", 404, "File not found");
 
-	my $name = $ref->{'name'};
-	my $date = $ref->{'date'};
+	my $date = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'date'}));
+	my $name = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'name'}));
 	$r->set_last_modified($ref->{'last_update'});
 		                
 	# If the client can use cache, do so

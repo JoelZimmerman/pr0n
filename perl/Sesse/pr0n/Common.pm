@@ -23,6 +23,7 @@ use MIME::Types;
 use LWP::Simple;
 # use Image::Info;
 use Image::ExifTool;
+use HTML::Entities;
 
 BEGIN {
 	use Exporter ();

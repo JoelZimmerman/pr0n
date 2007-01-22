@@ -31,8 +31,8 @@ sub handler {
 
 	while (my $ref = $q->fetchrow_hashref()) {
 		my $id = $ref->{'id'};
-		my $date = $ref->{'date'};
-		my $name = $ref->{'name'};
+		my $date = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'date'}));
+		my $name = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'name'}));
 		
 		$r->print("      <li><a href=\"$id/\">$name</a> ($date)</li>\n");
 	}
