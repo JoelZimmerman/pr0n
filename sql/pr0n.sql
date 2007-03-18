@@ -13,8 +13,8 @@ CREATE TABLE last_picture_cache (
 );
 
 CREATE TABLE images (
-    id serial NOT NULL PRIMARY KEY REFERENCES events(id),
-    event character varying NOT NULL,
+    id serial NOT NULL PRIMARY KEY,
+    event character varying NOT NULL REFERENCES events(id),
     filename character varying NOT NULL,
     width integer DEFAULT -1 NOT NULL,
     height integer DEFAULT -1 NOT NULL,
