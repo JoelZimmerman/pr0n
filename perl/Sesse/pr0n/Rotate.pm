@@ -50,6 +50,8 @@ sub handler {
 							undef, $id);
 						$dbh->do('INSERT INTO deleted_images SELECT * FROM images WHERE id=?',
 							undef, $id);
+						$dbh->do('DELETE FROM exif_info WHERE image=?',
+							undef, $id);
 						$dbh->do('DELETE FROM images WHERE id=?',
 							undef, $id);
 					};
