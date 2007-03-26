@@ -36,28 +36,32 @@ while (my $ref = $q->fetchrow_hashref) {
 		}
 	}
 
-	$dbh->do('UPDATE images SET width=?, height=?, date=? WHERE id=?',
-		 undef, $width, $height, $datetime, $id)
-		or die "Couldn't update width/height in SQL: $!";
+	{
+		local $dbh->{AutoCommit} = 0;
 
-	$dbh->do('DELETE FROM exif_info WHERE image=?',
-		undef, $id)
-		or die "Couldn't delete old EXIF information in SQL: $!";
+		$dbh->do('UPDATE images SET width=?, height=?, date=? WHERE id=?',
+			 undef, $width, $height, $datetime, $id)
+			or die "Couldn't update width/height in SQL: $!";
 
-	my $q = $dbh->prepare('INSERT INTO exif_info (image,tag,value) VALUES (?,?,?)')
-		or die "Couldn't prepare inserting EXIF information: $!";
+		$dbh->do('DELETE FROM exif_info WHERE image=?',
+			undef, $id)
+			or die "Couldn't delete old EXIF information in SQL: $!";
 
-	for my $key (keys %$info) {
-		next if ref $info->{$key};
-		$q->execute($id, $key, guess_charset($info->{$key}))
-			or die "Couldn't insert EXIF information in database: $!";
+		my $q = $dbh->prepare('INSERT INTO exif_info (image,tag,value) VALUES (?,?,?)')
+			or die "Couldn't prepare inserting EXIF information: $!";
+
+		for my $key (keys %$info) {
+			next if ref $info->{$key};
+			$q->execute($id, $key, guess_charset($info->{$key}))
+				or die "Couldn't insert EXIF information in database: $!";
+		}
+
+		# update the last_picture cache as well (this should of course be done
+		# via a trigger, but this is less complicated :-) )
+		$dbh->do('UPDATE last_picture_cache SET last_picture=GREATEST(last_picture, ?) WHERE event=(SELECT event FROM images WHERE id=?)',
+			undef, $datetime, $id)
+			or die "Couldn't update last_picture in SQL: $!";
 	}
-
-	# update the last_picture cache as well (this should of course be done
-	# via a trigger, but this is less complicated :-) )
-	$dbh->do('UPDATE last_picture_cache SET last_picture=GREATEST(last_picture, ?) WHERE event=(SELECT event FROM images WHERE id=?)',
-		undef, $datetime, $id)
-		or die "Couldn't update last_picture in SQL: $!";
 
 	print "Updated $id.\n";
 }
