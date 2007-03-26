@@ -155,14 +155,16 @@ sub handler {
 		
 		# Find the equipment used
 		my $eq = $dbh->prepare('
-			SELECT DISTINCT
+			SELECT 
 				model.value AS model,
-				coalesce(lens_spec.value, lens.value) AS lens
+				coalesce(lens_spec.value, lens.value) AS lens,
+				COUNT(*) AS num
 			FROM images i
 				LEFT JOIN exif_info model ON i.id=model.image
 				LEFT JOIN ( SELECT * FROM exif_info WHERE tag=\'Lens\' ) lens ON i.id=lens.image
 				LEFT JOIN ( SELECT * FROM exif_info WHERE tag=\'LensSpec\') lens_spec ON i.id=lens_spec.image
 			WHERE event=? AND model.tag=\'Model\'
+			GROUP BY 1,2
 			ORDER BY 1,2')
 			or die "Couldn't prepare to find equipment: $!";
 		$eq->execute($event)
@@ -175,8 +177,9 @@ sub handler {
 				#
 				# Some compact cameras seem to add lens info sometimes and not at other
 				# times; if we have seen a camera with at least one specific lens earlier,
-				# just ignore entries without a lens.
+				# just combine entries without a lens with the previous one.
 				#
+				$equipment[$#equipment]->{'num'} += $ref->{'num'};
 				next;
 			}
 			push @equipment, $ref;
@@ -187,11 +190,14 @@ sub handler {
 		if (scalar @equipment > 0) {
 			Sesse::pr0n::Templates::print_template($r, "equipment-start");
 			for my $e (@equipment) {
-				$r->print("  <li>" . $e->{'model'});
-				if (defined($e->{'lens'})) {
-					$r->print(", " . $e->{'lens'} . "</li>\n");
+				my $eqspec = $e->{'model'};
+				$eqspec .= ', ' . $e->{'lens'} if (defined($e->{'lens'}));
+
+				# This isn't correct for all languages. Fix if we ever need to care. :-)
+				if ($e->{'num'} == 1) {
+					Sesse::pr0n::Templates::print_template($r, "equipment-item-singular", { eqspec => $eqspec });
 				} else {
-					$r->print("</li>\n");
+					Sesse::pr0n::Templates::print_template($r, "equipment-item", { eqspec => $eqspec, num => $e->{'num'} });
 				}
 			}
 			Sesse::pr0n::Templates::print_template($r, "equipment-end");
