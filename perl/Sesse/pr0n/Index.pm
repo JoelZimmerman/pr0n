@@ -152,6 +152,51 @@ sub handler {
 		print_nextprev($r, $event, \%settings, \%defsettings);
 		print_selected($r, $event, \%settings, \%defsettings) if ($num_selected > 0);
 		print_fullscreen($r, $event, \%settings, \%defsettings);
+		
+		# Find the equipment used
+		my $eq = $dbh->prepare('
+			SELECT DISTINCT
+				model.value AS model,
+				coalesce(lens_spec.value, lens.value) AS lens
+			FROM images i
+				LEFT JOIN exif_info model ON i.id=model.image
+				LEFT JOIN ( SELECT * FROM exif_info WHERE tag=\'Lens\' ) lens ON i.id=lens.image
+				LEFT JOIN ( SELECT * FROM exif_info WHERE tag=\'LensSpec\') lens_spec ON i.id=lens_spec.image
+			WHERE event=? AND model.tag=\'Model\'
+			ORDER BY 1,2')
+			or die "Couldn't prepare to find equipment: $!";
+		$eq->execute($event)
+			or die "Couldn't find equipment: $!";
+
+		my @equipment = ();
+		my %cameras_seen = ();
+		while (my $ref = $eq->fetchrow_hashref) {
+			if (!defined($ref->{'lens'}) && exists($cameras_seen{$ref->{'model'}})) {
+				#
+				# Some compact cameras seem to add lens info sometimes and not at other
+				# times; if we have seen a camera with at least one specific lens earlier,
+				# just ignore entries without a lens.
+				#
+				next;
+			}
+			push @equipment, $ref;
+			$cameras_seen{$ref->{'model'}} = 1;
+		}
+		$eq->finish;
+
+		if (scalar @equipment > 0) {
+			Sesse::pr0n::Templates::print_template($r, "equipment-start");
+			for my $e (@equipment) {
+				$r->print("  <li>" . $e->{'model'});
+				if (defined($e->{'lens'})) {
+					$r->print(", " . $e->{'lens'} . "</li>\n");
+				} else {
+					$r->print("</li>\n");
+				}
+			}
+			Sesse::pr0n::Templates::print_template($r, "equipment-end");
+		}
+
 
 		my $toclose = 0;
 		my $lastupl = "";
