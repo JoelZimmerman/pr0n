@@ -156,8 +156,8 @@ sub handler {
 		# Find the equipment used
 		my $eq = $dbh->prepare('
 			SELECT 
-				model.value AS model,
-				coalesce(lens_spec.value, lens.value) AS lens,
+				TRIM(model.value) AS model,
+				coalesce(TRIM(lens_spec.value), TRIM(lens.value)) AS lens,
 				COUNT(*) AS num
 			FROM images i
 				LEFT JOIN exif_info model ON i.id=model.image
