@@ -211,7 +211,7 @@ sub update_image_info {
 
 	for my $key (keys %$info) {
 		next if ref $info->{$key};
-		$q->execute($id, $key, $info->{$key})
+		$q->execute($id, $key, guess_charset($info->{$key}))
 			or die "Couldn't insert EXIF information in database: $!";
 	}
 
