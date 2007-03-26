@@ -184,7 +184,7 @@ sub get_cache_location {
 	}
 }
 
-sub update_width_height {
+sub update_image_info {
 	my ($r, $id, $width, $height) = @_;
 
 	# Also find the date taken if appropriate (from the EXIF tag etc.)
@@ -201,6 +201,19 @@ sub update_width_height {
 	$dbh->do('UPDATE images SET width=?, height=?, date=? WHERE id=?',
 		 undef, $width, $height, $datetime, $id)
 		or die "Couldn't update width/height in SQL: $!";
+
+	$dbh->do('DELETE FROM exif_info WHERE image=?',
+		undef, $id)
+		or die "Couldn't delete old EXIF information in SQL: $!";
+
+	my $q = $dbh->prepare('INSERT INTO exif_info (image,tag,value) VALUES (?,?,?)')
+		or die "Couldn't prepare inserting EXIF information: $!";
+
+	for my $key (keys %$info) {
+		next if ref $info->{$key};
+		$q->execute($id, $key, $info->{$key})
+			or die "Couldn't insert EXIF information in database: $!";
+	}
 
 	# update the last_picture cache as well (this should of course be done
 	# via a trigger, but this is less complicated :-) )
@@ -320,7 +333,7 @@ sub ensure_cached {
 		# Update the SQL database if it doesn't contain the required info
 		if ($dbwidth == -1 || $dbheight == -1) {
 			$r->log->info("Updating width/height for $id: $width x $height");
-			update_width_height($r, $id, $width, $height);
+			update_image_info($r, $id, $width, $height);
 		}
 			
 		# We always want RGB JPEGs

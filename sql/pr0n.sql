@@ -58,6 +58,15 @@ CREATE TABLE users (
     vhost character varying(32) NOT NULL
 );
 
+CREATE TABLE exif_info (
+    image integer NOT NULL REFERENCES images (id),
+    tag varchar NOT NULL,
+    value varchar NOT NULL,
+
+    PRIMARY KEY ( image, tag )
+);
+    
+
 GRANT INSERT ON TABLE deleted_images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE events TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE fake_files TO pr0n;
@@ -65,4 +74,4 @@ GRANT INSERT,SELECT,UPDATE ON TABLE imageid_seq TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE shadow_files TO pr0n;
 GRANT SELECT ON TABLE users TO pr0n;
-
+GRANT SELECT,INSERT,DELETE ON TABLE exif_info TO pr0n;
