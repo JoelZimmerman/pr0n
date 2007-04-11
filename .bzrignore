@@ -3,3 +3,4 @@ cache/*
 backup
 lost+found
 Config_local.pm
+files/usage
