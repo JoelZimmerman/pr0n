@@ -206,12 +206,13 @@ sub handler {
 
 		my $toclose = 0;
 		my $lastupl = "";
+		my $img_num = $start;
 		
 		# Print out all thumbnails
 		if ($rot == 1) {
 			$r->print("    <form method=\"post\" action=\"/rotate\">\n");
 			$r->print("      <input type=\"hidden\" name=\"event\" value=\"$event\" />\n");
-		
+	
 			while (my $ref = $q->fetchrow_hashref()) {
 				my $imgsz = "";
 				my $takenby = $ref->{'takenby'};
@@ -222,6 +223,7 @@ sub handler {
 				if ($takenby ne $lastupl) {
 					$lastupl = $takenby;
 					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
+					print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
 				}
 				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
 					my $width = $ref->{'width'};
@@ -248,13 +250,15 @@ sub handler {
 					$ref->{'id'} . "-270\" />\n");
 				$r->print("      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" .
 					"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Del <input type=\"checkbox\" name=\"del-" . $ref->{'id'} . "\" /></p>\n");
+			
+				++$img_num;
 			}
 			$r->print("      <input type=\"submit\" value=\"Rotate\" />\n");
 			$r->print("    </form>\n");
 		} elsif ($sel == 1) {
 			$r->print("    <form method=\"post\" action=\"/select\">\n");
 			$r->print("      <input type=\"hidden\" name=\"event\" value=\"$event\" />\n");
-		
+			
 			while (my $ref = $q->fetchrow_hashref()) {
 				my $imgsz = "";
 				my $takenby = $ref->{'takenby'};
@@ -265,6 +269,7 @@ sub handler {
 				if ($takenby ne $lastupl) {
 					$lastupl = $takenby;
 					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
+					print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
 				}
 				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
 					my $width = $ref->{'width'};
@@ -287,6 +292,8 @@ sub handler {
 				$r->print("    <p><a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
 				$r->print("      <input type=\"checkbox\" name=\"sel-" .
 					$ref->{'id'} . "\"$selected /></p>\n");
+
+				++$img_num;
 			}
 			$r->print("      <input type=\"submit\" value=\"Select\" />\n");
 			$r->print("    </form>\n");
@@ -302,6 +309,7 @@ sub handler {
 					$r->print("    </p>\n\n") if ($lastupl ne "");
 					$lastupl = $takenby;
 					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
+					print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
 					$r->print("    <p>\n");
 				}
 				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
@@ -321,6 +329,8 @@ sub handler {
 				}
 				
 				$r->print("      <a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
+				
+				++$img_num;
 			}
 			$r->print("    </p>\n");
 		}
@@ -565,6 +575,20 @@ sub print_fullscreen {
 	$newsettings{'fullscreen'} = 1;
 
         $r->print("    <p>");
+	Sesse::pr0n::Common::print_link($r, $title, "/$event/", \%newsettings, $defsettings);
+	$r->print("</p>\n");
+}
+
+sub print_fullscreen_fromhere {
+	my ($r, $event, $settings, $defsettings, $start) = @_;
+
+	chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'fullscreen-fromhere'));
+
+	my %newsettings = %$settings;
+	$newsettings{'fullscreen'} = 1;
+	$newsettings{'start'} = $start;
+
+        $r->print("    <p class=\"fsfromhere\">");
 	Sesse::pr0n::Common::print_link($r, $title, "/$event/", \%newsettings, $defsettings);
 	$r->print("</p>\n");
 }

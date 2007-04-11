@@ -17,3 +17,11 @@ h2.date {
 img {
 	border: 1px solid black;
 }
+h2 {
+	display: inline;
+}
+.fsfromhere {
+	font-size: smaller;
+	display: inline;
+	margin-left: 1em;
+}
