@@ -222,8 +222,10 @@ sub handler {
 
 				if ($takenby ne $lastupl) {
 					$lastupl = $takenby;
+					$r->print("    <h2>");
 					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
 					print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
+					$r->print("</h2>\n");
 				}
 				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
 					my $width = $ref->{'width'};
@@ -268,8 +270,10 @@ sub handler {
 
 				if ($takenby ne $lastupl) {
 					$lastupl = $takenby;
+					$r->print("    <h2>");
 					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
 					print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
+					$r->print("</h2>\n");
 				}
 				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
 					my $width = $ref->{'width'};
@@ -308,9 +312,11 @@ sub handler {
 				if ($takenby ne $lastupl) {
 					$r->print("    </p>\n\n") if ($lastupl ne "");
 					$lastupl = $takenby;
+					$r->print("    <h2>");
 					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
 					print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
-					$r->print("    <p>\n");
+					$r->print("</h2>\n");
+					$r->print("    <p class=\"photos\">\n");
 				}
 				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
 					my $width = $ref->{'width'};
