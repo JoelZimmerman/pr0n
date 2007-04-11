@@ -257,50 +257,6 @@ sub handler {
 			}
 			$r->print("      <input type=\"submit\" value=\"Rotate\" />\n");
 			$r->print("    </form>\n");
-		} elsif ($sel == 1) {
-			$r->print("    <form method=\"post\" action=\"/select\">\n");
-			$r->print("      <input type=\"hidden\" name=\"event\" value=\"$event\" />\n");
-			
-			while (my $ref = $q->fetchrow_hashref()) {
-				my $imgsz = "";
-				my $takenby = $ref->{'takenby'};
-				if (defined($ref->{'day'})) {
-					 $takenby .= ", " . $ref->{'day'};
-				}
-
-				if ($takenby ne $lastupl) {
-					$lastupl = $takenby;
-					$r->print("    <h2>");
-					Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
-					print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
-					$r->print("</h2>\n");
-				}
-				if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
-					my $width = $ref->{'width'};
-					my $height = $ref->{'height'};
-						
-					($width, $height) = Sesse::pr0n::Common::scale_aspect($width, $height, $thumbxres, $thumbyres);
-					$imgsz = " width=\"$width\" height=\"$height\"";
-				}
-
-				my $filename = $ref->{'filename'};
-				my $uri = $infobox . $filename;
-				if (defined($xres) && defined($yres) && $xres != -1) {
-					$uri = "${xres}x$yres/$infobox$filename";
-				} elsif (defined($xres) && $xres == -1) {
-					$uri = "original/$infobox$filename";
-				}
-
-				my $selected = $ref->{'selected'} ? ' checked="checked"' : '';
-
-				$r->print("    <p><a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
-				$r->print("      <input type=\"checkbox\" name=\"sel-" .
-					$ref->{'id'} . "\"$selected /></p>\n");
-
-				++$img_num;
-			}
-			$r->print("      <input type=\"submit\" value=\"Select\" />\n");
-			$r->print("    </form>\n");
 		} else {
 			while (my $ref = $q->fetchrow_hashref()) {
 				my $imgsz = "";
