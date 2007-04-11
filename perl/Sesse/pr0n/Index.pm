@@ -100,16 +100,11 @@ sub handler {
 	my $num_selected = $ref->{'num_selected'};
 
 	# Find all images related to this event.
-	my $q;
 	my $where = ($all == 0) ? ' AND selected=\'t\'' : '';
+	my $limit = (defined($start) && defined($num) && !$settings{'fullscreen'}) ? (" LIMIT $num OFFSET " . ($start-1)) : "";
 
-	if (defined($start) && defined($num) && !$settings{'fullscreen'}) {
-		$q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE event=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename LIMIT $num OFFSET " . ($start-1))
-			or dberror($r, "prepare()");
-	} else {
-		$q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE event=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename")
-			or dberror($r, "prepare()");
-	}
+	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE event=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit"
+		or dberror($r, "prepare()");
 	$q->execute($event)
 		or dberror($r, "image enumeration");
 
