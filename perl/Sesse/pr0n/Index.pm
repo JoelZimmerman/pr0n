@@ -144,9 +144,9 @@ sub handler {
 		print_viewres($r, $event, \%settings, \%defsettings);
 		print_pagelimit($r, $event, \%settings, \%defsettings);
 		print_infobox($r, $event, \%settings, \%defsettings);
-		print_nextprev($r, $event, \%settings, \%defsettings);
 		print_selected($r, $event, \%settings, \%defsettings) if ($num_selected > 0);
 		print_fullscreen($r, $event, \%settings, \%defsettings);
+		print_nextprev($r, $event, \%settings, \%defsettings);
 		
 		# Find the equipment used
 		my $eq = $dbh->prepare("
@@ -451,7 +451,7 @@ sub print_nextprev {
 		$end = $num_images;
 	}
 
-	$r->print("    <p>\n");
+	$r->print("    <p class=\"nextprev\">\n");
 
 	# Previous
 	if ($start > 1) {
