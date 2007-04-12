@@ -201,7 +201,7 @@ sub handler {
 
 		my $toclose = 0;
 		my $lastupl = "";
-		my $img_num = (defined($start) && defined($num)) ? $start : 0;
+		my $img_num = (defined($start) && defined($num)) ? $start : 1;
 		
 		# Print out all thumbnails
 		if ($rot == 1) {
