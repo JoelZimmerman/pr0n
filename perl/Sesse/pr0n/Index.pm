@@ -433,13 +433,15 @@ sub print_nextprev {
 	my ($r, $event, $settings, $defsettings) = @_;
 	my $start = $settings->{'start'};
 	my $num = $settings->{'num'};
+	my $all = $settings->{'all'};
 	my $dbh = Sesse::pr0n::Common::get_dbh();
+	my $where = ($all == 0) ? ' AND selected=\'t\'' : '';
 
 	$num = undef if (defined($num) && $num == -1);
 	return unless (defined($start) && defined($num));
 
 	# determine total number
-	my $ref = $dbh->selectrow_hashref('SELECT count(*) AS num_images FROM images WHERE event=?',
+	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE event=? $where",
 		undef, $event)
 		or dberror($r, "image enumeration");
 	my $num_images = $ref->{'num_images'};
