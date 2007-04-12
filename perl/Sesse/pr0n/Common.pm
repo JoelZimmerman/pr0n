@@ -34,7 +34,7 @@ BEGIN {
 		require Sesse::pr0n::Config_local;
 	};
 
-	$VERSION     = "v2.21";
+	$VERSION     = "v2.30";
 	@ISA         = qw(Exporter);
 	@EXPORT      = qw(&error &dberror);
 	%EXPORT_TAGS = qw();
