@@ -103,7 +103,7 @@ sub handler {
 	my $where = ($all == 0) ? ' AND selected=\'t\'' : '';
 	my $limit = (defined($start) && defined($num) && !$settings{'fullscreen'}) ? (" LIMIT $num OFFSET " . ($start-1)) : "";
 
-	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE event=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit"
+	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE event=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit")
 		or dberror($r, "prepare()");
 	$q->execute($event)
 		or dberror($r, "image enumeration");
@@ -149,18 +149,18 @@ sub handler {
 		print_fullscreen($r, $event, \%settings, \%defsettings);
 		
 		# Find the equipment used
-		my $eq = $dbh->prepare('
+		my $eq = $dbh->prepare("
 			SELECT 
 				TRIM(model.value) AS model,
 				coalesce(TRIM(lens_spec.value), TRIM(lens.value)) AS lens,
 				COUNT(*) AS num
-			FROM images i
+			FROM ( SELECT * FROM images WHERE event=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit ) i
 				LEFT JOIN exif_info model ON i.id=model.image
-				LEFT JOIN ( SELECT * FROM exif_info WHERE tag=\'Lens\' ) lens ON i.id=lens.image
-				LEFT JOIN ( SELECT * FROM exif_info WHERE tag=\'LensSpec\') lens_spec ON i.id=lens_spec.image
-			WHERE event=? AND model.tag=\'Model\'
+				LEFT JOIN ( SELECT * FROM exif_info WHERE tag='Lens' ) lens ON i.id=lens.image
+				LEFT JOIN ( SELECT * FROM exif_info WHERE tag='LensSpec') lens_spec ON i.id=lens_spec.image
+			WHERE model.tag='Model'
 			GROUP BY 1,2
-			ORDER BY 1,2')
+			ORDER BY 1,2")
 			or die "Couldn't prepare to find equipment: $!";
 		$eq->execute($event)
 			or die "Couldn't find equipment: $!";
