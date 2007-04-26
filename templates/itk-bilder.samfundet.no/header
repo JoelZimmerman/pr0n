@@ -23,7 +23,6 @@
 <p class="box">
 	<a href="http://itk.samfundet.no/">Hovedside</a><br />
 	<a href="http://itk.samfundet.no/instruks/">Instruks</a><br />
-
 	<a href="http://itk.samfundet.no/medlemmer/">Medlemmer</a><br />
 	<a href="http://itk.samfundet.no/dok/">Dokumentasjon</a><br />
 	<a href="http://itk.samfundet.no/arkiv/">Arkiv</a><br />
@@ -32,10 +31,12 @@
 </p>
 
 <p class="box">
-	<a href="http://itk.samfundet.no/dok-filer/samfundet-ca.crt">SSL-rotsertifikat</a><br />
-
-	<a href="https://lists.samfundet.no/amsit">Mailinglister: Amsit</a><br />
+	<a href="https://lists.samfundet.no/amsit/">Mailinglister: AMSIT</a><br />
 	<a href="https://lists.samfundet.no/">Mailinglister: Mailman</a><br />
+	<a href="https://medlem.samfundet.no/admin/gjengsjef/">MDB2 for gjengsjefer</a><br />
+	<a href="http://robokop.samfundet.no/">RoBoKop</a><br />
+	<a href="http://itk.samfundet.no/dok-filer/samfundet-ca.crt">SSL-rotsertifikat</a><br />
+	<a href="https://webmail.samfundet.no/">Webmail</a>
 </p>
 
 <p class="box">
