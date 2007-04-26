@@ -91,7 +91,7 @@ sub header {
 		$quote = LWP::Simple::get("http://itk.samfundet.no/include/quotes.cli.php");
 		$quote = "Error: Could not fetch quotes." if (!defined($quote));
 	}
-	Sesse::pr0n::Templates::print_template($r, "header", { title => $title, quotes => $quote });
+	Sesse::pr0n::Templates::print_template($r, "header", { title => $title, quotes => Encode::decode_utf8($quote) });
 }
 
 sub footer {
