@@ -24,7 +24,6 @@ sub handler {
 		or dberror($r, "Couldn't get events");
 
 	$r->content_type('text/html; charset=utf-8');
-	$r->subprocess_env;
 
 	Sesse::pr0n::Common::header($r, Sesse::pr0n::Templates::fetch_template($r, 'event-listing'));
 	$r->print("    <ul>\n");
