@@ -444,6 +444,8 @@ sub make_infobox {
 		my ($a, $b) = ($1, $2);
 		my $gcd = gcd($a, $b);
 		push @classic_fields, ($a/$gcd . "/" . $b/$gcd . "s");
+	} elsif (defined($info->{'ExposureTime'}) && $info->{'ExposureTime'} =~ /^(\d+)$/) {
+		push @classic_fields, ($1 . "s");
 	}
 	if (defined($info->{'FNumber'}) && $info->{'FNumber'} =~ /^(\d+)\/(\d+)$/) {
 		my $f = $1/$2;
