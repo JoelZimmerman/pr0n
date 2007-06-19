@@ -34,7 +34,7 @@ BEGIN {
 		require Sesse::pr0n::Config_local;
 	};
 
-	$VERSION     = "v2.30";
+	$VERSION     = "v2.40";
 	@ISA         = qw(Exporter);
 	@EXPORT      = qw(&error &dberror);
 	%EXPORT_TAGS = qw();
@@ -220,7 +220,7 @@ sub update_image_info {
 
 		# update the last_picture cache as well (this should of course be done
 		# via a trigger, but this is less complicated :-) )
-		$dbh->do('UPDATE last_picture_cache SET last_picture=GREATEST(last_picture, ?) WHERE event=(SELECT event FROM images WHERE id=?)',
+		$dbh->do('UPDATE last_picture_cache SET last_picture=GREATEST(last_picture, ?) WHERE (vhost,event)=(SELECT vhost,event FROM images WHERE id=?)',
 			undef, $datetime, $id)
 			or die "Couldn't update last_picture in SQL: $!";
 	}
@@ -573,11 +573,11 @@ sub add_new_event {
 		return @errors;
 	}
 		
-	$dbh->do("INSERT INTO events (id,date,name,vhost) VALUES (?,?,?,?)",
+	$dbh->do("INSERT INTO events (event,date,name,vhost) VALUES (?,?,?,?)",
 		undef, $id, $date, $desc, $vhost)
 		or return ("Kunne ikke sette inn ny hendelse" . $dbh->errstr);
-	$dbh->do("INSERT INTO last_picture_cache (event,last_picture) VALUES (?,NULL)",
-		undef, $id)
+	$dbh->do("INSERT INTO last_picture_cache (vhost,event,last_picture) VALUES (?,?,NULL)",
+		undef, $vhost, $id)
 		or return ("Kunne ikke sette inn ny cache-rad" . $dbh->errstr);
 
 	return ();

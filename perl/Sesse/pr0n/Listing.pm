@@ -18,7 +18,7 @@ sub handler {
 
 #	my $q = $dbh->prepare('SELECT t1.id,t1.date,t1.name FROM events t1 LEFT JOIN images t2 ON t1.id=t2.event WHERE t1.vhost=? GROUP BY t1.id,t1.date,t1.name ORDER BY COALESCE(MAX(t2.date),\'1970-01-01 00:00:00\'),t1.id') or
 #		dberror($r, "Couldn't list events");
-	my $q = $dbh->prepare('SELECT id,date,name FROM events e JOIN last_picture_cache c ON e.id=c.event WHERE vhost=? ORDER BY last_picture DESC')
+	my $q = $dbh->prepare('SELECT event,date,name FROM events e JOIN last_picture_cache c USING (vhost,event) WHERE vhost=? ORDER BY last_picture DESC')
 		or dberror($r, "Couldn't list events");
 	$q->execute($r->get_server_name)
 		or dberror($r, "Couldn't get events");
@@ -29,7 +29,7 @@ sub handler {
 	$r->print("    <ul>\n");
 
 	while (my $ref = $q->fetchrow_hashref()) {
-		my $id = $ref->{'id'};
+		my $id = $ref->{'event'};
 		my $date = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'date'}));
 		my $name = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'name'}));
 		

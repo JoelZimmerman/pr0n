@@ -137,8 +137,8 @@ EOF
 			$r->headers_out->{'content-location'} = "/webdav/upload/$event/";
 			
 			# Check that we do indeed exist
-			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numev FROM events WHERE id=?',
-				undef, $event);
+			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numev FROM events WHERE vhost=? AND event=?',
+				undef, $r->get_server_name, $event);
 			if ($ref->{'numev'} != 1) {
 				$r->status(404);
 				$r->content_type('text/plain; charset=utf-8');
@@ -164,9 +164,9 @@ EOF
 
 			# List all the files within too, of course :-)
 			if ($depth >= 1) {
-				my $q = $dbh->prepare('SELECT * FROM images WHERE event=?') or
+				my $q = $dbh->prepare('SELECT * FROM images WHERE vhost=? AND event=?') or
 					dberror($r, "Couldn't list images");
-				$q->execute($event) or
+				$q->execute($r->get_server_name, $event) or
 					dberror($r, "Couldn't get events");
 		
 				while (my $ref = $q->fetchrow_hashref()) {
@@ -220,8 +220,8 @@ EOF
 			$r->headers_out->{'content-location'} = "/webdav/upload/$event/autorename/";
 			
 			# Check that we do indeed exist
-			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numev FROM events WHERE id=?',
-				undef, $event);
+			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numev FROM events WHERE vhost=? AND event=?',
+				undef, $r->get_server_name, $event);
 			if ($ref->{'numev'} != 1) {
 				$r->status(404);
 				$r->content_type('text/plain; charset=utf-8');
@@ -253,8 +253,8 @@ EOF
 			my ($fname, $size, $mtime);
 			
 			# check if we have a pending fake file for this
-			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numfiles FROM fake_files WHERE event=? AND filename=? AND expires_at > now()',
-				undef, $event, $filename);
+			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numfiles FROM fake_files WHERE event=? AND vhost=? AND filename=? AND expires_at > now()',
+				undef, $event, $r->get_server_name, $filename);
 			if ($ref->{'numfiles'} == 1) {
 				$fname = "/dev/null";
 				$size = 0;
@@ -296,16 +296,16 @@ EOF
 			my ($fname, $size, $mtime);
 			
 			# check if we have a pending fake file for this
-			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numfiles FROM fake_files WHERE event=? AND filename=? AND expires_at > now()',
-				undef, $event, $filename);
+			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numfiles FROM fake_files WHERE event=? AND vhost=? AND filename=? AND expires_at > now()',
+				undef, $event, $r->get_server_name, $filename);
 			if ($ref->{'numfiles'} == 1) {
 				$fname = "/dev/null";
 				$size = 0;
 				$mtime = time;
 			} else {
 				# check if we have a "shadow file" for this
-				my $ref = $dbh->selectrow_hashref('SELECT id FROM shadow_files WHERE event=? AND filename=? AND expires_at > now()',
-					undef, $event, $filename);
+				my $ref = $dbh->selectrow_hashref('SELECT id FROM shadow_files WHERE vhost=? AND event=? AND filename=? AND expires_at > now()',
+					undef, $r->get_server_name, $event, $filename);
 				if (defined($ref)) {
 				 	($fname, $size, $mtime) = Sesse::pr0n::Common::stat_image_from_id($r, $ref->{'id'});
 				}
@@ -359,8 +359,8 @@ EOF
 		my ($fname, $size, $mtime);
 
 		# check if we have a pending fake file for this
-		my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numfiles FROM fake_files WHERE event=? AND filename=? AND expires_at > now()',
-			undef, $event, $filename);
+		my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numfiles FROM fake_files WHERE event=? AND vhost=? AND filename=? AND expires_at > now()',
+			undef, $event, $r->get_server_name, $filename);
 		if ($ref->{'numfiles'} == 1) {
 			$fname = "/dev/null";
 			$size = 0;
@@ -368,8 +368,8 @@ EOF
 		} else {
 			# check if we have a "shadow file" for this
 			if (defined($autorename) && $autorename eq "autorename/") {
-				my $ref = $dbh->selectrow_hashref('SELECT id FROM shadow_files WHERE event=? AND filename=? AND expires_at > now()',
-					undef, $event, $filename);
+				my $ref = $dbh->selectrow_hashref('SELECT id FROM shadow_files WHERE host=? AND event=? AND filename=? AND expires_at > now()',
+					undef, $r->get_server_name, $event, $filename);
 				if (defined($ref)) {
 				 	($fname, $size, $mtime) = Sesse::pr0n::Common::stat_image_from_id($r, $ref->{'id'});
 				}
@@ -424,11 +424,11 @@ EOF
 		# make them happy
 		# 
 		if ($r->headers_in->{'content-length'} == 0) {
-			$dbh->do('DELETE FROM fake_files WHERE expires_at <= now() OR (event=? AND filename=?);',
-				undef, $event, $filename)
+			$dbh->do('DELETE FROM fake_files WHERE expires_at <= now() OR (event=? AND vhost=? AND filename=?);',
+				undef, $event, $r->get_server_name, $filename)
 				or dberror($r, "Couldn't prune fake_files");
-			$dbh->do('INSERT INTO fake_files (event,filename,expires_at) VALUES (?,?,now() + interval \'30 seconds\');',
-				undef, $event, $filename)
+			$dbh->do('INSERT INTO fake_files (vhost,event,filename,expires_at) VALUES (?,?,?,now() + interval \'30 seconds\');',
+				undef, $r->get_server_name, $event, $filename)
 				or dberror($r, "Couldn't add file");
 			$r->content_type('text/plain; charset="utf-8"');
 			$r->status(201);
@@ -446,8 +446,8 @@ EOF
 		
 		# Autorename if we need to
 		if (defined($autorename) && $autorename eq "autorename/") {
-			my $ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS numfiles FROM images WHERE event=? AND filename=?",
-				undef, $event, $filename)
+			my $ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS numfiles FROM images WHERE vhost=? AND event=? AND filename=?",
+				undef, $r->get_server_name, $event, $filename)
 				or dberror($r, "Couldn't check for existing files");
 			if ($ref->{'numfiles'} > 0) {
 				$r->log->info("Renaming $filename to $newid.jpeg");
@@ -463,13 +463,13 @@ EOF
 
 			# Try to insert this new file
 			eval {
-				$dbh->do('DELETE FROM fake_files WHERE event=? AND filename=?;',
-					undef, $event, $filename);
+				$dbh->do('DELETE FROM fake_files WHERE vhost=? AND event=? AND filename=?',
+					undef, $r->get_server_name, $event, $filename);
 					
-				$dbh->do('INSERT INTO images (id,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?);',
-					undef, $newid, $event, $user, $takenby, $filename);
-				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=?',
-					undef, $event);
+				$dbh->do('INSERT INTO images (id,vhost,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?,?)',
+					undef, $newid, $r->get_server_name, $event, $user, $takenby, $filename);
+				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
+					undef, $r->get_server_name, $event);
 
 				# Now save the file to disk
 				$fname = Sesse::pr0n::Common::get_disk_location($r, $newid);
@@ -509,11 +509,11 @@ EOF
 
 		# Insert a `shadow file' we can stat the next 30 secs
 		if (defined($autorename) && $autorename eq "autorename/") {
-			$dbh->do('DELETE FROM shadow_files WHERE expires_at <= now() OR (event=? AND filename=?);',
-				undef, $event, $filename)
+			$dbh->do('DELETE FROM shadow_files WHERE expires_at <= now() OR (vhost=? AND event=? AND filename=?);',
+				undef, $r->get_server_name, $event, $filename)
 				or dberror($r, "Couldn't prune shadow_files");
-			$dbh->do('INSERT INTO shadow_files (event,filename,id,expires_at) VALUES (?,?,?,now() + interval \'30 seconds\');',
-				undef, $event, $orig_filename, $newid)
+			$dbh->do('INSERT INTO shadow_files (vhost,event,filename,id,expires_at) VALUES (?,?,?,?,now() + interval \'30 seconds\');',
+				undef, $r->get_server_name, $event, $orig_filename, $newid)
 				or dberror($r, "Couldn't add shadow file");
 			$r->log->info("Added shadow entry for $event/$filename");
 		}
@@ -555,7 +555,7 @@ EOF
 		my $ne_desc = Sesse::pr0n::Common::guess_charset($apr->param('neweventdesc'));
 		if (defined($ne_id)) {
 			# Trying to add a new event, let's see if it already exists
-			my $q = $dbh->prepare('SELECT COUNT(*) AS cnt FROM events WHERE id=? AND vhost=?')
+			my $q = $dbh->prepare('SELECT COUNT(*) AS cnt FROM events WHERE event=? AND vhost=?')
 				or dberror($r, "Couldn't prepare event count");
 			$q->execute($ne_id, $r->get_server_name)
 				or dberror($r, "Couldn't execute event count");
@@ -585,8 +585,8 @@ EOF
 		
 		# Autorename if we need to
 		{
-			my $ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS numfiles FROM images WHERE event=? AND filename=?",
-				undef, $event, $filename)
+			my $ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS numfiles FROM images WHERE vhost=? AND event=? AND filename=?",
+				undef, $r->get_server_name, $event, $filename)
 				or dberror($r, "Couldn't check for existing files");
 			if ($ref->{'numfiles'} > 0) {
 				$r->log->info("Renaming $filename to $newid.jpeg");
@@ -602,10 +602,10 @@ EOF
 
 			# Try to insert this new file
 			eval {
-				$dbh->do('INSERT INTO images (id,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?);',
-					undef, $newid, $event, $user, $takenby, $filename);
-				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=?',
-					undef, $event);
+				$dbh->do('INSERT INTO images (id,vhost,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?);',
+					undef, $newid, $r->get_server_name, $event, $user, $takenby, $filename);
+				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
+					undef, $r->get_server_name, $event);
 
 				# Now save the file to disk
 				$fname = Sesse::pr0n::Common::get_disk_location($r, $newid);
@@ -702,11 +702,11 @@ EOF
 		}
 		
 		my ($event, $autorename, $filename) = ($1, $2, $3);
-		$dbh->do('DELETE FROM images WHERE event=? AND filename=?;',
-			undef, $event, $filename)
+		$dbh->do('DELETE FROM images WHERE vhost=? AND event=? AND filename=?',
+			undef, $r->get_server_name, $event, $filename)
 			or dberror($r, "Couldn't remove file");
-		$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=?',
-			undef, $event)
+		$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
+			undef, $r->get_server_name, $event)
 			or dberror($r, "Couldn't invalidate cache");
 		$r->status(200);
 		$r->print("OK");

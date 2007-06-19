@@ -1,61 +1,74 @@
 CREATE TABLE events (
-    id character varying NOT NULL PRIMARY KEY,
-    date character varying NOT NULL,
+    event character varying NOT NULL,
+    "date" character varying NOT NULL,
     name character varying NOT NULL,
     vhost character varying NOT NULL,
-    last_update timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+    last_update timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (vhost, event)
 );
 
 -- In a separate table to avoid deadlocks.
 CREATE TABLE last_picture_cache ( 
-   event varchar PRIMARY KEY references events ( id ),
-   last_picture timestamp without time zone
+   vhost varchar NOT NULL,
+   event varchar NOT NULL,
+   last_picture timestamp without time zone,
+
+   PRIMARY KEY (vhost,event),
+   FOREIGN KEY (vhost,event) REFERNECES events(vhost,event)
 );
 
 CREATE TABLE images (
     id serial NOT NULL PRIMARY KEY,
-    event character varying NOT NULL REFERENCES events(id),
+    vhost character varying NOT NULL,
+    event character varying NOT NULL,
     filename character varying NOT NULL,
     width integer DEFAULT -1 NOT NULL,
     height integer DEFAULT -1 NOT NULL,
     uploadedby character varying NOT NULL,
-    date timestamp without time zone,
+    "date" timestamp without time zone,
     takenby character varying NOT NULL,
-    selected boolean DEFAULT false
+    selected boolean DEFAULT false,
+
+    FOREIGN KEY (vhost,event) REFERENCES events (vhost,event)
 );
-CREATE UNIQUE INDEX unique_filenames ON images USING btree (event, filename);
+CREATE UNIQUE INDEX unique_filenames ON images USING btree (vhost, event, filename);
 
 CREATE TABLE deleted_images (
     id integer NOT NULL,
-    event character varying(32) NOT NULL,
-    filename character varying(255) NOT NULL,
+    vhost character varying,
+    event character varying NOT NULL,
+    filename character varying NOT NULL,
     width integer DEFAULT -1 NOT NULL,
     height integer DEFAULT -1 NOT NULL,
-    uploadedby character varying(32),
-    date timestamp without time zone,
-    takenby character varying(32) NOT NULL,
+    uploadedby character varying,
+    "date" timestamp without time zone,
+    takenby character varying NOT NULL,
     selected boolean
 );
 
 CREATE TABLE fake_files (
-    event character varying(32) NOT NULL REFERENCES events(id),
-    filename character varying(255) NOT NULL,
+    vhost character varying NOT NULL,
+    event character varying NOT NULL,
+    filename character varying NOT NULL,
     expires_at timestamp without time zone NOT NULL,
 
-    PRIMARY KEY ( event, filename )
+    PRIMARY KEY ( vhost, event, filename ),
+    FOREIGN KEY (vhost,event) REFERENCES events (vhost,event)
 );
 
 CREATE TABLE shadow_files (
-    event character varying(32) NOT NULL,
-    filename character varying(255) NOT NULL,
+    vhost character varying NOT NULL,
+    event character varying NOT NULL,
+    filename character varying NOT NULL,
     id integer NOT NULL,
     expires_at timestamp without time zone NOT NULL
 );
 
 CREATE TABLE users (
-    username character varying(32) NOT NULL,
+    username character varying NOT NULL,
     sha1password character(28) NOT NULL,
-    vhost character varying(32) NOT NULL
+    vhost character varying NOT NULL
 );
 
 CREATE TABLE exif_info (

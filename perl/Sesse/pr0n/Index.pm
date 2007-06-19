@@ -46,8 +46,8 @@ sub handler {
 	);
 	
 	# Any NEF files => default to processing
-	my $ref = $dbh->selectrow_hashref('SELECT * FROM images WHERE event=? AND LOWER(filename) LIKE \'%.nef\' LIMIT 1',
-		undef, $event)
+	my $ref = $dbh->selectrow_hashref('SELECT * FROM images WHERE event=? AND vhost=? AND LOWER(filename) LIKE \'%.nef\' LIMIT 1',
+		undef, $event, $r->get_server_name)
 		and $defsettings{'xres'} = $defsettings{'yres'} = undef;
 	
 	# Reduce the front page load when in overload mode.
@@ -82,7 +82,7 @@ sub handler {
 		$num = undef;
 	}
 
-	$ref = $dbh->selectrow_hashref('SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE id=? AND vhost=?',
+	$ref = $dbh->selectrow_hashref('SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE event=? AND vhost=?',
 		undef, $event, $r->get_server_name)
 		or error($r, "Could not find event $event", 404, "File not found");
 
@@ -96,16 +96,16 @@ sub handler {
 	}
 	
 	# Count the number of selected images.
-	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE event=? AND selected=\'t\'", undef, $event);
+	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE event=? AND vhost=? AND selected=\'t\'", undef, $event, $r->get_server_name);
 	my $num_selected = $ref->{'num_selected'};
 
 	# Find all images related to this event.
 	my $where = ($all == 0) ? ' AND selected=\'t\'' : '';
 	my $limit = (defined($start) && defined($num) && !$settings{'fullscreen'}) ? (" LIMIT $num OFFSET " . ($start-1)) : "";
 
-	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE event=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit")
+	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE event=? AND vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit")
 		or dberror($r, "prepare()");
-	$q->execute($event)
+	$q->execute($event, $r->get_server_name)
 		or dberror($r, "image enumeration");
 
 	# Print the page itself
@@ -154,7 +154,7 @@ sub handler {
 				TRIM(model.value) AS model,
 				coalesce(TRIM(lens_spec.value), TRIM(lens.value)) AS lens,
 				COUNT(*) AS num
-			FROM ( SELECT * FROM images WHERE event=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit ) i
+			FROM ( SELECT * FROM images WHERE event=? AND vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit ) i
 				LEFT JOIN exif_info model ON i.id=model.image
 				LEFT JOIN ( SELECT * FROM exif_info WHERE tag='Lens' ) lens ON i.id=lens.image
 				LEFT JOIN ( SELECT * FROM exif_info WHERE tag='LensSpec') lens_spec ON i.id=lens_spec.image
@@ -162,7 +162,7 @@ sub handler {
 			GROUP BY 1,2
 			ORDER BY 1,2")
 			or die "Couldn't prepare to find equipment: $!";
-		$eq->execute($event)
+		$eq->execute($event, $r->get_server_name)
 			or die "Couldn't find equipment: $!";
 
 		my @equipment = ();
@@ -441,8 +441,8 @@ sub print_nextprev {
 	return unless (defined($start) && defined($num));
 
 	# determine total number
-	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE event=? $where",
-		undef, $event)
+	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE event=? AND vhost=? $where",
+		undef, $event, $r->get_server_name)
 		or dberror($r, "image enumeration");
 	my $num_images = $ref->{'num_images'};
 

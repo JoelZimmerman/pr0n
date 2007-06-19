@@ -46,8 +46,8 @@ sub handler {
 		# 	or error($r, "Could not find $event", 404, "File not found");
 	
 		# Look it up in the database
-		my $ref = $dbh->selectrow_hashref('SELECT id,width,height FROM images WHERE event=? AND filename=?',
-			undef, $event, $filename);
+		my $ref = $dbh->selectrow_hashref('SELECT id,width,height FROM images WHERE event=? AND vhost=? AND filename=?',
+			undef, $event, $r->get_server_name, $filename);
 		error($r, "Could not find $event/$filename", 404, "File not found") unless (defined($ref));
 
 		$id = $ref->{'id'};

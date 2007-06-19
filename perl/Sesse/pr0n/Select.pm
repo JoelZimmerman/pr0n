@@ -23,28 +23,12 @@ sub handler {
 		local $dbh->{AutoCommit} = 0;
 		local $dbh->{RaiseError} = 1;
 
-		if (defined($apr->param('mode')) && $apr->param('mode') eq 'single') {
-			# single mode; enable one (FIXME: need to support disable too)
-			my $filename = $apr->param('filename');
-			$dbh->do('UPDATE images SET selected=\'t\' WHERE event=? AND filename=?', undef, $event, $filename);
-		} else {
-			# traditional multi-mode
-			$dbh->do('UPDATE images SET selected=\'f\' WHERE event=?', undef, $event);
-		
-			my @params = $apr->param();
-			my $key;
-			for $key (@params) {
-				if ($key =~ /^sel-(\d+)/ && $apr->param($key) eq 'on') {
-					my $id = $1;
-					my $q = $dbh->do('UPDATE images SET selected=\'t\' WHERE id=?', undef, $id)
-						or dberror($r, "Selection of $id failed: $!");
-					$r->print("    <p>Selected image ID `$id'.</p>\n");
-				}
-			}
-		}
+		# FIXME: need to support disable too
+		my $filename = $apr->param('filename');
+		$dbh->do('UPDATE images SET selected=\'t\' WHERE vhost=? AND event=? AND filename=?', undef, $r->get_server_name, $event, $filename);
 	}
 
-	$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE id=?', undef, $event)
+	$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, $r->get_server_name, $event)
 		or dberror($r, "Cache invalidation failed");
 
 	Sesse::pr0n::Common::footer($r);
