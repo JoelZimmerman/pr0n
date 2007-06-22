@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE
+  html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" xmlns:t="http://template.sesse.net/">
+  <head>
+    <title>Event listing</title>
+    <link rel="stylesheet" href="/pr0n.css" type="text/css" />
+  </head>
+
+  <body>
+    <h1>Event listing</h1>
+
+    <ul t:id="events">
+      <li><a /> (<t:date />)</li>
+    </ul>
+
+    <hr />
+    <p class="footer">
+      pr0n <t:version />, Copyright 2004-2007 <a href="http://www.sesse.net/">Steinar
+      H. Gunderson</a>. All images are copyright their respective owners; please see
+      the <a href="/faq.html" accesskey="5">FAQ</a> for more information.
+    </p>
+  </body>
+</html>

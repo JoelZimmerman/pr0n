@@ -16,30 +16,27 @@ sub handler {
 		}
 	}
 
-#	my $q = $dbh->prepare('SELECT t1.id,t1.date,t1.name FROM events t1 LEFT JOIN images t2 ON t1.id=t2.event WHERE t1.vhost=? GROUP BY t1.id,t1.date,t1.name ORDER BY COALESCE(MAX(t2.date),\'1970-01-01 00:00:00\'),t1.id') or
-#		dberror($r, "Couldn't list events");
+
 	my $q = $dbh->prepare('SELECT event,date,name FROM events e JOIN last_picture_cache c USING (vhost,event) WHERE vhost=? ORDER BY last_picture DESC')
 		or dberror($r, "Couldn't list events");
 	$q->execute($r->get_server_name)
 		or dberror($r, "Couldn't get events");
 
-	$r->content_type('text/html; charset=utf-8');
-
-	Sesse::pr0n::Common::header($r, Sesse::pr0n::Templates::fetch_template($r, 'event-listing'));
-	$r->print("    <ul>\n");
-
+	my @events = ();
 	while (my $ref = $q->fetchrow_hashref()) {
 		my $id = $ref->{'event'};
-		my $date = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'date'}));
-		my $name = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'name'}));
-		
-		$r->print("      <li><a href=\"$id/\">$name</a> ($date)</li>\n");
+		my $date = Encode::decode_utf8($ref->{'date'});
+		my $name = Encode::decode_utf8($ref->{'name'});
+	
+		push @events, {
+			'a' => $name,
+			'a/href' => "$id/",
+			'date' => $date
+		};
 	}
-
-	$r->print("    </ul>\n");
-	Sesse::pr0n::Common::footer($r);
-
 	$q->finish();
+
+	Sesse::pr0n::Templates::output_page($r, 'listing.xml', { 'ul' => \@events });
 	return Apache2::Const::OK;
 }
 
