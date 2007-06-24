@@ -109,7 +109,7 @@ EOF
 					dberror($r, "Couldn't get events");
 		
 				while (my $ref = $q->fetchrow_hashref()) {
-					my $id = $ref->{'id'};
+					my $id = $ref->{'event'};
 					my $name = $ref->{'name'};
 				
 					$name =~ s/&/\&amp;/g;  # hack :-)
