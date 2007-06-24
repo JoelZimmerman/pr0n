@@ -408,9 +408,9 @@ EOF
 		my $orig_filename = $filename;
 
 		# Remove evil characters
-		if ($filename =~ /[^a-zA-Z0-9._-]/) {
+		if ($filename =~ /[^a-zA-Z0-9._()-]/) {
 			if (defined($autorename) && $autorename eq "autorename/") {
-				$filename =~ tr/a-zA-Z0-9.-/_/c;
+				$filename =~ tr/a-zA-Z0-9.()-/_/c;
 			} else {
 				$r->status(403);
 				$r->content_type('text/plain; charset=utf-8');
