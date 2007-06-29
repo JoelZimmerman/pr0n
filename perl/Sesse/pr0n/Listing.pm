@@ -15,6 +15,18 @@ sub handler {
 			return Apache2::Const::OK;
 		}
 	}
+	
+	# find the last modification
+	my $ref = $dbh->selectrow_hashref('SELECT EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE vhost=? ORDER BY last_update DESC LIMIT 1',
+		undef, $r->get_server_name)
+		or error($r, "Could not any events", 404, "File not found");
+	$r->set_last_modified($ref->{'last_update'});
+	$r->content_type('text/html; charset=utf-8');
+		                
+	# If the client can use cache, do so
+	if ((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
+		return $rc;
+	}
 
 #	my $q = $dbh->prepare('SELECT t1.id,t1.date,t1.name FROM events t1 LEFT JOIN images t2 ON t1.id=t2.event WHERE t1.vhost=? GROUP BY t1.id,t1.date,t1.name ORDER BY COALESCE(MAX(t2.date),\'1970-01-01 00:00:00\'),t1.id') or
 #		dberror($r, "Couldn't list events");
@@ -22,9 +34,7 @@ sub handler {
 		or dberror($r, "Couldn't list events");
 	$q->execute($r->get_server_name)
 		or dberror($r, "Couldn't get events");
-
-	$r->content_type('text/html; charset=utf-8');
-
+	
 	Sesse::pr0n::Common::header($r, Sesse::pr0n::Templates::fetch_template($r, 'event-listing'));
 	$r->print("    <ul>\n");
 
