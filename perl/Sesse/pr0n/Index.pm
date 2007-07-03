@@ -23,7 +23,7 @@ sub handler {
 	}
 
 	# Internal? (Ugly?) 
-	if ($r->get_server_name =~ /internal/ || $r->get_server_name =~ /skoyen\.bilder\.knatten\.com/) {
+	if ($r->get_server_name =~ /internal/ || $r->get_server_name =~ /skoyen\.bilder\.knatten\.com/ || $r->get_server_name =~ /lia\.heimdal\.org/) {
 		my $user = Sesse::pr0n::Common::check_access($r);
 		if (!defined($user)) {
 			return Apache2::Const::OK;

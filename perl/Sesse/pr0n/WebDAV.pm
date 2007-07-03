@@ -602,7 +602,7 @@ EOF
 
 			# Try to insert this new file
 			eval {
-				$dbh->do('INSERT INTO images (id,vhost,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?);',
+				$dbh->do('INSERT INTO images (id,vhost,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?,?)',
 					undef, $newid, $r->get_server_name, $event, $user, $takenby, $filename);
 				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
 					undef, $r->get_server_name, $event);
