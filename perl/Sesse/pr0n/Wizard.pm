@@ -19,7 +19,7 @@ sub handler {
 	}
 
 	# Find events
-	my $q = $dbh->prepare('SELECT id,date,name FROM events e JOIN last_picture_cache c ON e.id=c.event WHERE vhost=? ORDER BY last_picture DESC')
+	my $q = $dbh->prepare('SELECT event,date,name FROM events e JOIN last_picture_cache c USING (vhost,event) WHERE vhost=? ORDER BY last_picture DESC')
 		or dberror($r, "Couldn't list events");
 	$q->execute($r->get_server_name)
 		or dberror($r, "Couldn't get events");
@@ -28,7 +28,7 @@ sub handler {
 	$r->print(Sesse::pr0n::Templates::fetch_template($r, 'wizard-header'));
 	
 	while (my $ref = $q->fetchrow_hashref()) {
-		my $id = $ref->{'id'};
+		my $id = $ref->{'event'};
 		my $date = $ref->{'date'};
 		my $name = $ref->{'name'};
 		
