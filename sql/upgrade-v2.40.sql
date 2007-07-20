@@ -44,7 +44,7 @@ ALTER TABLE events DROP CONSTRAINT events_pkey CASCADE;
 
 -- Finally, fix up some unique constraints
 DROP INDEX unique_filenames;
-CREATE INDEX unique_filenames ON images (vhost,event,filename);
+CREATE UNIQUE INDEX unique_filenames ON images (vhost,event,filename);
 
 ALTER TABLE fake_files DROP CONSTRAINT fake_files_pkey;
 ALTER TABLE fake_files ADD PRIMARY KEY (vhost,event,filename);
