@@ -72,7 +72,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE exif_info (
-    image integer NOT NULL REFERENCES images (id),
+    image integer NOT NULL REFERENCES images (id) ON DELETE CASCADE,
     tag varchar NOT NULL,
     value varchar NOT NULL,
 
