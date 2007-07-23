@@ -314,11 +314,23 @@ sub ensure_cached {
 		# Need to generate the cache; read in the image
 		my $magick = new Image::Magick;
 		my $info = Image::ExifTool::ImageInfo($fname);
+		my $err;
 
-		# NEF files aren't autodetected
-		$fname = "NEF:$fname" if ($filename =~ /\.nef$/i);
+		# ImageMagick can handle NEF files, but it does it by calling dcraw as a delegate.
+		# The delegate support is rather broken and causes very odd stuff to happen when
+		# more than one thread does this at the same time. Thus, we simply do it ourselves.
+		if ($filename =~ /\.nef$/) {
+			# this would suffice if ImageMagick gets to fix their handling
+			# $fname = "NEF:$fname";
+			
+			open DCRAW, "-|", "dcraw", "-w", "-c", $fname
+				or error("dcraw: $!");
+			$err = $magick->Read(file => \*DCRAW);
+			close(DCRAW);
+		} else {
+			$err = $magick->Read($fname);
+		}
 		
-		my $err = $magick->Read($fname);
 		if ($err) {
 			$r->log->warn("$fname: $err");
 			$err =~ /(\d+)/;
