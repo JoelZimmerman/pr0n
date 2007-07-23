@@ -375,10 +375,12 @@ sub ensure_cached {
 			# Use lanczos (sharper) for heavy scaling, mitchell (faster) otherwise
 			my $filter = 'Mitchell';
 			my $quality = 90;
+			my $sf = undef;
 
 			if ($width / $nwidth > 8.0 || $height / $nheight > 8.0) {
 				$filter = 'Lanczos';
-				$quality = 80;
+				$quality = 85;
+				$sf = "1x1";
 			}
 
 			if ($xres != -1) {
@@ -392,11 +394,19 @@ sub ensure_cached {
 			# Strip EXIF tags etc.
 			$cimg->Strip();
 
-			if (($nwidth >= 640 && $nheight >= 480) ||
-			    ($nwidth >= 480 && $nheight >= 640)) {
-				$err = $cimg->write(filename=>$cachename, quality=>$quality, interlace=>'Plane');
-			} else {
-				$err = $cimg->write(filename=>$cachename, quality=>$quality);
+			{
+				my %parms = (
+					filename => $cachename,
+					quality => $quality
+				);
+				if (($nwidth >= 640 && $nheight >= 480) ||
+				    ($nwidth >= 480 && $nheight >= 640)) {
+				    	$parms{'interlace'} = 'Plane';
+				}
+				if (defined($sf)) {
+					$parms{'scaling-factor'} = $sf;
+				}
+				$err = $cimg->write(%parms);
 			}
 
 			undef $cimg;
