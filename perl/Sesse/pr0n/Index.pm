@@ -11,16 +11,21 @@ sub handler {
 	my $apr = Apache2::Request->new($r);
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 
-	my ($event, $abspath);
+	my ($event, $abspath, $datesort);
 	if ($r->uri =~ /^\/\+all\/?/) {
 		$event = '+all';
 		$abspath = 1;
+
+		# augh, this needs 8.3, so we'll have to fiddle around a bit instead
+		# $datesort = 'DESC NULLS LAST';
+		$datesort = 'DESC';
 	} else {
 		# Find the event
 		$r->uri =~ /^\/([a-zA-Z0-9-]+)\/?$/
 			or error($r, "Could not extract event");
 		$event = $1;
 		$abspath = 0;
+		$datesort = 'ASC';
 	}
 
 	# Fix common error: pr0n.sesse.net/event -> pr0n.sesse.net/event/
@@ -132,7 +137,7 @@ sub handler {
 	# Find all images related to this event.
 	my $limit = (defined($start) && defined($num) && !$settings{'fullscreen'}) ? (" LIMIT $num OFFSET " . ($start-1)) : "";
 
-	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit")
+	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE vhost=? $where ORDER BY COALESCE((date - INTERVAL '6 hours')::date, '1970-01-01') $datesort,takenby,date,filename $limit")
 		or dberror($r, "prepare()");
 	$q->execute($r->get_server_name)
 		or dberror($r, "image enumeration");
