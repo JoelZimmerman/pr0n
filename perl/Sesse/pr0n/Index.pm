@@ -186,7 +186,7 @@ sub handler {
 					TRIM(model.value) AS model,
 					coalesce(TRIM(lens_spec.value), TRIM(lens.value)) AS lens,
 					COUNT(*) AS num
-				FROM ( SELECT * FROM images WHERE vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename ) i
+				FROM ( SELECT * FROM images WHERE vhost=? $where ) i
 					LEFT JOIN exif_info model ON i.id=model.image
 					LEFT JOIN ( SELECT * FROM exif_info WHERE tag='Lens' ) lens ON i.id=lens.image
 					LEFT JOIN ( SELECT * FROM exif_info WHERE tag='LensSpec') lens_spec ON i.id=lens_spec.image
