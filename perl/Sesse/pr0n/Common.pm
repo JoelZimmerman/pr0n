@@ -404,7 +404,7 @@ sub ensure_cached {
 				    	$parms{'interlace'} = 'Plane';
 				}
 				if (defined($sf)) {
-					$parms{'scaling-factor'} = $sf;
+					$parms{'sampling-factor'} = $sf;
 				}
 				$err = $cimg->write(%parms);
 			}
