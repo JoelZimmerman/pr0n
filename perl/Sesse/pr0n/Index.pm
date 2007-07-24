@@ -11,10 +11,19 @@ sub handler {
 	my $apr = Apache2::Request->new($r);
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 
-	# Find the event
-	$r->uri =~ m#^/([a-zA-Z0-9-]+)/?$#
-		or error($r, "Could not extract event");
-	my $event = $1;
+	my ($event, $abspath, $evselect);
+	if ($r->uri =~ /^\/\+all\/?/) {
+		$event = '+all';
+		$abspath = 1;
+		$evselect = '';
+	} else {
+		# Find the event
+		$r->uri =~ /^\/([a-zA-Z0-9-]+)\/?$/
+			or error($r, "Could not extract event");
+		$event = $1;
+		$abspath = 0;
+		$evselect = 'event=' . $dbh->quote($event) . ' AND ';
+	}
 
 	# Fix common error: pr0n.sesse.net/event -> pr0n.sesse.net/event/
 	if ($r->uri !~ m#/$#) {
@@ -46,8 +55,8 @@ sub handler {
 	);
 	
 	# Any NEF files => default to processing
-	my $ref = $dbh->selectrow_hashref('SELECT * FROM images WHERE event=? AND vhost=? AND LOWER(filename) LIKE \'%.nef\' LIMIT 1',
-		undef, $event, $r->get_server_name)
+	my $ref = $dbh->selectrow_hashref("SELECT * FROM images WHERE $evselect vhost=? AND LOWER(filename) LIKE '%.nef' LIMIT 1",
+		undef, $r->get_server_name)
 		and $defsettings{'xres'} = $defsettings{'yres'} = undef;
 	
 	# Reduce the front page load when in overload mode.
@@ -82,13 +91,24 @@ sub handler {
 		$num = undef;
 	}
 
-	$ref = $dbh->selectrow_hashref('SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE event=? AND vhost=?',
-		undef, $event, $r->get_server_name)
-		or error($r, "Could not find event $event", 404, "File not found");
+	my ($date, $name);
 
-	my $date = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'date'}));
-	my $name = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'name'}));
-	$r->set_last_modified($ref->{'last_update'});
+	if ($event eq '+all') {
+		$ref = $dbh->selectrow_hashref("SELECT EXTRACT(EPOCH FROM MAX(last_update)) AS last_update FROM events WHERE vhost=?",
+			undef, $r->get_server_name)
+			or error($r, "Could not list events", 404, "File not found");
+		$date = undef;
+		$name = Sesse::pr0n::Templates::fetch_template($r, 'all-event-title');
+		$r->set_last_modified($ref->{'last_update'});
+	} else {
+		$ref = $dbh->selectrow_hashref("SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE $evselect vhost=?",
+			undef, $r->get_server_name)
+			or error($r, "Could not find event $event", 404, "File not found");
+
+		$date = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'date'}));
+		$name = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'name'}));
+		$r->set_last_modified($ref->{'last_update'});
+	}
 		                
 	# If the client can use cache, do so
 	if ((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
@@ -96,16 +116,16 @@ sub handler {
 	}
 	
 	# Count the number of selected images.
-	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE event=? AND vhost=? AND selected=\'t\'", undef, $event, $r->get_server_name);
+	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE $evselect vhost=? AND selected=\'t\'", undef, $r->get_server_name);
 	my $num_selected = $ref->{'num_selected'};
 
 	# Find all images related to this event.
 	my $where = ($all == 0) ? ' AND selected=\'t\'' : '';
 	my $limit = (defined($start) && defined($num) && !$settings{'fullscreen'}) ? (" LIMIT $num OFFSET " . ($start-1)) : "";
 
-	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE event=? AND vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit")
+	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE $evselect vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit")
 		or dberror($r, "prepare()");
-	$q->execute($event, $r->get_server_name)
+	$q->execute($r->get_server_name)
 		or dberror($r, "image enumeration");
 
 	# Print the page itself
@@ -134,7 +154,9 @@ sub handler {
 		});
 	} else {
 		Sesse::pr0n::Common::header($r, "$name [$event]");
-		Sesse::pr0n::Templates::print_template($r, "date", { date => $date });
+		if (defined($date)) {
+			Sesse::pr0n::Templates::print_template($r, "date", { date => $date });
+		}
 
 		if (Sesse::pr0n::Overload::is_in_overload($r)) {
 			Sesse::pr0n::Templates::print_template($r, "overloadmode");
@@ -146,58 +168,59 @@ sub handler {
 		print_infobox($r, $event, \%settings, \%defsettings);
 		print_selected($r, $event, \%settings, \%defsettings) if ($num_selected > 0);
 		print_fullscreen($r, $event, \%settings, \%defsettings);
-		print_nextprev($r, $event, \%settings, \%defsettings);
-		
-		# Find the equipment used
-		my $eq = $dbh->prepare("
-			SELECT 
-				TRIM(model.value) AS model,
-				coalesce(TRIM(lens_spec.value), TRIM(lens.value)) AS lens,
-				COUNT(*) AS num
-			FROM ( SELECT * FROM images WHERE event=? AND vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename ) i
-				LEFT JOIN exif_info model ON i.id=model.image
-				LEFT JOIN ( SELECT * FROM exif_info WHERE tag='Lens' ) lens ON i.id=lens.image
-				LEFT JOIN ( SELECT * FROM exif_info WHERE tag='LensSpec') lens_spec ON i.id=lens_spec.image
-			WHERE model.tag='Model'
-			GROUP BY 1,2
-			ORDER BY 1,2")
-			or die "Couldn't prepare to find equipment: $!";
-		$eq->execute($event, $r->get_server_name)
-			or die "Couldn't find equipment: $!";
+		print_nextprev($r, $event, $evselect, \%settings, \%defsettings);
+	
+		if ($event ne '+all') {
+			# Find the equipment used
+			my $eq = $dbh->prepare("
+				SELECT 
+					TRIM(model.value) AS model,
+					coalesce(TRIM(lens_spec.value), TRIM(lens.value)) AS lens,
+					COUNT(*) AS num
+				FROM ( SELECT * FROM images WHERE $evselect vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename ) i
+					LEFT JOIN exif_info model ON i.id=model.image
+					LEFT JOIN ( SELECT * FROM exif_info WHERE tag='Lens' ) lens ON i.id=lens.image
+					LEFT JOIN ( SELECT * FROM exif_info WHERE tag='LensSpec') lens_spec ON i.id=lens_spec.image
+				WHERE model.tag='Model'
+				GROUP BY 1,2
+				ORDER BY 1,2")
+				or die "Couldn't prepare to find equipment: $!";
+			$eq->execute($r->get_server_name)
+				or die "Couldn't find equipment: $!";
 
-		my @equipment = ();
-		my %cameras_seen = ();
-		while (my $ref = $eq->fetchrow_hashref) {
-			if (!defined($ref->{'lens'}) && exists($cameras_seen{$ref->{'model'}})) {
-				#
-				# Some compact cameras seem to add lens info sometimes and not at other
-				# times; if we have seen a camera with at least one specific lens earlier,
-				# just combine entries without a lens with the previous one.
-				#
-				$equipment[$#equipment]->{'num'} += $ref->{'num'};
-				next;
-			}
-			push @equipment, $ref;
-			$cameras_seen{$ref->{'model'}} = 1;
-		}
-		$eq->finish;
-
-		if (scalar @equipment > 0) {
-			Sesse::pr0n::Templates::print_template($r, "equipment-start");
-			for my $e (@equipment) {
-				my $eqspec = $e->{'model'};
-				$eqspec .= ', ' . $e->{'lens'} if (defined($e->{'lens'}));
-
-				# This isn't correct for all languages. Fix if we ever need to care. :-)
-				if ($e->{'num'} == 1) {
-					Sesse::pr0n::Templates::print_template($r, "equipment-item-singular", { eqspec => $eqspec });
-				} else {
-					Sesse::pr0n::Templates::print_template($r, "equipment-item", { eqspec => $eqspec, num => $e->{'num'} });
+			my @equipment = ();
+			my %cameras_seen = ();
+			while (my $ref = $eq->fetchrow_hashref) {
+				if (!defined($ref->{'lens'}) && exists($cameras_seen{$ref->{'model'}})) {
+					#
+					# Some compact cameras seem to add lens info sometimes and not at other
+					# times; if we have seen a camera with at least one specific lens earlier,
+					# just combine entries without a lens with the previous one.
+					#
+					$equipment[$#equipment]->{'num'} += $ref->{'num'};
+					next;
 				}
+				push @equipment, $ref;
+				$cameras_seen{$ref->{'model'}} = 1;
 			}
-			Sesse::pr0n::Templates::print_template($r, "equipment-end");
-		}
+			$eq->finish;
 
+			if (scalar @equipment > 0) {
+				Sesse::pr0n::Templates::print_template($r, "equipment-start");
+				for my $e (@equipment) {
+					my $eqspec = $e->{'model'};
+					$eqspec .= ', ' . $e->{'lens'} if (defined($e->{'lens'}));
+
+					# This isn't correct for all languages. Fix if we ever need to care. :-)
+					if ($e->{'num'} == 1) {
+						Sesse::pr0n::Templates::print_template($r, "equipment-item-singular", { eqspec => $eqspec });
+					} else {
+						Sesse::pr0n::Templates::print_template($r, "equipment-item", { eqspec => $eqspec, num => $e->{'num'} });
+					}
+				}
+				Sesse::pr0n::Templates::print_template($r, "equipment-end");
+			}
+		}
 
 		my $toclose = 0;
 		my $lastupl = "";
@@ -238,7 +261,12 @@ sub handler {
 					$uri = "original/$infobox$filename";
 				}
 
-				$r->print("    <p><a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
+				my $prefix = "";
+				if ($abspath) {
+					$prefix = "/" . $ref->{'event'} . "/";
+				}
+
+				$r->print("    <p><a href=\"$prefix$uri\"><img src=\"$prefix${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
 				$r->print("      90 <input type=\"checkbox\" name=\"rot-" .
 					$ref->{'id'} . "-90\" />\n");
 				$r->print("      180 <input type=\"checkbox\" name=\"rot-" .
@@ -285,14 +313,19 @@ sub handler {
 					$uri = "original/$infobox$filename";
 				}
 				
-				$r->print("      <a href=\"$uri\"><img src=\"${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
+				my $prefix = "";
+				if ($abspath) {
+					$prefix = "/" . $ref->{'event'} . "/";
+				}
+				
+				$r->print("      <a href=\"$prefix$uri\"><img src=\"$prefix${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
 				
 				++$img_num;
 			}
 			$r->print("    </p>\n");
 		}
 
-		print_nextprev($r, $event, \%settings, \%defsettings);
+		print_nextprev($r, $event, $evselect, \%settings, \%defsettings);
 		Sesse::pr0n::Common::footer($r);
 	}
 
@@ -430,7 +463,7 @@ sub print_infobox {
 }
 
 sub print_nextprev {
-	my ($r, $event, $settings, $defsettings) = @_;
+	my ($r, $event, $evselect, $settings, $defsettings) = @_;
 	my $start = $settings->{'start'};
 	my $num = $settings->{'num'};
 	my $all = $settings->{'all'};
@@ -441,8 +474,8 @@ sub print_nextprev {
 	return unless (defined($start) && defined($num));
 
 	# determine total number
-	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE event=? AND vhost=? $where",
-		undef, $event, $r->get_server_name)
+	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE $evselect vhost=? $where",
+		undef, $r->get_server_name)
 		or dberror($r, "image enumeration");
 	my $num_images = $ref->{'num_images'};
 

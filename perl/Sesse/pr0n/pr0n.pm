@@ -67,7 +67,8 @@ sub handler {
 		return Sesse::pr0n::Registry::handler($r);
 	} elsif ($uri =~ m#^/wizard$#) {
 		return Sesse::pr0n::Wizard::handler($r);
-	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/?$#) {
+	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/?$# ||
+		 $uri =~ m#^/\+all/?$#) {
 		return Sesse::pr0n::Index::handler($r);
 	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/(\d+x\d+/|original/)?(nobox/)?[a-zA-Z0-9._-]+$#) {
 		return Sesse::pr0n::Image::handler($r);
