@@ -36,6 +36,11 @@ sub handler {
 		or dberror($r, "Couldn't get events");
 	
 	Sesse::pr0n::Common::header($r, Sesse::pr0n::Templates::fetch_template($r, 'event-listing'));
+	my $allcaption = Sesse::pr0n::Templates::fetch_template($r, 'all-event-title');
+	$r->print("    <ul>\n");
+	$r->print("      <li><a href=\"+all/\">$allcaption</a></li>\n");
+	$r->print("    </ul>\n");
+	
 	$r->print("    <ul>\n");
 
 	while (my $ref = $q->fetchrow_hashref()) {
