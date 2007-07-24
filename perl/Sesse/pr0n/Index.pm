@@ -11,18 +11,16 @@ sub handler {
 	my $apr = Apache2::Request->new($r);
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 
-	my ($event, $abspath, $evselect);
+	my ($event, $abspath);
 	if ($r->uri =~ /^\/\+all\/?/) {
 		$event = '+all';
 		$abspath = 1;
-		$evselect = '';
 	} else {
 		# Find the event
 		$r->uri =~ /^\/([a-zA-Z0-9-]+)\/?$/
 			or error($r, "Could not extract event");
 		$event = $1;
 		$abspath = 0;
-		$evselect = 'event=' . $dbh->quote($event) . ' AND ';
 	}
 
 	# Fix common error: pr0n.sesse.net/event -> pr0n.sesse.net/event/
@@ -54,8 +52,16 @@ sub handler {
 		fullscreen => 0,
 	);
 	
+	# Construct SQL for this filter
+	my $where;
+	if ($event eq '+all') {
+		$where = '';
+	} else {
+		$where = ' AND event=' . $dbh->quote($event);
+	}
+	
 	# Any NEF files => default to processing
-	my $ref = $dbh->selectrow_hashref("SELECT * FROM images WHERE $evselect vhost=? AND LOWER(filename) LIKE '%.nef' LIMIT 1",
+	my $ref = $dbh->selectrow_hashref("SELECT * FROM images WHERE vhost=? $where AND LOWER(filename) LIKE '%.nef' LIMIT 1",
 		undef, $r->get_server_name)
 		and $defsettings{'xres'} = $defsettings{'yres'} = undef;
 	
@@ -86,6 +92,10 @@ sub handler {
 	my $infobox = $settings{'infobox'} ? '' : 'nobox/';
 	my $rot = $settings{'rot'};
 	my $sel = $settings{'sel'};
+	
+	if ($all == 0) {
+		$where .= ' AND selected=\'t\'';	
+	}
 
 	if (defined($num) && $num == -1) {
 		$num = undef;
@@ -101,7 +111,7 @@ sub handler {
 		$name = Sesse::pr0n::Templates::fetch_template($r, 'all-event-title');
 		$r->set_last_modified($ref->{'last_update'});
 	} else {
-		$ref = $dbh->selectrow_hashref("SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE $evselect vhost=?",
+		$ref = $dbh->selectrow_hashref("SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE vhost=? $where",
 			undef, $r->get_server_name)
 			or error($r, "Could not find event $event", 404, "File not found");
 
@@ -116,14 +126,13 @@ sub handler {
 	}
 	
 	# Count the number of selected images.
-	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE $evselect vhost=? AND selected=\'t\'", undef, $r->get_server_name);
+	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE vhost=? $where AND selected=\'t\'", undef, $r->get_server_name);
 	my $num_selected = $ref->{'num_selected'};
 
 	# Find all images related to this event.
-	my $where = ($all == 0) ? ' AND selected=\'t\'' : '';
 	my $limit = (defined($start) && defined($num) && !$settings{'fullscreen'}) ? (" LIMIT $num OFFSET " . ($start-1)) : "";
 
-	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE $evselect vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit")
+	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename $limit")
 		or dberror($r, "prepare()");
 	$q->execute($r->get_server_name)
 		or dberror($r, "image enumeration");
@@ -168,7 +177,7 @@ sub handler {
 		print_infobox($r, $event, \%settings, \%defsettings);
 		print_selected($r, $event, \%settings, \%defsettings) if ($num_selected > 0);
 		print_fullscreen($r, $event, \%settings, \%defsettings);
-		print_nextprev($r, $event, $evselect, \%settings, \%defsettings);
+		print_nextprev($r, $event, $where, \%settings, \%defsettings);
 	
 		if ($event ne '+all') {
 			# Find the equipment used
@@ -177,7 +186,7 @@ sub handler {
 					TRIM(model.value) AS model,
 					coalesce(TRIM(lens_spec.value), TRIM(lens.value)) AS lens,
 					COUNT(*) AS num
-				FROM ( SELECT * FROM images WHERE $evselect vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename ) i
+				FROM ( SELECT * FROM images WHERE vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date,takenby,date,filename ) i
 					LEFT JOIN exif_info model ON i.id=model.image
 					LEFT JOIN ( SELECT * FROM exif_info WHERE tag='Lens' ) lens ON i.id=lens.image
 					LEFT JOIN ( SELECT * FROM exif_info WHERE tag='LensSpec') lens_spec ON i.id=lens_spec.image
@@ -325,7 +334,7 @@ sub handler {
 			$r->print("    </p>\n");
 		}
 
-		print_nextprev($r, $event, $evselect, \%settings, \%defsettings);
+		print_nextprev($r, $event, $where, \%settings, \%defsettings);
 		Sesse::pr0n::Common::footer($r);
 	}
 
@@ -463,18 +472,16 @@ sub print_infobox {
 }
 
 sub print_nextprev {
-	my ($r, $event, $evselect, $settings, $defsettings) = @_;
+	my ($r, $event, $where, $settings, $defsettings) = @_;
 	my $start = $settings->{'start'};
 	my $num = $settings->{'num'};
-	my $all = $settings->{'all'};
 	my $dbh = Sesse::pr0n::Common::get_dbh();
-	my $where = ($all == 0) ? ' AND selected=\'t\'' : '';
 
 	$num = undef if (defined($num) && $num == -1);
 	return unless (defined($start) && defined($num));
 
 	# determine total number
-	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE $evselect vhost=? $where",
+	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE vhost=? $where",
 		undef, $r->get_server_name)
 		or dberror($r, "image enumeration");
 	my $num_images = $ref->{'num_images'};
