@@ -67,7 +67,7 @@ function reduce_to_fixed_width(size)
 	
 function display_image(width, height, evt, filename, element_id)
 {
-	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/" + filename;
+	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/" + global_infobox + filename;
 	var img = document.getElementById(element_id);
 	if (img != null) {
 		img.src = "data:";
@@ -111,9 +111,9 @@ function relayout()
 	var size = find_width();
 	var adjusted_size = reduce_to_fixed_width(size);
 
-	var img = display_image(adjusted_size[0], adjusted_size[1], global_evt, global_image_list[global_image_num], "image");
+	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[global_image_num][0], global_image_list[global_image_num][1], "image");
 	if (can_go_next()) {
-		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_evt, global_image_list[global_image_num + 1]);
+		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_image_list[global_image_num + 1][0], global_image_list[global_image_num + 1]);
 	}
 	
 	// center the image on-screen
@@ -178,10 +178,10 @@ function go_previous()
 
 	var adjusted_size = reduce_to_fixed_width(find_width());
 
-	var img = display_image(adjusted_size[0], adjusted_size[1], global_evt, global_image_list[global_image_num], "image");
+	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[global_image_num][0], global_image_list[global_image_num][1], "image");
 	if (can_go_previous()) {
 		set_opacity("previous", 0.7);
-		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_evt, global_image_list[global_image_num - 1]);
+		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_image_list[global_image_num - 1][0], global_image_list[global_image_num - 1][1]);
 	} else {
 		set_opacity("previous", 0.1);
 	}
@@ -202,10 +202,10 @@ function go_next()
 
 	var adjusted_size = reduce_to_fixed_width(find_width());
 
-	var img = display_image(adjusted_size[0], adjusted_size[1], global_evt, global_image_list[global_image_num], "image");
+	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[global_image_num][0], global_image_list[global_image_num][1], "image");
 	if (can_go_next()) {
 		set_opacity("next", 0.7);
-		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_evt, global_image_list[global_image_num + 1]);
+		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_image_list[global_image_num + 1][0], global_image_list[global_image_num + 1][1]);
 	} else {
 		set_opacity("next", 0.1);
 	}
@@ -242,11 +242,11 @@ function key_up(which) {
 		set_opacity("close", 0.7);
 		do_close();
 	} else if (which == 32 && global_select) {   // space
-		select_image(global_image_list[global_image_num]);
+		select_image(global_image_list[global_image_num][0], global_image_list[global_image_num][1]);
 	}
 }
 
-function select_image(filename)
+function select_image(evt, filename)
 {
 	if (!req)
 		return;
@@ -255,7 +255,7 @@ function select_image(filename)
 	
 	req.open("POST", "http://" + global_vhost + "/select", false);
 	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	req.send("mode=single&event=" + global_evt + "&filename=" + filename);
+	req.send("mode=single&event=" + evt + "&filename=" + filename);
 
 	setTimeout("fade_text(0.99)", 30);
 }
