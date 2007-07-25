@@ -7,3 +7,11 @@ ALTER TABLE exif_info RENAME COLUMN tag TO key;
 CREATE INDEX exif_info_key ON exif_info ( key );
 CLUSTER exif_info_key ON exif_info;
 
+CREATE TABLE tags (
+    image integer NOT NULL REFERENCES images (id) ON DELETE CASCADE,
+    tag varchar NOT NULL,
+
+    PRIMARY KEY ( image, tag )
+);
+CREATE INDEX tags_tag ON tags ( tag );
+
