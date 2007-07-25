@@ -661,9 +661,9 @@ sub print_fullscreen_fromhere {
 	$newsettings{'fullscreen'} = 1;
 	$newsettings{'start'} = $start;
 
-        $r->print("    <p class=\"fsfromhere\">");
+        $r->print("    <span class=\"fsfromhere\">");
 	Sesse::pr0n::Common::print_link($r, $title, "/$event/", \%newsettings, $defsettings);
-	$r->print("</p>\n");
+	$r->print("</span>\n");
 }
 	
 1;
