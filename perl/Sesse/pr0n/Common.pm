@@ -216,7 +216,7 @@ sub update_image_info {
 			undef, $id)
 			or die "Couldn't delete old EXIF information in SQL: $!";
 
-		my $q = $dbh->prepare('INSERT INTO exif_info (image,tag,value) VALUES (?,?,?)')
+		my $q = $dbh->prepare('INSERT INTO exif_info (image,key,value) VALUES (?,?,?)')
 			or die "Couldn't prepare inserting EXIF information: $!";
 
 		for my $key (keys %$info) {

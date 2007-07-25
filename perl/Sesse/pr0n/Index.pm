@@ -115,17 +115,17 @@ sub handler {
 
 		if ($model eq '') {
 			# no defined model
-			$where .= " AND id NOT IN ( SELECT image FROM exif_info WHERE tag='Model' AND TRIM(value)<>'' )";
+			$where .= " AND id NOT IN ( SELECT image FROM exif_info WHERE key='Model' AND TRIM(value)<>'' )";
 		} else {
-			$where .= " AND id IN ( SELECT image FROM exif_info WHERE tag='Model' AND TRIM(value)=$mq )";
+			$where .= " AND id IN ( SELECT image FROM exif_info WHERE key='Model' AND TRIM(value)=$mq )";
 		}
 	
 		# This doesn't match 1:1 if there's both lens and lensspec, but it should be OK in practice
 		if ($lens eq '') {
 			# no defined lens
-			$where .= " AND id NOT IN ( SELECT image FROM exif_info WHERE (tag='Lens' OR tag='LensSpec') AND TRIM(value)<>'' )";
+			$where .= " AND id NOT IN ( SELECT image FROM exif_info WHERE (key='Lens' OR key='LensSpec') AND TRIM(value)<>'' )";
 		} else {
-			$where .= " AND id IN ( SELECT image FROM exif_info WHERE (tag='Lens' OR tag='LensSpec') AND TRIM(value)=$lq )";
+			$where .= " AND id IN ( SELECT image FROM exif_info WHERE (key='Lens' OR key='LensSpec') AND TRIM(value)=$lq )";
 		}
 	}
 
@@ -220,9 +220,9 @@ sub handler {
 					COUNT(*) AS num
 				FROM ( SELECT * FROM images WHERE vhost=? $where ) i
 					LEFT JOIN exif_info model ON i.id=model.image
-					LEFT JOIN ( SELECT * FROM exif_info WHERE tag='Lens' ) lens ON i.id=lens.image
-					LEFT JOIN ( SELECT * FROM exif_info WHERE tag='LensSpec') lens_spec ON i.id=lens_spec.image
-				WHERE model.tag='Model'
+					LEFT JOIN ( SELECT * FROM exif_info WHERE key='Lens' ) lens ON i.id=lens.image
+					LEFT JOIN ( SELECT * FROM exif_info WHERE key='LensSpec') lens_spec ON i.id=lens_spec.image
+				WHERE model.key='Model'
 				GROUP BY 1,2
 				ORDER BY 1,2")
 				or die "Couldn't prepare to find equipment: $!";

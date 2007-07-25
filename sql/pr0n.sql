@@ -73,14 +73,14 @@ CREATE TABLE users (
 
 CREATE TABLE exif_info (
     image integer NOT NULL REFERENCES images (id) ON DELETE CASCADE,
-    tag varchar NOT NULL,
+    key varchar NOT NULL,
     value varchar NOT NULL,
 
-    PRIMARY KEY ( image, tag )
+    PRIMARY KEY ( image, key )
 );
 
-CREATE INDEX exif_info_tag ON exif_info ( tag );
-CLUSTER exif_info_tag ON exif_info;
+CREATE INDEX exif_info_key ON exif_info ( key );
+CLUSTER exif_info_key ON exif_info;
 
 GRANT INSERT ON TABLE deleted_images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE events TO pr0n;
