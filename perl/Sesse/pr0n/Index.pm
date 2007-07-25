@@ -98,8 +98,7 @@ sub handler {
 			$settings{$s} = $val;
 		}
 		if ($s eq "model" || $s eq "lens") {
-			$val =~ s/_/ /g;
-			$settings{$s} = $val;
+			$settings{$s} = Sesse::pr0n::Common::pretty_unescape($val);
 		}
 	}
 

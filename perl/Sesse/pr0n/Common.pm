@@ -152,6 +152,15 @@ sub pretty_escape {
 	return $value;
 }
 
+sub pretty_unescape {
+	my $value = shift;
+
+	# URI unescaping is already done for us
+	$value =~ s/_/ /g;
+
+	return $value;
+}
+
 sub print_link {
 	my ($r, $title, $baseurl, $param, $defparam, $accesskey) = @_;
 	my $str = "<a href=\"$baseurl" . get_query_string($param, $defparam) . "\"";
