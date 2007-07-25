@@ -173,8 +173,16 @@ sub handler {
 	if ($settings{'fullscreen'}) {
 		$r->content_type("text/html; charset=utf-8");
 		Sesse::pr0n::Templates::print_template($r, "fullscreen-header", { title => "$name [$event]" });
+
+		my @files = ();
 		while (my $ref = $q->fetchrow_hashref()) {
-			$r->print("        [ \"" . $ref->{'event'} . "\", \"" . $ref->{'filename'} . "\" ],\n");
+			push @files, [ $ref->{'event'}, $ref->{'filename'} ];
+		}
+		
+		for my $i (0..$#files) {
+			$r->print("        [ \"" . $files[$i]->[0] . "\", \"" . $files[$i]->[1] . "\" ]");
+			$r->print(",") unless ($i == $#files);
+			$r->print("\n");
 		}
 
 		my %settings_no_fullscreen = %settings;

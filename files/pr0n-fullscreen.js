@@ -58,9 +58,11 @@ function reduce_to_fixed_width(size)
 		[ 120, 96 ],
 		[ 80, 64 ]
 	];
+	var i;
 	for (i = 0; i < fixed_sizes.length; ++i) {
-		if (size[0] >= fixed_sizes[i][0] && size[1] >= fixed_sizes[i][1])
+		if (size[0] >= fixed_sizes[i][0] && size[1] >= fixed_sizes[i][1]) {
 			return fixed_sizes[i];
+		}
 	}
 	return [ 80, 64 ];
 }
@@ -69,7 +71,7 @@ function display_image(width, height, evt, filename, element_id)
 {
 	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/" + global_infobox + filename;
 	var img = document.getElementById(element_id);
-	if (img != null) {
+	if (img !== null) {
 		img.src = "data:";
 		img.parentNode.removeChild(img);
 	}
@@ -92,7 +94,7 @@ function prepare_preload(img, width, height, evt, filename)
 {
 	// cancel any pending preload
 	var preload = document.getElementById("preload");
-	if (preload != null) {
+	if (preload !== null) {
 		preload.src = "data:";
 		preload.parentNode.removeChild(preload);
 	}
@@ -106,28 +108,14 @@ function prepare_preload(img, width, height, evt, filename)
 	}	
 }
 
-function relayout()
+function can_go_next()
 {
-	var size = find_width();
-	var adjusted_size = reduce_to_fixed_width(size);
+	return (global_image_num < global_image_list.length - 1);
+}
 
-	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[global_image_num][0], global_image_list[global_image_num][1], "image");
-	if (can_go_next()) {
-		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_image_list[global_image_num + 1][0], global_image_list[global_image_num + 1]);
-	}
-	
-	// center the image on-screen
-	var main = document.getElementById("main");
-	main.style.position = "absolute";
-	main.style.left = (size[0] - adjusted_size[0]) / 2 + "px";
-	main.style.top = (size[1] - adjusted_size[1]) / 2 + "px"; 
-	main.style.width = adjusted_size[0] + "px";
-	main.style.height = adjusted_size[1] + "px";
-	main.style.lineHeight = adjusted_size[1] + "px"; 
-
-	set_opacity("previous", can_go_previous() ? 0.7 : 0.1);
-	set_opacity("next", can_go_next() ? 0.7 : 0.1);
-	set_opacity("close", 0.7);
+function can_go_previous()
+{
+	return (global_image_num > 0);
 }
 
 function set_opacity(id, amount)
@@ -164,15 +152,35 @@ function set_opacity(id, amount)
 	}
 }
 
-function can_go_previous()
+function relayout()
 {
-	return (global_image_num > 0);
+	var size = find_width();
+	var adjusted_size = reduce_to_fixed_width(size);
+
+	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[global_image_num][0], global_image_list[global_image_num][1], "image");
+	if (can_go_next()) {
+		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_image_list[global_image_num + 1][0], global_image_list[global_image_num + 1]);
+	}
+	
+	// center the image on-screen
+	var main = document.getElementById("main");
+	main.style.position = "absolute";
+	main.style.left = (size[0] - adjusted_size[0]) / 2 + "px";
+	main.style.top = (size[1] - adjusted_size[1]) / 2 + "px"; 
+	main.style.width = adjusted_size[0] + "px";
+	main.style.height = adjusted_size[1] + "px";
+	main.style.lineHeight = adjusted_size[1] + "px"; 
+
+	set_opacity("previous", can_go_previous() ? 0.7 : 0.1);
+	set_opacity("next", can_go_next() ? 0.7 : 0.1);
+	set_opacity("close", 0.7);
 }
 
 function go_previous()
 {
-	if (!can_go_previous())
+	if (!can_go_previous()) {
 		return;
+	}
 
 	--global_image_num;
 
@@ -188,15 +196,11 @@ function go_previous()
 	set_opacity("next", can_go_next() ? 0.7 : 0.1);
 }
 
-function can_go_next()
-{
-	return (global_image_num < global_image_list.length - 1);
-}
-
 function go_next()
 {
-	if (!can_go_next())
+	if (!can_go_next()) {
 		return;
+	}
 
 	++global_image_num;
 
@@ -210,6 +214,66 @@ function go_next()
 		set_opacity("next", 0.1);
 	}
 	set_opacity("previous", can_go_previous() ? 0.7 : 0.1);
+}
+
+function do_close()
+{
+	window.location = global_return_url;
+}
+
+function draw_text(msg)
+{
+	// remove any text we might have left
+	var text = document.getElementById("text");
+	if (text !== null) {
+		text.parentNode.removeChild(text);
+	}
+
+	text = document.createElement("p");
+	text.id = "text";
+	text.style.position = "absolute";
+	text.style.color = "white";
+	text.style.lineHeight = "24px";
+	text.style.font = "24px verdana, arial, sans-serif";
+	text.innerHTML = msg;
+
+	var main = document.getElementById("main");
+	main.appendChild(text);
+
+	text.style.left = (main.clientWidth - text.clientWidth) / 2 + "px";
+	text.style.top = (main.clientHeight - text.clientHeight) / 2 + "px";
+}
+
+function fade_text(opacity)
+{
+	set_opacity("text", opacity);
+	if (opacity > 0.0) {
+		opacity -= 0.03;
+		if (opacity < 0.0) {
+			opacity = 0.0;
+		}
+		setTimeout("fade_text(" + opacity + ")", 30);
+	} else {
+		var text = document.getElementById("text");
+		if (text !== null) {
+			text.parentNode.removeChild(text);
+		}
+	}
+}
+
+function select_image(evt, filename)
+{
+	if (!req) {
+		return;
+	}
+
+	draw_text("Selecting " + filename + "...");
+	
+	req.open("POST", "http://" + global_vhost + "/select", false);
+	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	req.send("mode=single&event=" + evt + "&filename=" + filename);
+
+	setTimeout("fade_text(0.99)", 30);
 }
 
 function key_down(which)
@@ -244,64 +308,6 @@ function key_up(which) {
 	} else if (which == 32 && global_select) {   // space
 		select_image(global_image_list[global_image_num][0], global_image_list[global_image_num][1]);
 	}
-}
-
-function select_image(evt, filename)
-{
-	if (!req)
-		return;
-
-	draw_text("Selecting " + filename + "...");
-	
-	req.open("POST", "http://" + global_vhost + "/select", false);
-	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	req.send("mode=single&event=" + evt + "&filename=" + filename);
-
-	setTimeout("fade_text(0.99)", 30);
-}
-
-function fade_text(opacity)
-{
-	set_opacity("text", opacity);
-	if (opacity > 0.0) {
-		opacity -= 0.03;
-		if (opacity < 0.0)
-			opacity = 0.0;
-		setTimeout("fade_text(" + opacity + ")", 30);
-	} else {
-		var text = document.getElementById("text");
-		if (text != null) {
-			text.parentNode.removeChild(text);
-		}
-	}
-}
-
-function do_close()
-{
-	window.location = global_return_url;
-}
-
-function draw_text(msg)
-{
-	// remove any text we might have left
-	var text = document.getElementById("text");
-	if (text != null) {
-		text.parentNode.removeChild(text);
-	}
-
-	text = document.createElement("p");
-	text.id = "text";
-	text.style.position = "absolute";
-	text.style.color = "white";
-	text.style.lineHeight = "24px";
-	text.style.font = "24px verdana, arial, sans-serif";
-	text.innerHTML = msg;
-
-	var main = document.getElementById("main");
-	main.appendChild(text);
-
-	text.style.left = (main.clientWidth - text.clientWidth) / 2 + "px";
-	text.style.top = (main.clientHeight - text.clientHeight) / 2 + "px";
 }
 
 // enable the horrible horrible IE PNG hack
