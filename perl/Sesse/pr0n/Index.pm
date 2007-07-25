@@ -296,10 +296,12 @@ sub handler {
 						chomp ($action = Sesse::pr0n::Templates::fetch_template($r, "unfilter"));
 						$newsettings{'model'} = undef;
 						$newsettings{'lens'} = undef;
+						$newsettings{'start'} = 1;
 					} else {
 						chomp ($action = Sesse::pr0n::Templates::fetch_template($r, "filter"));
 						$newsettings{'model'} = $e->{'model'};
 						$newsettings{'lens'} = defined($e->{'lens'}) ? $e->{'lens'} : '';
+						$newsettings{'start'} = 1;
 					}
 					
 					my $url = "/$event/" . Sesse::pr0n::Common::get_query_string(\%newsettings, \%defsettings);
@@ -343,9 +345,11 @@ sub handler {
 				if (defined($author)) {
 					chomp ($action = Sesse::pr0n::Templates::fetch_template($r, "unfilter"));
 					$newsettings{'author'} = undef;
+					$newsettings{'start'} = 1;
 				} else {
 					chomp ($action = Sesse::pr0n::Templates::fetch_template($r, "filter"));
 					$newsettings{'author'} = $ref->{'takenby'};
+					$newsettings{'start'} = 1;
 				}
 
 				my $url = "/$event/" . Sesse::pr0n::Common::get_query_string(\%newsettings, \%defsettings);
