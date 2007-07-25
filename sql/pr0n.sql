@@ -80,6 +80,7 @@ CREATE TABLE exif_info (
 );
 
 CREATE INDEX exif_info_tag ON exif_info ( tag );
+CLUSTER exif_info_tag ON exif_info;
 
 GRANT INSERT ON TABLE deleted_images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE events TO pr0n;
