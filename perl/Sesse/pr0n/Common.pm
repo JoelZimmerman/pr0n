@@ -131,17 +131,25 @@ sub get_query_string {
 		next unless defined($value);
 		next if (defined($defparam->{$key}) && $value == $defparam->{$key});
 
-		$value = URI::Escape::uri_escape($value);
-
-		# Unescape a few for prettiness (we'll need something for a real _, though)
-		$value =~ s/%20/_/g;
-		$value =~ s/%2F/\//g;
+		$value = pretty_escape($value);
 	
 		$str .= ($first) ? "?" : ';';
 		$str .= "$key=$value";
 		$first = 0;
 	}
 	return $str;
+}
+		
+sub pretty_escape {
+	my $value = shift;
+
+	$value = URI::Escape::uri_escape($value);
+
+	# Unescape a few for prettiness (we'll need something for a real _, though)
+	$value =~ s/%20/_/g;
+	$value =~ s/%2F/\//g;
+
+	return $value;
 }
 
 sub print_link {

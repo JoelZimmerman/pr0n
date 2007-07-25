@@ -17,7 +17,7 @@ sub handler {
 	my $r = shift;
 
 	my $uri = $r->uri;
-	if ($uri eq '/') {
+	if ($uri eq '/' || $uri eq '/+tags' || $uri eq '/+tags/') {
 		return Sesse::pr0n::Listing::handler($r);
 	} elsif ($uri eq '/robots.txt' ||
 		 $uri eq '/pr0n.css' ||
