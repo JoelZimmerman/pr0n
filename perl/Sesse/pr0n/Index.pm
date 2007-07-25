@@ -253,7 +253,7 @@ sub handler {
 					$eqspec .= ', ' . $e->{'lens'} if (defined($e->{'lens'}));
 					$eqspec = HTML::Entities::encode_entities($eqspec);
 
-					my %newsettings = %defsettings;
+					my %newsettings = %settings;
 
 					my $action;
 					if (defined($model) && defined($lens)) {
