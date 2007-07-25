@@ -45,6 +45,9 @@ li {
 	margin-top: 0.5em;
 	margin-bottom: 0.5em;
 }
+.filter {
+	font-size: smaller;
+}
 * {
 /*	border: 1px solid red; */
 }
