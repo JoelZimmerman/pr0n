@@ -11,13 +11,20 @@ sub handler {
 	my $apr = Apache2::Request->new($r);
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 
-	my ($event, $abspath, $datesort);
+	my ($event, $abspath, $datesort, $tag);
 	if ($r->uri =~ /^\/\+all\/?/) {
 		$event = '+all';
 		$abspath = 1;
+		$tag = undef; 
 
 		# augh, this needs 8.3, so we'll have to fiddle around a bit instead
 		# $datesort = 'DESC NULLS LAST';
+		$datesort = 'DESC';
+	} elsif ($r->uri =~ /^\/\+tags\/([a-zA-Z0-9-]+)\/?$/) {
+		$tag = $1;
+		$event = "+tags/$tag";
+		$abspath = 1;
+		
 		$datesort = 'DESC';
 	} else {
 		# Find the event
@@ -25,12 +32,13 @@ sub handler {
 			or error($r, "Could not extract event");
 		$event = $1;
 		$abspath = 0;
+		$tag = undef;
 		$datesort = 'ASC';
 	}
 
 	# Fix common error: pr0n.sesse.net/event -> pr0n.sesse.net/event/
 	if ($r->uri !~ /\/$/) {
-		$r->headers_out->{'location'} = "/$event/";
+		$r->headers_out->{'location'} = $r->uri . "/";
 		return Apache2::Const::REDIRECT;
 	}
 
@@ -60,7 +68,10 @@ sub handler {
 	);
 	
 	my $where;
-	if ($event eq '+all') {
+	if (defined($tag)) {
+		my $tq = $dbh->quote($tag);
+		$where = " AND id IN ( SELECT image FROM tags WHERE tag=$tq )";
+	} elsif ($event eq '+all') {
 		$where = '';
 	} else {
 		$where = ' AND event=' . $dbh->quote($event);
@@ -135,7 +146,7 @@ sub handler {
 
 	my ($date, $name);
 
-	if ($event eq '+all') {
+	if ($event eq '+all' || defined($tag)) {
 		$ref = $dbh->selectrow_hashref("SELECT EXTRACT(EPOCH FROM MAX(last_update)) AS last_update FROM events WHERE vhost=?",
 			undef, $r->get_server_name)
 			or error($r, "Could not list events", 404, "File not found");
@@ -172,7 +183,13 @@ sub handler {
 	# Print the page itself
 	if ($settings{'fullscreen'}) {
 		$r->content_type("text/html; charset=utf-8");
-		Sesse::pr0n::Templates::print_template($r, "fullscreen-header", { title => "$name [$event]" });
+
+		if (defined($tag)) {
+			my $title = Sesse::pr0n::Templates::process_template($r, "tag-title", { tag => $tag });
+			Sesse::pr0n::Templates::print_template($r, "fullscreen-header", { title => $title });
+		} else {
+			Sesse::pr0n::Templates::print_template($r, "fullscreen-header", { title => "$name [$event]" });
+		}
 
 		my @files = ();
 		while (my $ref = $q->fetchrow_hashref()) {
@@ -202,7 +219,12 @@ sub handler {
 			infobox => $infobox
 		});
 	} else {
-		Sesse::pr0n::Common::header($r, "$name [$event]");
+		if (defined($tag)) {
+			my $title = Sesse::pr0n::Templates::process_template($r, "tag-title", { tag => $tag });
+			Sesse::pr0n::Common::header($r, $title);
+		} else {
+			Sesse::pr0n::Common::header($r, "$name [$event]");
+		}
 		if (defined($date)) {
 			Sesse::pr0n::Templates::print_template($r, "date", { date => $date });
 		}

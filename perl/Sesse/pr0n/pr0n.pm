@@ -17,7 +17,7 @@ sub handler {
 	my $r = shift;
 
 	my $uri = $r->uri;
-	if ($uri eq '/' || $uri eq '/+tags' || $uri eq '/+tags/') {
+	if ($uri eq '/' || $uri =~ /^\/\+tags\/?$/) {
 		return Sesse::pr0n::Listing::handler($r);
 	} elsif ($uri eq '/robots.txt' ||
 		 $uri eq '/pr0n.css' ||
@@ -67,8 +67,9 @@ sub handler {
 		return Sesse::pr0n::Registry::handler($r);
 	} elsif ($uri =~ m#^/wizard$#) {
 		return Sesse::pr0n::Wizard::handler($r);
-	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/?$# ||
-		 $uri =~ m#^/\+all/?$#) {
+	} elsif ($uri =~ /^\/[a-zA-Z0-9-]+\/?$/ ||
+		 $uri =~ /^\/\+all\/?$/ ||
+		 $uri =~ /^\/\+tags\/[a-zA-Z0-9-]+\/?$/) {
 		return Sesse::pr0n::Index::handler($r);
 	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/(\d+x\d+/|original/)?(nobox/)?[a-zA-Z0-9._-]+$#) {
 		return Sesse::pr0n::Image::handler($r);

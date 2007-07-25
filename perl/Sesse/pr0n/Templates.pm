@@ -71,7 +71,7 @@ sub fetch_template {
 	return $newcache->{'contents'};
 }
 
-sub print_template {
+sub process_template {
 	my ($r, $template, $args) = @_;
 	my $text = fetch_template($r, $template);
 
@@ -81,7 +81,12 @@ sub print_template {
 		$text =~ s/$key/$value/g;
 	}
 
-	$r->print($text);
+	return $text;
+}
+
+sub print_template {
+	my ($r, $template, $args) = @_;
+	$r->print(process_template($r, $template, $args));
 }
 
 1;
