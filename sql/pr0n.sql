@@ -78,7 +78,8 @@ CREATE TABLE exif_info (
 
     PRIMARY KEY ( image, tag )
 );
-    
+
+CREATE INDEX exif_info_tag ON exif_info ( tag );
 
 GRANT INSERT ON TABLE deleted_images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE events TO pr0n;
