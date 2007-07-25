@@ -195,7 +195,9 @@ sub update_image_info {
 	my ($r, $id, $width, $height) = @_;
 
 	# Also find the date taken if appropriate (from the EXIF tag etc.)
-	my $info = Image::ExifTool::ImageInfo(get_disk_location($r, $id));
+	my $exiftool = Image::ExifTool->new;
+	$exiftool->ExtractInfo(get_disk_location($r, $id));
+	my $info = $exiftool->GetInfo();
 	my $datetime = undef;
 			
 	if (defined($info->{'DateTimeOriginal'})) {
@@ -212,6 +214,7 @@ sub update_image_info {
 			 undef, $width, $height, $datetime, $id)
 			or die "Couldn't update width/height in SQL: $!";
 
+		# EXIF information
 		$dbh->do('DELETE FROM exif_info WHERE image=?',
 			undef, $id)
 			or die "Couldn't delete old EXIF information in SQL: $!";
@@ -223,6 +226,20 @@ sub update_image_info {
 			next if ref $info->{$key};
 			$q->execute($id, $key, guess_charset($info->{$key}))
 				or die "Couldn't insert EXIF information in database: $!";
+		}
+
+		# Tags
+		my @tags = $exiftool->GetValue('Keywords', 'ValueConv');
+		$dbh->do('DELETE FROM tags WHERE image=?',
+			undef, $id)
+			or die "Couldn't delete old tag information in SQL: $!";
+
+		my $q = $dbh->prepare('INSERT INTO tags (image,tag) VALUES (?,?)')
+			or die "Couldn't prepare inserting tag information: $!";
+
+		for my $tag (@tags) {
+			$q->execute($id, guess_charset($tag))
+				or die "Couldn't insert tag information in database: $!";
 		}
 
 		# update the last_picture cache as well (this should of course be done

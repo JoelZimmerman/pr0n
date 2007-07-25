@@ -15,3 +15,4 @@ CREATE TABLE tags (
 );
 CREATE INDEX tags_tag ON tags ( tag );
 
+GRANT SELECT,INSERT,DELETE ON TABLE tags TO pr0n;
