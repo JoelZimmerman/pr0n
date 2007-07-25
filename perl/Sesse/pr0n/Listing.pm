@@ -17,6 +17,12 @@ sub handler {
 		}
 	}
 	
+	# Fix common error: pr0n.sesse.net/+foo -> pr0n.sesse.net/+foo/
+	if ($r->uri !~ /\/$/) {
+		$r->headers_out->{'location'} = $r->uri . "/";
+		return Apache2::Const::REDIRECT;
+	}
+	
 	# find the last modification
 	my $ref = $dbh->selectrow_hashref('SELECT EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE vhost=? ORDER BY last_update DESC LIMIT 1',
 		undef, $r->get_server_name)
