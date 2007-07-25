@@ -184,7 +184,7 @@ sub handler {
 		print_fullscreen($r, $event, \%settings, \%defsettings);
 		print_nextprev($r, $event, $where, \%settings, \%defsettings);
 	
-		if ($event ne '+all') {
+		if (1 || $event ne '+all') {
 			# Find the equipment used
 			my $eq = $dbh->prepare("
 				SELECT 
