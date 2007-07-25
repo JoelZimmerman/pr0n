@@ -1,1 +1,1 @@
-  <li>%EQSPEC% (ett bilde) <span class="filter">(<a href="%FILTERURL%">filtrer</a>)</span></li>
+  <li>%EQSPEC% (ett bilde) <span class="filter">(<a href="%FILTERURL%">%ACTION%</a>)</span></li>
