@@ -64,7 +64,8 @@ sub handler {
 		sel => 0,
 		fullscreen => 0,
 		model => undef,
-		lens => undef
+		lens => undef,
+		author => undef
 	);
 	
 	my $where;
@@ -89,7 +90,7 @@ sub handler {
 		
 	my %settings = %defsettings;
 
-	for my $s qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen model lens) {
+	for my $s qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen model lens author) {
 		my $val = $apr->param($s);
 		if (defined($val) && $val =~ /^(\d+)$/) {
 			$settings{$s} = $val;
@@ -97,7 +98,7 @@ sub handler {
 		if (($s eq "num" || $s eq "xres" || $s eq "yres") && defined($val) && $val == -1) {
 			$settings{$s} = $val;
 		}
-		if ($s eq "model" || $s eq "lens") {
+		if ($s eq "model" || $s eq "lens" || $s eq "author") {
 			$settings{$s} = Sesse::pr0n::Common::pretty_unescape($val);
 		}
 	}
@@ -114,6 +115,7 @@ sub handler {
 	my $sel = $settings{'sel'};
 	my $model = $settings{'model'};
 	my $lens = $settings{'lens'};
+	my $author = $settings{'author'};
 
 	# Construct SQL for this filter
 	if ($all == 0) {
@@ -137,6 +139,11 @@ sub handler {
 		} else {
 			$where .= " AND id IN ( SELECT image FROM exif_info WHERE (key='Lens' OR key='LensSpec') AND TRIM(value)=$lq )";
 		}
+	}
+	if (defined($author)) {
+		my $aq = $dbh->quote($author);
+
+		$where .= " AND takenby=$aq";
 	}
 
 	if (defined($num) && $num == -1) {
@@ -328,8 +335,22 @@ sub handler {
 			if ($takenby ne $lastupl) {
 				$r->print("    </p>\n\n") if ($lastupl ne "" && $rot != 1);
 				$lastupl = $takenby;
+
+				my %newsettings = %settings;
+
+				my $action;
+				if (defined($author)) {
+					chomp ($action = Sesse::pr0n::Templates::fetch_template($r, "unfilter"));
+					$newsettings{'author'} = undef;
+				} else {
+					chomp ($action = Sesse::pr0n::Templates::fetch_template($r, "filter"));
+					$newsettings{'author'} = $ref->{'takenby'};
+				}
+
+				my $url = "/$event/" . Sesse::pr0n::Common::get_query_string(\%newsettings, \%defsettings);
+				
 				$r->print("    <h2>");
-				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl });
+				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl, action => $action, filterurl => $url });
 				print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
 				$r->print("</h2>\n");
 

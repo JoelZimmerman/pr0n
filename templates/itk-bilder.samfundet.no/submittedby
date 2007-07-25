@@ -1,1 +1,1 @@
-Tatt av: %AUTHOR%
+Tatt av: %AUTHOR% <span class="filter">(<a href="%FILTERURL%">%ACTION%</a>)</span>
