@@ -251,6 +251,7 @@ sub handler {
 				for my $e (@equipment) {
 					my $eqspec = $e->{'model'};
 					$eqspec .= ', ' . $e->{'lens'} if (defined($e->{'lens'}));
+					$eqspec = HTML::Entities::encode_entities($eqspec);
 
 					my %newsettings = %defsettings;
 

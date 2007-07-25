@@ -24,6 +24,7 @@ use LWP::Simple;
 # use Image::Info;
 use Image::ExifTool;
 use HTML::Entities;
+use URI::Escape;
 
 BEGIN {
 	use Exporter ();
@@ -130,8 +131,11 @@ sub get_query_string {
 		next unless defined($value);
 		next if (defined($defparam->{$key}) && $value == $defparam->{$key});
 
-		# FIXME: We'll need to escape _ here somehow
-		$value =~ s/ /_/g;
+		$value = URI::Escape::uri_escape($value);
+
+		# Unescape a few for prettiness (we'll need something for a real _, though)
+		$value =~ s/%20/_/g;
+		$value =~ s/%2F/\//g;
 	
 		$str .= ($first) ? "?" : ';';
 		$str .= "$key=$value";
