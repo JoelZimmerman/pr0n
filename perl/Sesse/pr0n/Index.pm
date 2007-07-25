@@ -225,11 +225,16 @@ sub handler {
 					my $eqspec = $e->{'model'};
 					$eqspec .= ', ' . $e->{'lens'} if (defined($e->{'lens'}));
 
+					my %newsettings = %defsettings;
+					$newsettings{'model'} = $e->{'model'};
+					$newsettings{'lens'} = defined($e->{'lens'}) ? $e->{'lens'} : '';
+					my $url = "/$event/" . Sesse::pr0n::Common::get_query_string(\%newsettings, \%defsettings);
+
 					# This isn't correct for all languages. Fix if we ever need to care. :-)
 					if ($e->{'num'} == 1) {
-						Sesse::pr0n::Templates::print_template($r, "equipment-item-singular", { eqspec => $eqspec });
+						Sesse::pr0n::Templates::print_template($r, "equipment-item-singular", { eqspec => $eqspec, filterurl => $url });
 					} else {
-						Sesse::pr0n::Templates::print_template($r, "equipment-item", { eqspec => $eqspec, num => $e->{'num'} });
+						Sesse::pr0n::Templates::print_template($r, "equipment-item", { eqspec => $eqspec, num => $e->{'num'}, filterurl => $url });
 					}
 				}
 				Sesse::pr0n::Templates::print_template($r, "equipment-end");
