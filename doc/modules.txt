@@ -7,6 +7,8 @@ PerlMagick                  perlmagick                 Scaling etc.
 MIME::Types                 libmime-types-perl         Sending the right MIME types
 DBD::Pg                     libdbd-pg-perl             PostgreSQL connection
 Image::ExifTool             libimage-exiftool-perl     Parsing EXIF data
+Digest::SHA1                libdigest-sha1-perl        Verifying passwords
 HTML::TagCloud              libhtml-tagcloud-perl      Tag cloud on /+tags/
 jpegtran                    libjpeg-progs              Lossless JPEG rotation
 dcraw                       dcraw                      NEF support
+
