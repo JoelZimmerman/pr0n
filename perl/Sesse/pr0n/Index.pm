@@ -55,9 +55,10 @@ sub handler {
 		rot => 0,
 		sel => 0,
 		fullscreen => 0,
+		model => undef,
+		lens => undef
 	);
 	
-	# Construct SQL for this filter
 	my $where;
 	if ($event eq '+all') {
 		$where = '';
@@ -77,12 +78,16 @@ sub handler {
 		
 	my %settings = %defsettings;
 
-	for my $s qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen) {
+	for my $s qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen model lens) {
 		my $val = $apr->param($s);
 		if (defined($val) && $val =~ /^(\d+)$/) {
 			$settings{$s} = $val;
 		}
 		if (($s eq "num" || $s eq "xres" || $s eq "yres") && defined($val) && $val == -1) {
+			$settings{$s} = $val;
+		}
+		if ($s eq "model" || $s eq "lens") {
+			$val =~ s/_/ /g;
 			$settings{$s} = $val;
 		}
 	}
@@ -97,9 +102,31 @@ sub handler {
 	my $infobox = $settings{'infobox'} ? '' : 'nobox/';
 	my $rot = $settings{'rot'};
 	my $sel = $settings{'sel'};
-	
+	my $model = $settings{'model'};
+	my $lens = $settings{'lens'};
+
+	# Construct SQL for this filter
 	if ($all == 0) {
 		$where .= ' AND selected=\'t\'';	
+	}
+	if (defined($model) && defined($lens)) {
+		my $mq = $dbh->quote($model);
+		my $lq = $dbh->quote($lens);
+
+		if ($model eq '') {
+			# no defined model
+			$where .= " AND id NOT IN ( SELECT image FROM exif_info WHERE tag='Model' AND TRIM(value)<>'' )";
+		} else {
+			$where .= " AND id IN ( SELECT image FROM exif_info WHERE tag='Model' AND TRIM(value)=$mq )";
+		}
+	
+		# This doesn't match 1:1 if there's both lens and lensspec, but it should be OK in practice
+		if ($lens eq '') {
+			# no defined lens
+			$where .= " AND id NOT IN ( SELECT image FROM exif_info WHERE (tag='Lens' OR tag='LensSpec') AND TRIM(value)<>'' )";
+		} else {
+			$where .= " AND id IN ( SELECT image FROM exif_info WHERE (tag='Lens' OR tag='LensSpec') AND TRIM(value)=$lq )";
+		}
 	}
 
 	if (defined($num) && $num == -1) {
@@ -116,8 +143,8 @@ sub handler {
 		$name = Sesse::pr0n::Templates::fetch_template($r, 'all-event-title');
 		$r->set_last_modified($ref->{'last_update'});
 	} else {
-		$ref = $dbh->selectrow_hashref("SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE vhost=? $where",
-			undef, $r->get_server_name)
+		$ref = $dbh->selectrow_hashref("SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE vhost=? AND event=?",
+			undef, $r->get_server_name, $event)
 			or error($r, "Could not find event $event", 404, "File not found");
 
 		$date = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'date'}));

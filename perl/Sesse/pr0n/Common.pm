@@ -129,6 +129,9 @@ sub get_query_string {
 	while (my ($key, $value) = each %$param) {
 		next unless defined($value);
 		next if (defined($defparam->{$key}) && $value == $defparam->{$key});
+
+		# FIXME: We'll need to escape _ here somehow
+		$value =~ s/ /_/g;
 	
 		$str .= ($first) ? "?" : ';';
 		$str .= "$key=$value";
