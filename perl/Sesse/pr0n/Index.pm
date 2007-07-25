@@ -29,7 +29,7 @@ sub handler {
 	}
 
 	# Fix common error: pr0n.sesse.net/event -> pr0n.sesse.net/event/
-	if ($r->uri !~ m#/$#) {
+	if ($r->uri !~ /\/$/) {
 		$r->headers_out->{'location'} = "/$event/";
 		return Apache2::Const::REDIRECT;
 	}
