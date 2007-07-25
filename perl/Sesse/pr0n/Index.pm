@@ -328,8 +328,9 @@ sub handler {
 		while (my $ref = $q->fetchrow_hashref()) {
 			my $imgsz = "";
 			my $takenby = $ref->{'takenby'};
+			my $day = '';
 			if (defined($ref->{'day'})) {
-				 $takenby .= ", " . $ref->{'day'};
+				$day = ", " . $ref->{'day'};
 			}
 
 			if ($takenby ne $lastupl) {
@@ -350,7 +351,7 @@ sub handler {
 				my $url = "/$event/" . Sesse::pr0n::Common::get_query_string(\%newsettings, \%defsettings);
 				
 				$r->print("    <h2>");
-				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl, action => $action, filterurl => $url });
+				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl, action => $action, filterurl => $url, date => $day });
 				print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
 				$r->print("</h2>\n");
 
