@@ -16,16 +16,16 @@ sub handler {
 	# Find the event and file name
 	my ($event,$filename,$xres,$yres);
 	my $infobox = 1;
-	if ($r->uri =~ m#^/([a-zA-Z0-9-]+)/original/(nobox/)?([a-zA-Z0-9._-]+)$#) {
+	if ($r->uri =~ m#^/([a-zA-Z0-9-]+)/original/(nobox/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
-	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)/(nobox/)?([a-zA-Z0-9._-]+)$#) {
+	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)/(nobox/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $5;
 		$xres = $2;
 		$yres = $3;
 		$infobox = 0 if (defined($4));
-	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(nobox/)?([a-zA-Z0-9._-]+)$#) {
+	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(nobox/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
 		$xres = -1;
