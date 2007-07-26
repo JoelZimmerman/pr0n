@@ -49,6 +49,10 @@ li {
 	font-size: small;
 	font-weight: normal;
 }
+.mainmenu {
+	font-size: small;
+	padding-left: 0em;
+}
 * {
 /*	border: 1px solid red; */
 }

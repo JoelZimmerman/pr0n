@@ -43,6 +43,7 @@ sub handler {
 			or dberror($r, "Couldn't get events");
 		
 		Sesse::pr0n::Common::header($r, Sesse::pr0n::Templates::fetch_template($r, 'tag-listing'));
+		Sesse::pr0n::Templates::print_template($r, 'mainmenu-tags');
 
 		my $cloud = HTML::TagCloud->new;
 
@@ -68,6 +69,14 @@ sub handler {
 			or dberror($r, "Couldn't get events");
 		
 		Sesse::pr0n::Common::header($r, Sesse::pr0n::Templates::fetch_template($r, 'event-listing'));
+
+		# See if there are any tags related to this vhost
+		my $ref = $dbh->selectrow_hashref('SELECT * FROM tags t JOIN images i ON t.image=i.id WHERE vhost=? LIMIT 1',
+			undef, $r->get_server_name);
+		if (defined($ref)) {
+			Sesse::pr0n::Templates::print_template($r, 'mainmenu-events');
+		}
+
 		my $allcaption = Sesse::pr0n::Templates::fetch_template($r, 'all-event-title');
 		$r->print("    <ul>\n");
 		$r->print("      <li><a href=\"+all/\">$allcaption</a></li>\n");

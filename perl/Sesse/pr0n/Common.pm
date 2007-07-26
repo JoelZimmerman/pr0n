@@ -268,7 +268,7 @@ sub update_image_info {
 			undef, $id)
 			or die "Couldn't delete old tag information in SQL: $!";
 
-		my $q = $dbh->prepare('INSERT INTO tags (image,tag) VALUES (?,?)')
+		$q = $dbh->prepare('INSERT INTO tags (image,tag) VALUES (?,?)')
 			or die "Couldn't prepare inserting tag information: $!";
 
 		for my $tag (@tags) {
