@@ -247,7 +247,7 @@ EOF
 EOF
 	
 			return Apache2::Const::OK;
-		} elsif ($r->uri =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/([a-zA-Z0-9._-]+)$#) {
+		} elsif ($r->uri =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/([a-zA-Z0-9._()-]+)$#) {
 			# stat a single file
 			my ($event, $filename) = ($1, $2);
 			my ($fname, $size, $mtime);
