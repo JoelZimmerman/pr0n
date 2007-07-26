@@ -57,7 +57,7 @@ sub handler {
 		xres => -1,
 		yres => -1,
 		start => 1,
-		num => 100,
+		num => 250,
 		all => 1,
 		infobox => 1,
 		rot => 0,
@@ -497,7 +497,7 @@ sub print_pagelimit {
 	
 	# Get choices
 	chomp (my $unlimited = Sesse::pr0n::Templates::fetch_template($r, 'imgsperpage-unlimited'));
-	my @alternatives = qw(10 50 100 500);
+	my @alternatives = qw(10 50 100 250 500);
 	push @alternatives, $unlimited;
 	
 	for my $num (@alternatives) {
