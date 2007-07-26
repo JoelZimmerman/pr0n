@@ -139,14 +139,31 @@ sub get_query_string {
 	}
 	return $str;
 }
+
+# This is not perfect (it can't handle "_ " right, for one), but it will do for now
+sub weird_space_encode {
+	my $val = shift;
+	if ($val =~ /_/) {
+		return "_" x (length($val) * 2);
+	} else {
+		return "_" x (length($val) * 2 - 1);
+	}
+}
+
+sub weird_space_unencode {
+	my $val = shift;
+	if (length($val) % 2 == 0) {
+		return "_" x (length($val) / 2);
+	} else {
+		return " " x ((length($val) + 1) / 2);
+	}
+}
 		
 sub pretty_escape {
 	my $value = shift;
 
+	$value =~ s/(([_ ])\2*)/weird_space_encode($1)/ge;
 	$value = URI::Escape::uri_escape($value);
-
-	# Unescape a few for prettiness (we'll need something for a real _, though)
-	$value =~ s/%20/_/g;
 	$value =~ s/%2F/\//g;
 
 	return $value;
@@ -156,7 +173,7 @@ sub pretty_unescape {
 	my $value = shift;
 
 	# URI unescaping is already done for us
-	$value =~ s/_/ /g;
+	$value =~ s/(_+)/weird_space_unencode($1)/ge;
 
 	return $value;
 }
