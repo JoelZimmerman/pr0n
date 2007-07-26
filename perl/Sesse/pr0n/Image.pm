@@ -34,26 +34,20 @@ sub handler {
 	}
 
 	my ($id, $dbwidth, $dbheight);
-	if ($event eq 'single' && $filename =~ /^(\d+)\.jpeg$/) {
-		$id = $1;
-	} else {
-		# Alas, we obviously need to do this :-)
-		# my $evq = $dbh->prepare('SELECT count(*) AS numev FROM events WHERE id=? AND vhost=?')
-		# or die "prepare(): $!";
-		# my $ref = $dbh->selectrow_hashref($evq, undef, $event, $r->get_server_name)
-		# 	or dberror($r, "Could not look up $event");
-		# $ref->{'numev'} == 1
-		# 	or error($r, "Could not find $event", 404, "File not found");
+	#if ($event eq 'single' && $filename =~ /^(\d+)\.jpeg$/) {
+	#	$id = $1;
+	#} else {
 	
-		# Look it up in the database
-		my $ref = $dbh->selectrow_hashref('SELECT id,width,height FROM images WHERE event=? AND vhost=? AND filename=?',
-			undef, $event, $r->get_server_name, $filename);
-		error($r, "Could not find $event/$filename", 404, "File not found") unless (defined($ref));
+	# Look it up in the database
+	my $ref = $dbh->selectrow_hashref('SELECT id,width,height FROM images WHERE event=? AND vhost=? AND filename=?',
+		undef, $event, $r->get_server_name, $filename);
+	error($r, "Could not find $event/$filename", 404, "File not found") unless (defined($ref));
 
-		$id = $ref->{'id'};
-		$dbwidth = $ref->{'width'};
-		$dbheight = $ref->{'height'};
-	}
+	$id = $ref->{'id'};
+	$dbwidth = $ref->{'width'};
+	$dbheight = $ref->{'height'};
+
+	#}
 		
 	$dbwidth = -1 unless defined($dbwidth);
 	$dbheight = -1 unless defined($dbheight);
