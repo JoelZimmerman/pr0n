@@ -355,7 +355,7 @@ sub handler {
 				my $url = "/$event/" . Sesse::pr0n::Common::get_query_string(\%newsettings, \%defsettings);
 				
 				$r->print("    <h2>");
-				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $lastupl, action => $action, filterurl => $url, date => $day });
+				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $takenby, action => $action, filterurl => $url, date => $day });
 				print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
 				$r->print("</h2>\n");
 
