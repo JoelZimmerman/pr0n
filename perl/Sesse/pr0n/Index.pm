@@ -335,9 +335,9 @@ sub handler {
 				$day = ", " . $ref->{'day'};
 			}
 
-			if ($takenby ne $lastupl) {
+			if ($day ne $lastupl) {
 				$r->print("    </p>\n\n") if ($lastupl ne "" && $rot != 1);
-				$lastupl = $takenby;
+				$lastupl = $day;
 
 				my %newsettings = %settings;
 
