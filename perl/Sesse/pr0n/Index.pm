@@ -335,9 +335,11 @@ sub handler {
 				$day = ", " . $ref->{'day'};
 			}
 
-			if ($day ne $lastupl) {
+			my $groupkey = $takenby . $day;
+
+			if ($groupkey ne $lastupl) {
 				$r->print("    </p>\n\n") if ($lastupl ne "" && $rot != 1);
-				$lastupl = $day;
+				$lastupl = $groupkey;
 
 				my %newsettings = %settings;
 
