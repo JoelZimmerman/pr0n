@@ -48,6 +48,8 @@ function find_width()
 function reduce_to_fixed_width(size)
 {
 	var fixed_sizes = [
+		[ 1600, 1200 ],
+		[ 1400, 1050 ],
 		[ 1280, 960 ],
 		[ 1024, 768 ],
 		[ 800, 600 ],
