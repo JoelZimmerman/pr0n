@@ -1,4 +1,7 @@
 #! /usr/bin/perl
+
+# Warning: This is sort of outdated now. :-/
+
 use lib qw(.);
 use DBI;
 use POSIX;
