@@ -31,3 +31,18 @@ ALTER TABLE deleted_images ALTER COLUMN width SET DEFAULT NULL;
 ALTER TABLE deleted_images ALTER COLUMN height SET DEFAULT NULL;
 UPDATE deleted_images SET width=NULL,height=NULL WHERE width=-1 OR height=-1;
 ALTER TABLE deleted_images ADD CONSTRAINT width_height_nullity CHECK ((width IS NULL) = (height IS NULL));
+
+-- model/lens denormalization (reduce usage of exif_info)
+ALTER TABLE images ADD COLUMN model varchar;
+ALTER TABLE images ADD COLUMN lens varchar;
+UPDATE images SET lens=COALESCE(
+    TRIM((
+        SELECT value FROM exif_info WHERE key='Lens' AND images.id=exif_info.image
+    )),
+    TRIM((
+        SELECT value FROM exif_info WHERE key='LensSpec' AND images.id=exif_info.image
+    ))
+), model=TRIM((
+    SELECT value FROM exif_info WHERE key='Model' AND images.id=exif_info.image
+));
+

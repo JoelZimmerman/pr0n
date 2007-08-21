@@ -29,6 +29,8 @@ CREATE TABLE images (
     "date" timestamp without time zone,
     takenby character varying NOT NULL,
     selected boolean DEFAULT false,
+    model character varying,
+    lens character varying,
 
     FOREIGN KEY (vhost,event) REFERENCES events (vhost,event)
 );
@@ -71,6 +73,8 @@ CREATE TABLE users (
     vhost character varying NOT NULL
 );
 
+-- Mainly used for manual queries -- usually too slow to be very useful
+-- for web views in the long run.
 CREATE TABLE exif_info (
     image integer NOT NULL REFERENCES images (id) ON DELETE CASCADE,
     key varchar NOT NULL,

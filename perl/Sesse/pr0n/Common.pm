@@ -244,10 +244,6 @@ sub update_image_info {
 	{
 		local $dbh->{AutoCommit} = 0;
 
-		$dbh->do('UPDATE images SET width=?, height=?, date=? WHERE id=?',
-			 undef, $width, $height, $datetime, $id)
-			or die "Couldn't update width/height in SQL: $!";
-
 		# EXIF information
 		$dbh->do('DELETE FROM exif_info WHERE image=?',
 			undef, $id)
@@ -262,6 +258,22 @@ sub update_image_info {
 				or die "Couldn't insert EXIF information in database: $!";
 		}
 
+		# Model/Lens
+		my $model = $exiftool->GetValue('Model', 'ValueConv');
+		my $lens = $exiftool->GetValue('Lens', 'ValueConv');
+		$lens = $exiftool->GetValue('LensSpec', 'ValueConv') if (!defined($lens));
+
+		$model =~ s/^\s*//;
+		$model =~ s/\s*$//;
+
+		$lens =~ s/^\s*//;
+		$lens =~ s/\s*$//;
+		
+		# Now update the main table with the information we've got
+		$dbh->do('UPDATE images SET width=?, height=?, date=?, model=?, lens=? WHERE id=?',
+			 undef, $width, $height, $datetime, $model, $lens, $id)
+			or die "Couldn't update width/height in SQL: $!";
+		
 		# Tags
 		my @tags = $exiftool->GetValue('Keywords', 'ValueConv');
 		$dbh->do('DELETE FROM tags WHERE image=?',
@@ -270,6 +282,7 @@ sub update_image_info {
 
 		$q = $dbh->prepare('INSERT INTO tags (image,tag) VALUES (?,?)')
 			or die "Couldn't prepare inserting tag information: $!";
+
 
 		for my $tag (@tags) {
 			$q->execute($id, guess_charset($tag))
