@@ -127,17 +127,16 @@ sub handler {
 
 		if ($model eq '') {
 			# no defined model
-			$where .= " AND id NOT IN ( SELECT image FROM exif_info WHERE key='Model' AND TRIM(value)<>'' )";
+			$where .= " AND model IS NULL";
 		} else {
-			$where .= " AND id IN ( SELECT image FROM exif_info WHERE key='Model' AND TRIM(value)=$mq )";
+			$where .= " AND model=$mq";
 		}
 	
-		# This doesn't match 1:1 if there's both lens and lensspec, but it should be OK in practice
 		if ($lens eq '') {
 			# no defined lens
-			$where .= " AND id NOT IN ( SELECT image FROM exif_info WHERE (key='Lens' OR key='LensSpec') AND TRIM(value)<>'' )";
+			$where .= " AND lens IS NULL";
 		} else {
-			$where .= " AND id IN ( SELECT image FROM exif_info WHERE (key='Lens' OR key='LensSpec') AND TRIM(value)=$lq )";
+			$where .= " AND lens=$lq";
 		}
 	}
 	if (defined($author)) {
@@ -252,15 +251,12 @@ sub handler {
 		if (1 || $event ne '+all') {
 			# Find the equipment used
 			my $eq = $dbh->prepare("
-				SELECT 
-					TRIM(model.value) AS model,
-					coalesce(TRIM(lens_spec.value), TRIM(lens.value)) AS lens,
+				SELECT
+					model,
+					lens,
 					COUNT(*) AS num
-				FROM ( SELECT * FROM images WHERE vhost=? $where ) i
-					LEFT JOIN exif_info model ON i.id=model.image
-					LEFT JOIN ( SELECT * FROM exif_info WHERE key='Lens' ) lens ON i.id=lens.image
-					LEFT JOIN ( SELECT * FROM exif_info WHERE key='LensSpec') lens_spec ON i.id=lens_spec.image
-				WHERE model.key='Model'
+				FROM images
+				WHERE vhost=? $where
 				GROUP BY 1,2
 				ORDER BY 1,2")
 				or die "Couldn't prepare to find equipment: $!";
