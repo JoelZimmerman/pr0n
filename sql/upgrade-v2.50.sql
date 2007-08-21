@@ -16,3 +16,11 @@ CREATE TABLE tags (
 CREATE INDEX tags_tag ON tags ( tag );
 
 GRANT SELECT,INSERT,DELETE ON TABLE tags TO pr0n;
+
+-- width/height -1 => NULL
+ALTER TABLE images ALTER COLUMN width DROP NOT NULL;
+ALTER TABLE images ALTER COLUMN height DROP NOT NULL;
+ALTER TABLE images ALTER COLUMN width SET DEFAULT NULL;
+ALTER TABLE images ALTER COLUMN height SET DEFAULT NULL;
+UPDATE images SET width=NULL,height=NULL WHERE width=-1 OR height=-1;
+ALTER TABLE images ADD CONSTRAINT width_height_nullity CHECK ((width IS NULL) = (height IS NULL));

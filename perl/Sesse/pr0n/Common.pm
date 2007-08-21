@@ -356,7 +356,7 @@ sub ensure_cached {
 	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres, @otherres) = @_;
 
 	my $fname = get_disk_location($r, $id);
-	unless (defined($xres) && ($xres < $dbheight || $yres < $dbwidth || $dbwidth == -1 || $dbheight == -1 || $xres == -1)) {
+	unless (defined($xres) && ($xres < $dbheight || $yres < $dbwidth || !defined($dbwidth) || !defined($dbheight) || $xres == -1)) {
 		return ($fname, 0);
 	}
 
@@ -405,7 +405,7 @@ sub ensure_cached {
 		my $height = $img->Get('rows');
 
 		# Update the SQL database if it doesn't contain the required info
-		if ($dbwidth == -1 || $dbheight == -1) {
+		if (!defined($dbwidth) || !defined($dbheight)) {
 			$r->log->info("Updating width/height for $id: $width x $height");
 			update_image_info($r, $id, $width, $height);
 		}

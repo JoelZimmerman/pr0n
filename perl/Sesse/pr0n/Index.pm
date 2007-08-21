@@ -199,7 +199,9 @@ sub handler {
 
 		my @files = ();
 		while (my $ref = $q->fetchrow_hashref()) {
-			push @files, [ $ref->{'event'}, $ref->{'filename'}, $ref->{'width'}, $ref->{'height'} ];
+			my $width = defined($ref->{'width'}) ? $ref->{'width'} : -1;
+			my $height = defined($ref->{'height'}) ? $ref->{'height'} : -1;
+			push @files, [ $ref->{'event'}, $ref->{'filename'}, $width, $height ];
 		}
 		
 		for my $i (0..$#files) {
@@ -366,7 +368,7 @@ sub handler {
 				}
 			}
 
-			if ($ref->{'width'} != -1 && $ref->{'height'} != -1) {
+			if (defined($ref->{'width'}) && defined($ref->{'height'})) {
 				my $width = $ref->{'width'};
 				my $height = $ref->{'height'};
 					
