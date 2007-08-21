@@ -1,6 +1,8 @@
 #! /usr/bin/perl
 
-# Warning: This is sort of outdated now. :-/
+# Warning: This is sort of outdated now. :-/ What really should be done is make
+#          update_image_info() includeable from outside mod_perl, so we don't have
+#          to duplicate the code in here.
 
 use lib qw(.);
 use DBI;
