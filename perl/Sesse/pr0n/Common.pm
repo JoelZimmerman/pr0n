@@ -265,9 +265,11 @@ sub update_image_info {
 
 		$model =~ s/^\s*//;
 		$model =~ s/\s*$//;
+		$model = undef if (length($model) == 0);
 
 		$lens =~ s/^\s*//;
 		$lens =~ s/\s*$//;
+		$lens = undef if (length($lens) == 0);
 		
 		# Now update the main table with the information we've got
 		$dbh->do('UPDATE images SET width=?, height=?, date=?, model=?, lens=? WHERE id=?',
