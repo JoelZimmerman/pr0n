@@ -46,7 +46,9 @@ CREATE TABLE deleted_images (
     uploadedby character varying,
     "date" timestamp without time zone,
     takenby character varying NOT NULL,
-    selected boolean
+    selected boolean,
+    model character varying,
+    lens character varying
 );
 
 CREATE TABLE fake_files (

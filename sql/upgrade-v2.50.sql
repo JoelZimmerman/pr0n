@@ -46,3 +46,16 @@ UPDATE images SET lens=COALESCE(
     SELECT value FROM exif_info WHERE key='Model' AND images.id=exif_info.image
 ));
 
+ALTER TABLE deleted_images ADD COLUMN model varchar;
+ALTER TABLE deleted_images ADD COLUMN lens varchar;
+UPDATE deleted_images SET lens=COALESCE(
+    TRIM((
+        SELECT value FROM exif_info WHERE key='Lens' AND deleted_images.id=exif_info.image
+    )),
+    TRIM((
+        SELECT value FROM exif_info WHERE key='LensSpec' AND deleted_images.id=exif_info.image
+    ))
+), model=TRIM((
+    SELECT value FROM exif_info WHERE key='Model' AND deleted_images.id=exif_info.image
+));
+
