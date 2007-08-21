@@ -43,26 +43,62 @@ function find_width()
 /*
  * pr0n can resize to any size we'd like, but we're much more likely
  * to have this set of fixed-resolution screens cached, so to increase
- * performance, we round down to the closest fit and use that.
+ * performance, we round down to the closest fit and use that. This 
+ * function is a pessimal estimate of what thumbnail size we can _always_
+ * fit on the screen -- it's right if and only if all images are 4:3
+ * (and landscape). If individual size information is available, use
+ * pick_image_size, below.
  */
-function reduce_to_fixed_width(size)
+var fixed_sizes = [
+	[ 1600, 1200 ],
+	[ 1400, 1050 ],
+	[ 1280, 960 ],
+	[ 1024, 768 ],
+	[ 800, 600 ],
+	[ 640, 480 ],
+	[ 512, 384 ],
+	[ 320, 256 ],
+	[ 240, 192 ],
+	[ 120, 96 ],
+	[ 80, 64 ]
+];
+function max_image_size(screen_size)
 {
-	var fixed_sizes = [
-		[ 1600, 1200 ],
-		[ 1400, 1050 ],
-		[ 1280, 960 ],
-		[ 1024, 768 ],
-		[ 800, 600 ],
-		[ 640, 480 ],
-		[ 512, 384 ],
-		[ 320, 256 ],
-		[ 240, 192 ],
-		[ 120, 96 ],
-		[ 80, 64 ]
-	];
 	var i;
 	for (i = 0; i < fixed_sizes.length; ++i) {
-		if (size[0] >= fixed_sizes[i][0] && size[1] >= fixed_sizes[i][1]) {
+		if (screen_size[0] >= fixed_sizes[i][0] && screen_size[1] >= fixed_sizes[i][1]) {
+			return fixed_sizes[i];
+		}
+	}
+	return [ 80, 64 ];
+}
+
+function pick_image_size(screen_size, image_size)
+{
+	var i;
+	for (i = 0; i < fixed_sizes.length; ++i) {
+		// this is a duplicate of pr0n's resizing code, hope for no floating-point
+		// inaccuracies :-)
+		var thumbxres = fixed_sizes[i][0];
+		var thumbyres = fixed_sizes[i][1];
+		var width = image_size[0];
+		var height = image_size[1];
+
+		if (!(thumbxres >= width && thumbyres >= height)) {
+			var sfh = width / thumbxres;
+			var sfv = height / thumbyres;
+			if (sfh > sfv) {
+				width  /= sfh;
+				height /= sfh;
+			} else {
+				width  /= sfv;
+				height /= sfv;
+			}
+			width = Math.floor(width);
+			height = Math.floor(height);
+		}
+
+		if (screen_size[0] >= width && screen_size[1] >= height) {
 			return fixed_sizes[i];
 		}
 	}
@@ -92,7 +128,26 @@ function display_image(width, height, evt, filename, element_id)
 	return img;
 }
 
-function prepare_preload(img, width, height, evt, filename)
+function display_image_num(num, element_id)
+{
+	var screen_size = find_width();
+	var adjusted_size;
+
+	if (global_image_list[num][2] == -1) {
+		// no size information, use our pessimal guess
+		adjusted_size = max_image_size(screen_size);
+	} else {
+		adjusted_size = pick_image_size(screen_size, [ global_image_list[num][2], global_image_list[num][3] ]);
+	}
+
+	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[num][0], global_image_list[num][1], element_id);
+	if (element_id == "image") {
+		center_image(num);
+	}
+	return img;
+}
+
+function prepare_preload(img, num)
 {
 	// cancel any pending preload
 	var preload = document.getElementById("preload");
@@ -104,9 +159,9 @@ function prepare_preload(img, width, height, evt, filename)
 	// grmf -- IE doesn't fire onload if the image was loaded from cache, so check for
 	// completeness first; should at least be _somewhat_ better
 	if (img.complete) {
-		display_image(width, height, evt, filename, "preload");
+		display_image_num(num, "preload");
 	} else {
-		img.onload = function() { display_image(width, height, evt, filename, "preload"); };
+		img.onload = function() { display_image_num(num, "preload"); };
 	}	
 }
 
@@ -154,24 +209,37 @@ function set_opacity(id, amount)
 	}
 }
 
-function relayout()
+function center_image(num)
 {
-	var size = find_width();
-	var adjusted_size = reduce_to_fixed_width(size);
-
-	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[global_image_num][0], global_image_list[global_image_num][1], "image");
-	if (can_go_next()) {
-		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_image_list[global_image_num + 1][0], global_image_list[global_image_num + 1]);
-	}
+	var screen_size = find_width();
+	var adjusted_size;
 	
+	if (global_image_list[num][2] == -1) {
+		// no size information, use our pessimal guess
+		adjusted_size = max_image_size(screen_size);
+	} else {
+		adjusted_size = pick_image_size(screen_size, [ global_image_list[num][2], global_image_list[num][3] ]);
+	}
+
 	// center the image on-screen
 	var main = document.getElementById("main");
 	main.style.position = "absolute";
-	main.style.left = (size[0] - adjusted_size[0]) / 2 + "px";
-	main.style.top = (size[1] - adjusted_size[1]) / 2 + "px"; 
+	main.style.left = (screen_size[0] - adjusted_size[0]) / 2 + "px";
+	main.style.top = (screen_size[1] - adjusted_size[1]) / 2 + "px"; 
 	main.style.width = adjusted_size[0] + "px";
 	main.style.height = adjusted_size[1] + "px";
 	main.style.lineHeight = adjusted_size[1] + "px"; 
+
+}
+
+function relayout()
+{
+	var img = display_image_num(global_image_num, "image");
+	if (can_go_next()) {
+		prepare_preload(img, global_image_num + 1);
+	}
+	
+	center_image(global_image_num);
 
 	set_opacity("previous", can_go_previous() ? 0.7 : 0.1);
 	set_opacity("next", can_go_next() ? 0.7 : 0.1);
@@ -184,14 +252,10 @@ function go_previous()
 		return;
 	}
 
-	--global_image_num;
-
-	var adjusted_size = reduce_to_fixed_width(find_width());
-
-	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[global_image_num][0], global_image_list[global_image_num][1], "image");
+	var img = display_image_num(--global_image_num, "image");
 	if (can_go_previous()) {
 		set_opacity("previous", 0.7);
-		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_image_list[global_image_num - 1][0], global_image_list[global_image_num - 1][1]);
+		prepare_preload(img, global_image_num - 1);
 	} else {
 		set_opacity("previous", 0.1);
 	}
@@ -204,14 +268,10 @@ function go_next()
 		return;
 	}
 
-	++global_image_num;
-
-	var adjusted_size = reduce_to_fixed_width(find_width());
-
-	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[global_image_num][0], global_image_list[global_image_num][1], "image");
+	var img = display_image_num(++global_image_num, "image");
 	if (can_go_next()) {
 		set_opacity("next", 0.7);
-		prepare_preload(img, adjusted_size[0], adjusted_size[1], global_image_list[global_image_num + 1][0], global_image_list[global_image_num + 1][1]);
+		prepare_preload(img, global_image_num + 1);
 	} else {
 		set_opacity("next", 0.1);
 	}

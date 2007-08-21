@@ -199,13 +199,13 @@ sub handler {
 
 		my @files = ();
 		while (my $ref = $q->fetchrow_hashref()) {
-			push @files, [ $ref->{'event'}, $ref->{'filename'} ];
+			push @files, [ $ref->{'event'}, $ref->{'filename'}, $ref->{'width'}, $ref->{'height'} ];
 		}
 		
 		for my $i (0..$#files) {
-			$r->print("        [ \"" . $files[$i]->[0] . "\", \"" . $files[$i]->[1] . "\" ]");
-			$r->print(",") unless ($i == $#files);
-			$r->print("\n");
+			my $line = sprintf "        [ \"%s\", \"%s\", %d, %d ]", @{$files[$i]};
+			$line .= "," unless ($i == $#files);
+			$r->print($line . "\n");
 		}
 
 		my %settings_no_fullscreen = %settings;
