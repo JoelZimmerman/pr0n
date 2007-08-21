@@ -1,5 +1,5 @@
 --
--- Upgrades pre-v2.50 databases to 2.50 format -- not many changes, though.
+-- Upgrades pre-v2.50 databases to 2.50 format.
 --
 SET work_mem=131072;
 
@@ -45,6 +45,8 @@ UPDATE images SET lens=COALESCE(
 ), model=TRIM((
     SELECT value FROM exif_info WHERE key='Model' AND images.id=exif_info.image
 ));
+UPDATE images SET model=NULL WHERE model='';
+UPDATE images SET lens=NULL WHERE lens='';
 
 ALTER TABLE deleted_images ADD COLUMN model varchar;
 ALTER TABLE deleted_images ADD COLUMN lens varchar;
@@ -58,4 +60,6 @@ UPDATE deleted_images SET lens=COALESCE(
 ), model=TRIM((
     SELECT value FROM exif_info WHERE key='Model' AND deleted_images.id=exif_info.image
 ));
+UPDATE deleted_images SET model=NULL WHERE model='';
+UPDATE deleted_images SET lens=NULL WHERE lens='';
 
