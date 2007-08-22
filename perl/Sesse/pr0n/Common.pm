@@ -259,9 +259,9 @@ sub update_image_info {
 		}
 
 		# Model/Lens
-		my $model = $exiftool->GetValue('Model', 'ValueConv');
-		my $lens = $exiftool->GetValue('Lens', 'ValueConv');
-		$lens = $exiftool->GetValue('LensSpec', 'ValueConv') if (!defined($lens));
+		my $model = $exiftool->GetValue('Model', 'PrintConv');
+		my $lens = $exiftool->GetValue('Lens', 'PrintConv');
+		$lens = $exiftool->GetValue('LensSpec', 'PrintConv') if (!defined($lens));
 
 		$model =~ s/^\s*//;
 		$model =~ s/\s*$//;
