@@ -47,11 +47,6 @@ sub handler {
 	$dbwidth = $ref->{'width'};
 	$dbheight = $ref->{'height'};
 
-	#}
-		
-	$dbwidth = -1 unless defined($dbwidth);
-	$dbheight = -1 unless defined($dbheight);
-
 	# Scale if we need to do so
 	my ($fname,$thumbnail) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres);
 
