@@ -221,6 +221,14 @@ function center_image(num)
 		adjusted_size = pick_image_size(screen_size, [ global_image_list[num][2], global_image_list[num][3] ]);
 	}
 
+	// crop the div to the screen
+	if (adjusted_size[0] > screen_size[0]) {
+		adjusted_size[0] = screen_size[0];
+	}
+	if (adjusted_size[1] > screen_size[1]) {
+		adjusted_size[1] = screen_size[1];
+	}
+
 	// center the image on-screen
 	var main = document.getElementById("main");
 	main.style.position = "absolute";
