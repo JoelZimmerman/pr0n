@@ -99,7 +99,8 @@ function pick_image_size(screen_size, image_size)
 		}
 
 		if (screen_size[0] >= width && screen_size[1] >= height) {
-			return fixed_sizes[i];
+			// be sure _not_ to return a reference
+			return [ fixed_sizes[i][0], fixed_sizes[i][1] ];
 		}
 	}
 	return [ 80, 64 ];
