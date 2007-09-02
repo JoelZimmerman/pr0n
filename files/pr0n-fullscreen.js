@@ -100,12 +100,12 @@ function pick_image_size(screen_size, image_size)
 
 		if (screen_size[0] >= width && screen_size[1] >= height) {
 			// be sure _not_ to return a reference
-			return [ fixed_sizes[i][0], fixed_sizes[i][1] ];
+			return [ fixed_sizes[i][0], fixed_sizes[i][1], width, height ];
 		}
 	}
 	return [ 80, 64 ];
 }
-	
+
 function display_image(width, height, evt, filename, element_id)
 {
 	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/" + global_infobox + filename;
@@ -142,9 +142,17 @@ function display_image_num(num, element_id)
 	}
 
 	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[num][0], global_image_list[num][1], element_id);
+	
 	if (element_id == "image") {
+		// we want to shrink the box as much as possible if we know the true
+		// size of the image
 		center_image(num);
+		
+		document.getElementById('linkbg1').href = global_bookmark_url_base + (num+1);
+		document.getElementById('linkbg2').href = global_bookmark_url_base + (num+1);
+		document.getElementById('linkbg3').href = global_bookmark_url_base + (num+1);
 	}
+
 	return img;
 }
 
@@ -213,32 +221,28 @@ function set_opacity(id, amount)
 function center_image(num)
 {
 	var screen_size = find_width();
-	var adjusted_size;
+	var width, height;
 	
 	if (global_image_list[num][2] == -1) {
 		// no size information, use our pessimal guess
-		adjusted_size = max_image_size(screen_size);
+		var adjusted_size = max_image_size(screen_size);
+		width = adjusted_size[0];
+		height = adjusted_size[1];
 	} else {
-		adjusted_size = pick_image_size(screen_size, [ global_image_list[num][2], global_image_list[num][3] ]);
-	}
-
-	// crop the div to the screen
-	if (adjusted_size[0] > screen_size[0]) {
-		adjusted_size[0] = screen_size[0];
-	}
-	if (adjusted_size[1] > screen_size[1]) {
-		adjusted_size[1] = screen_size[1];
+		// use the exact information
+		var adjusted_size = pick_image_size(screen_size, [ global_image_list[num][2], global_image_list[num][3] ]);
+		width = adjusted_size[2];
+		height = adjusted_size[3];
 	}
 
 	// center the image on-screen
 	var main = document.getElementById("main");
 	main.style.position = "absolute";
-	main.style.left = (screen_size[0] - adjusted_size[0]) / 2 + "px";
-	main.style.top = (screen_size[1] - adjusted_size[1]) / 2 + "px"; 
-	main.style.width = adjusted_size[0] + "px";
-	main.style.height = adjusted_size[1] + "px";
-	main.style.lineHeight = adjusted_size[1] + "px"; 
-
+	main.style.left = (screen_size[0] - width) / 2 + "px";
+	main.style.top = (screen_size[1] - height) / 2 + "px"; 
+	main.style.width = width + "px";
+	main.style.height = height + "px";
+	main.style.lineHeight = height + "px";
 }
 
 function relayout()
@@ -247,8 +251,6 @@ function relayout()
 	if (can_go_next()) {
 		prepare_preload(img, global_image_num + 1);
 	}
-	
-	center_image(global_image_num);
 
 	set_opacity("previous", can_go_previous() ? 0.7 : 0.1);
 	set_opacity("next", can_go_next() ? 0.7 : 0.1);

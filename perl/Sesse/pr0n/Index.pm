@@ -214,14 +214,27 @@ sub handler {
 
 		my $returnurl = "http://" . $r->get_server_name . "/" . $event . "/" .
 			Sesse::pr0n::Common::get_query_string(\%settings_no_fullscreen, \%defsettings);
+		
+		my %settings_bookmark = %settings;
+		$settings_bookmark{'start'} = $defsettings{'start'};
+		my $bookmark_url_base = "http://" . $r->get_server_name . "/" . $event . "/" .
+			Sesse::pr0n::Common::get_query_string(\%settings_bookmark, \%defsettings);
+
+		if ($bookmark_url_base =~ /\?/) {
+			$bookmark_url_base .= ';start=';
+		} else {
+			$bookmark_url_base .= '?start=';
+		}
 
 		# *whistle*
 		$returnurl =~ s/&amp;/&/g;
+		$bookmark_url_base =~ s/&amp;/&/g;
 
 		Sesse::pr0n::Templates::print_template($r, "fullscreen-footer", {
 			vhost => $r->get_server_name,
 			start => $settings{'start'} - 1,
 			returnurl => $returnurl,
+			bookmarkurlbase => $bookmark_url_base,
 			sel => $settings{'sel'},
 			infobox => $infobox
 		});
