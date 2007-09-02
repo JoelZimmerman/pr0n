@@ -512,68 +512,91 @@ sub get_mimetype_from_filename {
 
 sub make_infobox {
 	my ($img, $info, $r) = @_;
+
+	# The infobox is of the form
+	# "Time - date - focal length, shutter time, aperture, sensitivity, exposure bias - flash",
+	# possibly with some parts omitted -- the middle part is known as the "classic
+	# fields"; note the comma separation. Every field has an associated "bold flag"
+	# in the second part.
 	
-	my @lines = ();
+	my $shutter_priority = (defined($info->{'ExposureProgram'}) &&
+		$info->{'ExposureProgram'} =~ /shutter\b.*\bpriority/i);
+	my $aperture_priority = (defined($info->{'ExposureProgram'}) &&
+		$info->{'ExposureProgram'} =~ /aperture\b.*\bpriority/i);
+
 	my @classic_fields = ();
-	
-	if (defined($info->{'DateTimeOriginal'}) &&
-	    $info->{'DateTimeOriginal'} =~ /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)$/
-	    && $1 >= 1990) {
-		push @lines, "$1-$2-$3 $4:$5";
+	if (defined($info->{'FocalLength'}) && $info->{'FocalLength'} =~ /^(\d+)(?:\.\d+)?(?:mm)?$/) {
+		push @classic_fields, [ $1 . "mm", 0 ];
+	} elsif (defined($info->{'FocalLength'}) && $info->{'FocalLength'} =~ /^(\d+)\/(\d+)$/) {
+		push @classic_fields, [ (sprintf "%.1fmm", ($1/$2)), 0 ];
 	}
 
-	if (defined($info->{'Model'})) {
-		my $model = $info->{'Model'}; 
-		$model =~ s/^\s+//;
-		$model =~ s/\s+$//;
-		push @lines, $model;
-	}
-	
-	# classic fields
-	if (defined($info->{'FocalLength'}) && $info->{'FocalLength'} =~ /^(\d+)(?:\.\d+)?(?:mm)?$/) {
-		push @classic_fields, ($1 . "mm");
-	} elsif (defined($info->{'FocalLength'}) && $info->{'FocalLength'} =~ /^(\d+)\/(\d+)$/) {
-		push @classic_fields, (sprintf "%.1fmm", ($1/$2));
-	}
 	if (defined($info->{'ExposureTime'}) && $info->{'ExposureTime'} =~ /^(\d+)\/(\d+)$/) {
 		my ($a, $b) = ($1, $2);
 		my $gcd = gcd($a, $b);
-		push @classic_fields, ($a/$gcd . "/" . $b/$gcd . "s");
+		push @classic_fields, [ $a/$gcd . "/" . $b/$gcd . "s", $shutter_priority ];
 	} elsif (defined($info->{'ExposureTime'}) && $info->{'ExposureTime'} =~ /^(\d+)$/) {
-		push @classic_fields, ($1 . "s");
+		push @classic_fields, [ $1 . "s", $shutter_priority ];
 	}
+
 	if (defined($info->{'FNumber'}) && $info->{'FNumber'} =~ /^(\d+)\/(\d+)$/) {
 		my $f = $1/$2;
 		if ($f >= 10) {
-			push @classic_fields, (sprintf "f/%.0f", $f);
+			push @classic_fields, [ (sprintf "f/%.0f", $f), $aperture_priority ];
 		} else {
-			push @classic_fields, (sprintf "f/%.1f", $f);
+			push @classic_fields, [ (sprintf "f/%.1f", $f), $aperture_priority ];
 		}
 	} elsif (defined($info->{'FNumber'}) && $info->{'FNumber'} =~ /^(\d+)\.(\d+)$/) {
 		my $f = $info->{'FNumber'};
 		if ($f >= 10) {
-			push @classic_fields, (sprintf "f/%.0f", $f);
+			push @classic_fields, [ (sprintf "f/%.0f", $f), $aperture_priority ];
 		} else {
-			push @classic_fields, (sprintf "f/%.1f", $f);
+			push @classic_fields, [ (sprintf "f/%.1f", $f), $aperture_priority ];
 		}
 	}
 
 #	Apache2::ServerUtil->server->log_error(join(':', keys %$info));
 
 	if (defined($info->{'NikonD1-ISOSetting'})) {
-		push @classic_fields, $info->{'NikonD1-ISOSetting'}->[1] . " ISO";
+		push @classic_fields, [ $info->{'NikonD1-ISOSetting'}->[1] . " ISO", 0 ];
 	} elsif (defined($info->{'ISOSetting'})) {
-		push @classic_fields, $info->{'ISOSetting'} . " ISO";
+		push @classic_fields, [ $info->{'ISOSetting'} . " ISO" ];
 	}
 
 	if (defined($info->{'ExposureBiasValue'}) && $info->{'ExposureBiasValue'} ne "0") {
-		push @classic_fields, $info->{'ExposureBiasValue'} . " EV";
+		push @classic_fields, [ $info->{'ExposureBiasValue'} . " EV", 0 ];
 	} elsif (defined($info->{'ExposureCompensation'}) && $info->{'ExposureCompensation'} != 0) {
-		push @classic_fields, $info->{'ExposureCompensation'} . " EV";
+		push @classic_fields, [ $info->{'ExposureCompensation'} . " EV", 0 ];
+	}
+
+	# Now piece together the rest
+	my @parts = ();
+	
+	if (defined($info->{'DateTimeOriginal'}) &&
+	    $info->{'DateTimeOriginal'} =~ /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)$/
+	    && $1 >= 1990) {
+		push @parts, [ "$1-$2-$3 $4:$5", 0 ];
+	}
+
+	if (defined($info->{'Model'})) {
+		my $model = $info->{'Model'}; 
+		$model =~ s/^\s+//;
+		$model =~ s/\s+$//;
+
+		push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+		push @parts, [ $model, 0 ];
 	}
 	
+	# classic fields
 	if (scalar @classic_fields > 0) {
-		push @lines, join(', ', @classic_fields);
+		push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+
+		my $first_elem = 1;
+		for my $field (@classic_fields) {
+			push @parts, [ ', ', 0 ] if (!$first_elem);
+			$first_elem = 0;
+			push @parts, $field;
+		}
 	}
 
 	if (defined($info->{'Flash'})) {
@@ -581,66 +604,66 @@ sub make_infobox {
 		    $info->{'Flash'} =~ /no flash/i ||
 		    $info->{'Flash'} =~ /not fired/i ||
 		    $info->{'Flash'} =~ /Off/)  {
-			push @lines, "No flash";
+			push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+			push @parts, [ "No flash", 0 ];
 		} elsif ($info->{'Flash'} =~ /fired/i ||
 		         $info->{'Flash'} =~ /On/) {
-			push @lines, "Flash";
+			push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+			push @parts, [ "Flash", 0 ];
 		} else {
-			push @lines, $info->{'Flash'};
+			push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+			push @parts, [ $info->{'Flash'}, 0 ];
 		}
 	}
 
-	return if (scalar @lines == 0);
-
-	# OK, this sucks. Let's make something better :-)
-	@lines = ( join(" - ", @lines) );
+	return if (scalar @parts == 0);
 
 	# Find the required width
-	my $th = 14 * (scalar @lines) + 6;
-	my $tw = 1;
+	my $th = 0;
+	my $tw = 0;
 
-	for my $line (@lines) {
-		my $this_w = ($img->QueryFontMetrics(text=>$line, font=>'/usr/share/fonts/truetype/msttcorefonts/Arial.ttf', pointsize=>12))[4];
-		$tw = $this_w if ($this_w >= $tw);
+	for my $part (@parts) {
+		my $font;
+		if ($part->[1]) {
+			$font = '/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf';
+		} else {
+			$font = '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf';
+		}
+
+		my (undef, undef, $h, undef, $w) = ($img->QueryFontMetrics(text=>$part->[0], font=>$font, pointsize=>12));
+
+		$tw += $w;
+		$th = $h if ($h > $th);
 	}
 
-	$tw += 6;
-
-	# Round up so we hit exact DCT blocks
-	$tw += 8 - ($tw % 8) unless ($tw % 8 == 0);
-	$th += 8 - ($th % 8) unless ($th % 8 == 0);
-	
 	return if ($tw > $img->Get('columns'));
 
-#	my $x = $img->Get('columns') - 8 - $tw;
-#	my $y = $img->Get('rows') - 8 - $th;
 	my $x = 0;
-	my $y = $img->Get('rows') - $th;
-	$tw = $img->Get('columns');
+	my $y = $img->Get('rows') - 24;
 
-	$x -= $x % 8;
-	$y -= $y % 8;
+	# Hit exact DCT blocks
+	$y -= ($y % 8);
 
-	my $points = sprintf "%u,%u %u,%u", $x, $y, ($x+$tw-1), ($img->Get('rows') - 1);
-	my $lpoints = sprintf "%u,%u %u,%u", $x, $y, ($x+$tw-1), $y;
-#	$img->Draw(primitive=>'rectangle', stroke=>'black', fill=>'white', points=>$points);
+	my $points = sprintf "%u,%u %u,%u", $x, $y, ($img->Get('columns') - 1), ($img->Get('rows') - 1);
+	my $lpoints = sprintf "%u,%u %u,%u", $x, $y, ($img->Get('columns') - 1), $y;
 	$img->Draw(primitive=>'rectangle', stroke=>'white', fill=>'white', points=>$points);
 	$img->Draw(primitive=>'line', stroke=>'black', points=>$lpoints);
 
-	my $i = -(scalar @lines - 1)/2.0;
-	my $xc = $x + $tw / 2 - $img->Get('columns')/2;
-	my $yc = ($y + $img->Get('rows'))/2 - $img->Get('rows')/2;
-	#my $yc = ($y + $img->Get('rows'))/4;
-	my $yi = $th / (scalar @lines);
-	
-	$lpoints = sprintf "%u,%u %u,%u", $x, $yc + $img->Get('rows')/2, ($x+$tw-1), $yc+$img->Get('rows')/2;
+	# Start writing out the text
+	$x = ($img->Get('columns') - $tw) / 2;
 
-	for my $line (@lines) {
-		$img->Annotate(text=>$line, font=>'/usr/share/fonts/truetype/msttcorefonts/Arial.ttf', pointsize=>12, gravity=>'Center',
-		# $img->Annotate(text=>$line, font=>'Helvetica', pointsize=>12, gravity=>'Center',
-			x=>int($xc), y=>int($yc + $i * $yi));
+	my $room = ($img->Get('rows') - 1 - $y - $th);
+	$y = ($img->Get('rows') - 1) - $room/2;
 	
-		$i = $i + 1;
+	for my $part (@parts) {
+		my $font;
+		if ($part->[1]) {
+			$font = '/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf';
+		} else {
+			$font = '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf';
+		}
+		$img->Annotate(text=>$part->[0], font=>$font, pointsize=>12, x=>int($x), y=>int($y));
+		$x += ($img->QueryFontMetrics(text=>$part->[0], font=>$font, pointsize=>12))[4];
 	}
 }
 
