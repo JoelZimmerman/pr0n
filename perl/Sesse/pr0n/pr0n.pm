@@ -25,6 +25,7 @@ sub handler {
 		 $uri eq '/blah.png' ||
 		 $uri eq '/faq.html' ||
 		 $uri eq '/pr0n-fullscreen.css' ||
+		 $uri eq '/pr0n-fullscreen-ie.css' ||
 		 $uri eq '/pr0n-fullscreen.js' ||
 		 $uri eq '/previous.png' ||
 		 $uri eq '/next.png' ||
