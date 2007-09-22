@@ -423,11 +423,11 @@ EOF
 		# gnome-vfs and mac os x love to make zero-byte files,
 		# make them happy
 		# 
-		if ($r->headers_in->{'content-length'} == 0) {
+		if ($r->headers_in->{'content-length'} == 0 || $filename =~ /^\.(_|DS_Store)/) {
 			$dbh->do('DELETE FROM fake_files WHERE expires_at <= now() OR (event=? AND vhost=? AND filename=?);',
 				undef, $event, $r->get_server_name, $filename)
 				or dberror($r, "Couldn't prune fake_files");
-			$dbh->do('INSERT INTO fake_files (vhost,event,filename,expires_at) VALUES (?,?,?,now() + interval \'30 seconds\');',
+			$dbh->do('INSERT INTO fake_files (vhost,event,filename,expires_at) VALUES (?,?,?,now() + interval \'1 day\');',
 				undef, $r->get_server_name, $event, $filename)
 				or dberror($r, "Couldn't add file");
 			$r->content_type('text/plain; charset="utf-8"');
@@ -490,7 +490,7 @@ EOF
 
 				# Make cache while we're at it.
 				# Don't do it for the resource forks Mac OS X loves to upload :-(
-				if ($filename !~ /^\._/) {
+				if ($filename !~ /^\.(_|DS_Store)/) {
 					Sesse::pr0n::Common::ensure_cached($r, $filename, $newid, undef, undef, 1, 80, 64, 320, 256, -1, -1);
 				}
 				
@@ -507,12 +507,12 @@ EOF
 			}
 		}
 
-		# Insert a `shadow file' we can stat the next 30 secs
+		# Insert a `shadow file' we can stat the next day or so
 		if (defined($autorename) && $autorename eq "autorename/") {
 			$dbh->do('DELETE FROM shadow_files WHERE expires_at <= now() OR (vhost=? AND event=? AND filename=?);',
 				undef, $r->get_server_name, $event, $filename)
 				or dberror($r, "Couldn't prune shadow_files");
-			$dbh->do('INSERT INTO shadow_files (vhost,event,filename,id,expires_at) VALUES (?,?,?,?,now() + interval \'30 seconds\');',
+			$dbh->do('INSERT INTO shadow_files (vhost,event,filename,id,expires_at) VALUES (?,?,?,?,now() + interval \'1 day\');',
 				undef, $r->get_server_name, $event, $orig_filename, $newid)
 				or dberror($r, "Couldn't add shadow file");
 			$r->log->info("Added shadow entry for $event/$filename");
@@ -658,7 +658,8 @@ EOF
 		}
 
 		my ($event, $autorename, $filename) = ($1, $2, $3);
-		my $sha1 = Digest::SHA1::sha1_base64("/$event/$autorename/$filename");
+		$autorename = '' if (!defined($autorename));
+		my $sha1 = Digest::SHA1::sha1_base64("/$event/$autorename$filename");
 
 		$r->status(200);
 		$r->content_type('text/xml; charset=utf-8');
