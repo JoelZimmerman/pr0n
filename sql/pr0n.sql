@@ -15,7 +15,7 @@ CREATE TABLE last_picture_cache (
    last_picture timestamp without time zone,
 
    PRIMARY KEY (vhost,event),
-   FOREIGN KEY (vhost,event) REFERNECES events(vhost,event)
+   FOREIGN KEY (vhost,event) REFERENCES events(vhost,event)
 );
 
 CREATE TABLE images (
