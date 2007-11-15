@@ -17,15 +17,13 @@ sub handler {
 		$abspath = 1;
 		$tag = undef; 
 
-		# augh, this needs 8.3, so we'll have to fiddle around a bit instead
-		# $datesort = 'DESC NULLS LAST';
-		$datesort = 'DESC';
+		$datesort = 'DESC NULLS LAST';
 	} elsif ($r->uri =~ /^\/\+tags\/([a-zA-Z0-9-]+)\/?$/) {
 		$tag = $1;
 		$event = "+tags/$tag";
 		$abspath = 1;
 		
-		$datesort = 'DESC';
+		$datesort = 'DESC NULLS LAST';
 	} else {
 		# Find the event
 		$r->uri =~ /^\/([a-zA-Z0-9-]+)\/?$/
@@ -33,7 +31,7 @@ sub handler {
 		$event = $1;
 		$abspath = 0;
 		$tag = undef;
-		$datesort = 'ASC';
+		$datesort = 'ASC NULLS LAST';
 	}
 
 	# Fix common error: pr0n.sesse.net/event -> pr0n.sesse.net/event/
@@ -180,7 +178,7 @@ sub handler {
 	# Find all images related to this event.
 	my $limit = (defined($start) && defined($num) && !$settings{'fullscreen'}) ? (" LIMIT $num OFFSET " . ($start-1)) : "";
 
-	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE vhost=? $where ORDER BY COALESCE((date - INTERVAL '6 hours')::date, '1970-01-01') $datesort,takenby,date,filename $limit")
+	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date $datesort,takenby,date,filename $limit")
 		or dberror($r, "prepare()");
 	$q->execute($r->get_server_name)
 		or dberror($r, "image enumeration");
