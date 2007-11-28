@@ -40,6 +40,20 @@ function find_width()
 	return [null,null];
 }
 
+function parse_image_num(url, default_value) {
+	var url_array = (window.location.toString().split("#"));
+	if (url_array.length != 2) {
+		return default_value;
+	}
+
+	var num = parseInt(url_array[1]);
+	if (num > 1 && num <= global_image_list.length) {  // and then num != NaN
+		return (num - 1);
+	} else {
+		return default_value;
+	}
+}
+
 /*
  * pr0n can resize to any size we'd like, but we're much more likely
  * to have this set of fixed-resolution screens cached, so to increase
@@ -148,9 +162,9 @@ function display_image_num(num, element_id)
 		// size of the image
 		center_image(num);
 		
-		document.getElementById('linkbg1').href = global_bookmark_url_base + (num+1);
-		document.getElementById('linkbg2').href = global_bookmark_url_base + (num+1);
-		document.getElementById('linkbg3').href = global_bookmark_url_base + (num+1);
+		// replace the anchor part (if any) with the image number
+		var baseurl = (window.location.toString().split("#"))[0];
+		window.location = baseurl + "#" + (num+1);
 	}
 
 	return img;

@@ -14,9 +14,6 @@ body {
 img, #text {
 	vertical-align: middle;
 }
-img {
-	z-index: 1;
-}
 
 #previous {
 	position: absolute;
@@ -36,17 +33,6 @@ img {
 	right: 0px;
 	z-index: 2;
 }
-#linkbg1, #linkbg2, #linkbg3 {
-	display: block;
-	position: absolute;
-	top: 0px;
-	right: 0px;
-	width: 100%;
-	height: 100%;
-	background-color: black;
-}
-#linkbg2 { z-index: -1; }
-#linkbg3 { z-index: -1; }
 
 #preload {
 	position: absolute;

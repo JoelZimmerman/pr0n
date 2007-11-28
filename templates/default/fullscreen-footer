@@ -2,17 +2,14 @@
 var global_vhost = "%VHOST%";
 var global_infobox = "%INFOBOX%";
 var global_return_url = "%RETURNURL%";
-var global_bookmark_url_base = "%BOOKMARKURLBASE%";
-var global_image_num = %START%;
+var global_image_num = parse_image_num(window.location, %START%);
 var global_select = %SEL%;
 // end generated
     </script>
-    <script type="text/JavaScript" src="/pr0n-fullscreen.js"></script>
   </head>
   <body onresize="relayout();" onload="init_ajax(); relayout();" onkeydown="key_down(event.keyCode);" onkeyup="key_up(event.keyCode);">
     <div>
-      <a id="linkbg1"></a>
-      <div class="container" id="main"><a id="linkbg2"></a><div id="iehack"><a id="linkbg3"></a></div></div>
+      <div class="container" id="main"><div id="iehack"></div></div>
       <img id="previous" src="/previous.png" alt="&lt;-" onmousedown="if (can_go_previous()) set_opacity('previous', 1.0)" onmouseup="if (can_go_previous()) { set_opacity('previous', 0.7); go_previous(); }" onmouseout="if (can_go_previous()) { set_opacity('previous', 0.7); }" />
       <img id="next" src="/next.png" alt="-&gt;" onmousedown="if (can_go_next()) set_opacity('next', 1.0)" onmouseup="if (can_go_next()) { set_opacity('next', 0.7); go_next(); }" onmouseout="if (can_go_next()) { set_opacity('next', 0.7); }" />
       <img id="close" src="/close.png" alt="x" onmousedown="set_opacity('close', 1.0)" onmouseup="set_opacity('close', 0.7); do_close();" onmouseout="set_opacity('close', 0.7);" />
