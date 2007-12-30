@@ -371,7 +371,7 @@ sub ensure_cached {
 	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres, @otherres) = @_;
 
 	my $fname = get_disk_location($r, $id);
-	unless (defined($xres) && ($xres < $dbheight || $yres < $dbwidth || !defined($dbwidth) || !defined($dbheight) || $xres == -1)) {
+	unless (defined($xres) && (!defined($dbwidth) || !defined($dbheight) || $xres < $dbheight || $yres < $dbwidth || $xres == -1)) {
 		return ($fname, 0);
 	}
 
