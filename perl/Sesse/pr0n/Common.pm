@@ -559,10 +559,10 @@ sub make_infobox {
 
 	if (defined($info->{'NikonD1-ISOSetting'})) {
 		push @classic_fields, [ $info->{'NikonD1-ISOSetting'}->[1] . " ISO", 0 ];
-	} elsif (defined($info->{'ISOSetting'})) {
-		push @classic_fields, [ $info->{'ISOSetting'} . " ISO" ];
 	} elsif (defined($info->{'ISO'})) {
 		push @classic_fields, [ $info->{'ISO'} . " ISO" ];
+	} elsif (defined($info->{'ISOSetting'})) {
+		push @classic_fields, [ $info->{'ISOSetting'} . " ISO" ];
 	}
 
 	if (defined($info->{'ExposureBiasValue'}) && $info->{'ExposureBiasValue'} ne "0") {
