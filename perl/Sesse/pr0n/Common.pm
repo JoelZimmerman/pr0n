@@ -557,12 +557,16 @@ sub make_infobox {
 
 #	Apache2::ServerUtil->server->log_error(join(':', keys %$info));
 
+	my $iso = undef;
 	if (defined($info->{'NikonD1-ISOSetting'})) {
-		push @classic_fields, [ $info->{'NikonD1-ISOSetting'}->[1] . " ISO", 0 ];
+		$iso = $info->{'NikonD1-ISOSetting'};
 	} elsif (defined($info->{'ISO'})) {
-		push @classic_fields, [ $info->{'ISO'} . " ISO" ];
+		$iso = $info->{'ISO'};
 	} elsif (defined($info->{'ISOSetting'})) {
-		push @classic_fields, [ $info->{'ISOSetting'} . " ISO" ];
+		$iso = $info->{'ISOSetting'};
+	}
+	if (defined($iso) && $iso =~ /(\d+)/) {
+		push @classic_fields, [ $1 . " ISO", 0 ];
 	}
 
 	if (defined($info->{'ExposureBiasValue'}) && $info->{'ExposureBiasValue'} ne "0") {
