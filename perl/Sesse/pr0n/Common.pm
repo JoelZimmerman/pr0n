@@ -401,6 +401,11 @@ sub ensure_cached {
 			$err = $magick->Read(file => \*DCRAW);
 			close(DCRAW);
 		} else {
+			# We always want YCbCr JPEGs. Setting this explicitly here instead of using
+			# RGB is slightly faster (no colorspace conversion needed) and works equally
+			# well for our uses. (Ideally we'd be able to keep the image subsampled and
+			# planar, but that would probably be difficult for ImageMagick to expose.)
+			$magick->Set(colorspace=>'YCbCr');
 			$err = $magick->Read($fname);
 		}
 		
@@ -425,11 +430,6 @@ sub ensure_cached {
 			update_image_info($r, $id, $width, $height);
 		}
 			
-		# We always want RGB JPEGs
-		if ($img->Get('Colorspace') eq "CMYK") {
-			$img->Set(colorspace=>'RGB');
-		}
-
 		while (defined($xres) && defined($yres)) {
 			my ($nxres, $nyres) = (shift @otherres, shift @otherres);
 			my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox);
