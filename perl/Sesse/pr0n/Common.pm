@@ -403,9 +403,13 @@ sub ensure_cached {
 		} else {
 			# We always want YCbCr JPEGs. Setting this explicitly here instead of using
 			# RGB is slightly faster (no colorspace conversion needed) and works equally
-			# well for our uses. (Ideally we'd be able to keep the image subsampled and
+			# well for our uses, as long as we don't need to draw an information box,
+			# which trickles several ImageMagick bugs related to colorspace handling.
+			# (Ideally we'd be able to keep the image subsampled and
 			# planar, but that would probably be difficult for ImageMagick to expose.)
-			$magick->Set(colorspace=>'YCbCr');
+			if (!$infobox) {
+				$magick->Set(colorspace=>'YCbCr');
+			}
 			$err = $magick->Read($fname);
 		}
 		
