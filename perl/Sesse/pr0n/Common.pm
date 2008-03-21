@@ -419,7 +419,7 @@ sub make_mipmap {
 
 		push @mmlist, [ $mmwidth, $mmheight ];
 	}
-
+		
 	# Ensure that all of them are OK
 	my $last_good_mmlocation;
 	for my $i (0..$#mmlist) {
@@ -461,6 +461,9 @@ sub make_mipmap {
 		}
 	}
 
+	if (!defined($img)) {
+		$img = read_original_image($r, $id, $dbwidth, $dbheight);
+	}
 	return $img;
 }
 
