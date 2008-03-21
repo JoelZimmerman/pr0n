@@ -225,6 +225,13 @@ sub get_cache_location {
 	}
 }
 
+sub get_mipmap_location {
+	my ($r, $id, $width, $height) = @_;
+        my $dir = POSIX::floor($id / 256);
+
+	return get_base($r) . "cache/$dir/$id-mipmap-$width-$height.jpg";
+}
+
 sub update_image_info {
 	my ($r, $id, $width, $height) = @_;
 
@@ -367,6 +374,153 @@ sub stat_image_from_id {
 	return ($fname, $size, $mtime);
 }
 
+# Takes in an image ID and a set of resolutions, and returns (generates if needed)
+# the smallest mipmap larger than the largest of them.
+sub make_mipmap {
+	my ($r, $filename, $id, $dbwidth, $dbheight, @res) = @_;
+	my ($img, $mmimg, $width, $height);
+
+	# If we don't know the size, we'll need to read it in anyway
+	if (!defined($dbwidth) || !defined($dbheight)) {
+		$img = read_original_image($r, $id, $dbwidth, $dbheight);
+		$width = $img->Get('columns');
+		$height = $img->Get('rows');
+	} else {
+		$width = $dbwidth;
+		$height = $dbheight;
+	}
+
+	# Generate the list of mipmaps
+	my @mmlist = ();
+	
+	my $mmwidth = $width;
+	my $mmheight = $height;
+
+	while ($mmwidth > 1 || $mmheight > 1) {
+		my $new_mmwidth = POSIX::floor($mmwidth / 2);		
+		my $new_mmheight = POSIX::floor($mmheight / 2);		
+
+		$new_mmwidth = 1 if ($new_mmwidth < 1);
+		$new_mmheight = 1 if ($new_mmheight < 1);
+
+		my $large_enough = 1;
+		for my $i (0..($#res/2)) {
+			my ($xres, $yres) = ($res[$i*2], $res[$i*2+1]);
+			if ($xres > $new_mmwidth || $yres > $new_mmheight) {
+				$large_enough = 0;
+				last;
+			}
+		}
+				
+		last if (!$large_enough);
+
+		$mmwidth = $new_mmwidth;
+		$mmheight = $new_mmheight;
+
+		push @mmlist, [ $mmwidth, $mmheight ];
+	}
+
+	# Ensure that all of them are OK
+	my $last_good_mmlocation;
+	for my $i (0..$#mmlist) {
+		my $last = ($i == $#mmlist);
+		my $mmres = $mmlist[$i];
+
+		my $mmlocation = get_mipmap_location($r, $id, $mmres->[0], $mmres->[1]);
+		if (! -r $mmlocation or (-M $mmlocation > -M $filename)) {
+			if (!defined($img)) {
+				if (defined($last_good_mmlocation)) {
+					$img = Image::Magick->new;
+					$img->Read($last_good_mmlocation);
+				} else {
+					$img = read_original_image($r, $id, $dbwidth, $dbheight);
+				}
+			}
+			my $cimg;
+			if ($last) {
+				$cimg = $img;
+			} else {
+				$cimg = $img->Clone();
+			}
+			$r->log->info("Making mipmap for $id: " . $mmres->[0] . " x " . $mmres->[1]);
+			$cimg->Resize(width=>$mmres->[0], height=>$mmres->[1], filter=>'Lanczos');
+			$cimg->Strip();
+			my $err = $cimg->write(
+				filename => $mmlocation,
+				quality => 95,
+				'sampling-factor' => '1x1'
+			);
+			$img = $cimg;
+		} else {
+			$last_good_mmlocation = $mmlocation;
+		}
+		if ($last && !defined($img)) {
+			# OK, read in the smallest one
+			$img = Image::Magick->new;
+			my $err = $img->Read($mmlocation);
+		}
+	}
+
+	return $img;
+}
+
+sub read_original_image {
+	my ($r, $id, $dbwidth, $dbheight) = @_;
+
+	my $fname = get_disk_location($r, $id);
+
+	# Read in the original image
+	my $magick = new Image::Magick;
+	my $err;
+
+	# ImageMagick can handle NEF files, but it does it by calling dcraw as a delegate.
+	# The delegate support is rather broken and causes very odd stuff to happen when
+	# more than one thread does this at the same time. Thus, we simply do it ourselves.
+	if ($fname =~ /\.nef$/i) {
+		# this would suffice if ImageMagick gets to fix their handling
+		# $fname = "NEF:$fname";
+		
+		open DCRAW, "-|", "dcraw", "-w", "-c", $fname
+			or error("dcraw: $!");
+		$err = $magick->Read(file => \*DCRAW);
+		close(DCRAW);
+	} else {
+		# We always want YCbCr JPEGs. Setting this explicitly here instead of using
+		# RGB is slightly faster (no colorspace conversion needed) and works equally
+		# well for our uses, as long as we don't need to draw an information box,
+		# which trickles several ImageMagick bugs related to colorspace handling.
+		# (Ideally we'd be able to keep the image subsampled and
+		# planar, but that would probably be difficult for ImageMagick to expose.)
+		#if (!$infobox) {
+		#	$magick->Set(colorspace=>'YCbCr');
+		#}
+		$err = $magick->Read($fname);
+	}
+	
+	if ($err) {
+		$r->log->warn("$fname: $err");
+		$err =~ /(\d+)/;
+		if ($1 >= 400) {
+			undef $magick;
+			error($r, "$fname: $err");
+		}
+	}
+
+	# If we use ->[0] unconditionally, text rendering (!) seems to crash
+	my $img = (scalar @$magick > 1) ? $magick->[0] : $magick;
+
+	my $width = $img->Get('columns');
+	my $height = $img->Get('rows');
+
+	# Update the SQL database if it doesn't contain the required info
+	if (!defined($dbwidth) || !defined($dbheight)) {
+		$r->log->info("Updating width/height for $id: $width x $height");
+		update_image_info($r, $id, $width, $height);
+	}
+
+	return $img;
+}
+
 sub ensure_cached {
 	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres, @otherres) = @_;
 
@@ -376,6 +530,7 @@ sub ensure_cached {
 	}
 
 	my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox);
+	my $err;
 	if (! -r $cachename or (-M $cachename > -M $fname)) {
 		# If we are in overload mode (aka Slashdot mode), refuse to generate
 		# new thumbnails.
@@ -384,56 +539,8 @@ sub ensure_cached {
 			error($r, 'System is in overload mode, not doing any scaling');
 		}
 	
-		# Need to generate the cache; read in the image
-		my $magick = new Image::Magick;
-		my $info = Image::ExifTool::ImageInfo($fname);
-		my $err;
+		my $img = make_mipmap($r, $fname, $id, $dbwidth, $dbheight, $xres, $yres, @otherres);
 
-		# ImageMagick can handle NEF files, but it does it by calling dcraw as a delegate.
-		# The delegate support is rather broken and causes very odd stuff to happen when
-		# more than one thread does this at the same time. Thus, we simply do it ourselves.
-		if ($filename =~ /\.nef$/i) {
-			# this would suffice if ImageMagick gets to fix their handling
-			# $fname = "NEF:$fname";
-			
-			open DCRAW, "-|", "dcraw", "-w", "-c", $fname
-				or error("dcraw: $!");
-			$err = $magick->Read(file => \*DCRAW);
-			close(DCRAW);
-		} else {
-			# We always want YCbCr JPEGs. Setting this explicitly here instead of using
-			# RGB is slightly faster (no colorspace conversion needed) and works equally
-			# well for our uses, as long as we don't need to draw an information box,
-			# which trickles several ImageMagick bugs related to colorspace handling.
-			# (Ideally we'd be able to keep the image subsampled and
-			# planar, but that would probably be difficult for ImageMagick to expose.)
-			if (!$infobox) {
-				$magick->Set(colorspace=>'YCbCr');
-			}
-			$err = $magick->Read($fname);
-		}
-		
-		if ($err) {
-			$r->log->warn("$fname: $err");
-			$err =~ /(\d+)/;
-			if ($1 >= 400) {
-				undef $magick;
-				error($r, "$fname: $err");
-			}
-		}
-
-		# If we use ->[0] unconditionally, text rendering (!) seems to crash
-		my $img = (scalar @$magick > 1) ? $magick->[0] : $magick;
-
-		my $width = $img->Get('columns');
-		my $height = $img->Get('rows');
-
-		# Update the SQL database if it doesn't contain the required info
-		if (!defined($dbwidth) || !defined($dbheight)) {
-			$r->log->info("Updating width/height for $id: $width x $height");
-			update_image_info($r, $id, $width, $height);
-		}
-			
 		while (defined($xres) && defined($yres)) {
 			my ($nxres, $nyres) = (shift @otherres, shift @otherres);
 			my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox);
@@ -447,6 +554,8 @@ sub ensure_cached {
 				$cimg = $img;
 			}
 		
+			my $width = $img->Get('columns');
+			my $height = $img->Get('rows');
 			my ($nwidth, $nheight) = scale_aspect($width, $height, $xres, $yres);
 
 			# Use lanczos (sharper) for heavy scaling, mitchell (faster) otherwise
@@ -465,6 +574,7 @@ sub ensure_cached {
 			}
 
 			if (($nwidth >= 800 || $nheight >= 600 || $xres == -1) && $infobox == 1) {
+				my $info = Image::ExifTool::ImageInfo($fname);
 				make_infobox($cimg, $info, $r);
 			}
 
@@ -493,13 +603,12 @@ sub ensure_cached {
 			$r->log->info("New cache: $nwidth x $nheight for $id.jpg");
 		}
 		
-		undef $magick;
 		undef $img;
 		if ($err) {
 			$r->log->warn("$fname: $err");
 			$err =~ /(\d+)/;
 			if ($1 >= 400) {
-				@$magick = ();
+				#@$magick = ();
 				error($r, "$fname: $err");
 			}
 		}
