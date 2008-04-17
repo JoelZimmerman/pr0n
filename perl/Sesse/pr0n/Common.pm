@@ -641,7 +641,7 @@ sub make_infobox {
 		$info->{'ExposureProgram'} =~ /aperture\b.*\bpriority/i);
 
 	my @classic_fields = ();
-	if (defined($info->{'FocalLength'}) && $info->{'FocalLength'} =~ /^(\d+)(?:\.\d+)?(?:mm)?$/) {
+	if (defined($info->{'FocalLength'}) && $info->{'FocalLength'} =~ /^(\d+)(?:\.\d+)?\s*(?:mm)?$/) {
 		push @classic_fields, [ $1 . "mm", 0 ];
 	} elsif (defined($info->{'FocalLength'}) && $info->{'FocalLength'} =~ /^(\d+)\/(\d+)$/) {
 		push @classic_fields, [ (sprintf "%.1fmm", ($1/$2)), 0 ];
