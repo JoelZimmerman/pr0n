@@ -569,14 +569,23 @@ sub ensure_cached {
 			if (defined($xres) && defined($yres)) {
 				($width, $height) = scale_aspect($width, $height, $xres, $yres);
 			}
-			$img->Set(size=>($width . "x24"));
+			$height = 24;
+			$img->Set(size=>($width . "x" . $height));
 			$img->Read('xc:white');
 				
 			my $info = Image::ExifTool::ImageInfo($fname);
-			make_infobox($img, $info, $r);
+			if (!make_infobox($img, $info, $r)) {
+				# Not enough room for the text, make a tiny dummy transparent infobox
+				@$img = ();
+				$img->Set(size=>"1x1");
+				$img->Read('null:');
+
+				$width = 1;
+				$height = 1;
+			}
 				
 			$err = $img->write(filename => $cachename);
-			$r->log->info("New infobox cache: $width x 24 for $id.jpg");
+			$r->log->info("New infobox cache: $width x $height for $id.jpg");
 			
 			return ($cachename, 'image/png');
 		}
@@ -777,7 +786,7 @@ sub make_infobox {
 		}
 	}
 
-	return if (scalar @parts == 0);
+	return 0 if (scalar @parts == 0);
 
 	# Find the required width
 	my $th = 0;
@@ -797,7 +806,7 @@ sub make_infobox {
 		$th = $h if ($h > $th);
 	}
 
-	return if ($tw > $img->Get('columns'));
+	return 0 if ($tw > $img->Get('columns'));
 
 	my $x = 0;
 	my $y = $img->Get('rows') - 24;
@@ -826,6 +835,8 @@ sub make_infobox {
 		$img->Annotate(text=>$part->[0], font=>$font, pointsize=>12, x=>int($x), y=>int($y));
 		$x += ($img->QueryFontMetrics(text=>$part->[0], font=>$font, pointsize=>12))[4];
 	}
+
+	return 1;
 }
 
 sub gcd {

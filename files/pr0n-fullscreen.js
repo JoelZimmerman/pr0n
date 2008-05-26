@@ -194,6 +194,12 @@ function prepare_preload(img, num)
 		preload.src = "data:";
 		preload.parentNode.removeChild(preload);
 	}
+	
+	var preload_box = document.getElementById("preload_box");
+	if (preload_box !== null) {
+		preload_box.src = "data:";
+		preload_box.parentNode.removeChild(preload_box);
+	}
 
 	// grmf -- IE doesn't fire onload if the image was loaded from cache, so check for
 	// completeness first; should at least be _somewhat_ better

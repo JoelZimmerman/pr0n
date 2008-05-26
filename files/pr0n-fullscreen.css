@@ -34,7 +34,7 @@ img, #text {
 	z-index: 2;
 }
 
-#preload {
+#preload, #preload_box {
 	position: absolute;
 	left: -2000px;
 	top: -2000px;
