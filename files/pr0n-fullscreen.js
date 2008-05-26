@@ -121,9 +121,8 @@ function pick_image_size(screen_size, image_size)
 	return [ 80, 64 ];
 }
 
-function display_image(width, height, evt, filename, element_id)
+function replace_image_element(url, element_id, parent_node)
 {
-	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/" + global_infobox + filename;
 	var img = document.getElementById(element_id);
 	if (img !== null) {
 		img.src = "data:";
@@ -138,8 +137,24 @@ function display_image(width, height, evt, filename, element_id)
 		img.src = url;
 	}
 	
+	parent_node.appendChild(img);
+	return img;
+}
+
+function display_image(width, height, evt, filename, element_id)
+{
+	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/nobox/" + filename;
 	var main = document.getElementById("iehack");
-	main.appendChild(img);
+	var img = replace_image_element(url, element_id, main);
+
+	if (global_infobox != 'nobox') {
+		var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
+		var boximg = replace_image_element(url, element_id + "_box", main);
+
+		boximg.style.position = "absolute";
+		boximg.style.left = "0px";
+		boximg.style.bottom = "-1px";
+	}
 
 	return img;
 }

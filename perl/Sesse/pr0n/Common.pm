@@ -550,7 +550,6 @@ sub ensure_cached {
 		# We don't care about @otherres since each of these images are
 		# already pretty cheap to generate, but we need the exact width so we can make
 		# one in the right size.
-		$r->log->warn("BOX: $infobox");
 		if ($infobox eq 'box') {
 			my ($img, $width, $height);
 
