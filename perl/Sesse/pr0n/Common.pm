@@ -574,7 +574,9 @@ sub ensure_cached {
 			$img->Read('xc:white');
 				
 			my $info = Image::ExifTool::ImageInfo($fname);
-			if (!make_infobox($img, $info, $r)) {
+			if (make_infobox($img, $info, $r)) {
+				$img->Quantize(colors=>16, dither=>'False');
+			} else {
 				# Not enough room for the text, make a tiny dummy transparent infobox
 				@$img = ();
 				$img->Set(size=>"1x1");
@@ -584,7 +586,7 @@ sub ensure_cached {
 				$height = 1;
 			}
 				
-			$err = $img->write(filename => $cachename);
+			$err = $img->write(filename => $cachename, quality => 99);
 			$r->log->info("New infobox cache: $width x $height for $id.jpg");
 			
 			return ($cachename, 'image/png');
