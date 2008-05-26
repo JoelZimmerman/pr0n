@@ -586,7 +586,7 @@ sub ensure_cached {
 				$height = 1;
 			}
 				
-			$err = $img->write(filename => $cachename, quality => 99);
+			$err = $img->write(filename => $cachename, quality => 90, depth => 8);
 			$r->log->info("New infobox cache: $width x $height for $id.jpg");
 			
 			return ($cachename, 'image/png');
