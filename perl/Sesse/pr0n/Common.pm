@@ -576,6 +576,11 @@ sub ensure_cached {
 			my $info = Image::ExifTool::ImageInfo($fname);
 			if (make_infobox($img, $info, $r)) {
 				$img->Quantize(colors=>16, dither=>'False');
+
+				# Since the image is grayscale, ImageMagick overrides us and writes this
+				# as grayscale anyway, but at least we get rid of the alpha channel this
+				# way.
+				$img->Set(type=>'Palette');
 			} else {
 				# Not enough room for the text, make a tiny dummy transparent infobox
 				@$img = ();
