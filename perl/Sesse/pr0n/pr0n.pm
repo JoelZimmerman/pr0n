@@ -72,7 +72,7 @@ sub handler {
 		 $uri =~ /^\/\+all\/?$/ ||
 		 $uri =~ /^\/\+tags\/[a-zA-Z0-9-]+\/?$/) {
 		return Sesse::pr0n::Index::handler($r);
-	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/(\d+x\d+/|original/)?(nobox/)?[a-zA-Z0-9._()-]+$#) {
+	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/(\d+x\d+/|original/)?((?:no)?box/)?[a-zA-Z0-9._()-]+$#) {
 		return Sesse::pr0n::Image::handler($r);
 	}
 

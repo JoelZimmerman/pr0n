@@ -15,22 +15,26 @@ sub handler {
 
 	# Find the event and file name
 	my ($event,$filename,$xres,$yres);
-	my $infobox = 1;
-	if ($r->uri =~ m#^/([a-zA-Z0-9-]+)/original/(nobox/)?([a-zA-Z0-9._()-]+)$#) {
+	my $infobox = 'both';
+	if ($r->uri =~ m#^/([a-zA-Z0-9-]+)/original/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
-	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)/(nobox/)?([a-zA-Z0-9._()-]+)$#) {
+		$infobox = 'nobox' if (defined($2) && $2 eq 'nobox/');
+		$infobox = 'box' if (defined($2) && $2 eq 'box/');
+	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $5;
 		$xres = $2;
 		$yres = $3;
-		$infobox = 0 if (defined($4));
-	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(nobox/)?([a-zA-Z0-9._()-]+)$#) {
+		$infobox = 'nobox' if (defined($4) && $4 eq 'nobox/');
+		$infobox = 'box' if (defined($4) && $4 eq 'box/');
+	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
 		$xres = -1;
 		$yres = -1;
-		$infobox = 0 if (defined($2));
+		$infobox = 'nobox' if (defined($2) && $2 eq 'nobox/');
+		$infobox = 'box' if (defined($2) && $2 eq 'box/');
 	}
 
 	my ($id, $dbwidth, $dbheight);
@@ -48,13 +52,10 @@ sub handler {
 	$dbheight = $ref->{'height'};
 
 	# Scale if we need to do so
-	my ($fname,$thumbnail) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres);
+	my ($fname, $mime_type) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres);
 
 	# Output the image to the user
-	my $mime_type;
-	if ($thumbnail) {
-		$mime_type = "image/jpeg";
-	} else {
+	if (!defined($mime_type)) {
 		$mime_type = Sesse::pr0n::Common::get_mimetype_from_filename($filename);
 	}
 	$r->content_type($mime_type);

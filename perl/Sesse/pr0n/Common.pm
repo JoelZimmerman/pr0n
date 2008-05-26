@@ -218,10 +218,12 @@ sub get_cache_location {
 	my ($r, $id, $width, $height, $infobox) = @_;
         my $dir = POSIX::floor($id / 256);
 
-	if ($infobox) {
+	if ($infobox eq 'both') {
 		return get_base($r) . "cache/$dir/$id-$width-$height.jpg";
-	} else {
+	} elsif ($infobox eq 'nobox') {
 		return get_base($r) . "cache/$dir/$id-$width-$height-nobox.jpg";
+	} else {
+		return get_base($r) . "cache/$dir/$id-$width-$height-box.png";
 	}
 }
 
@@ -528,8 +530,10 @@ sub ensure_cached {
 	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres, @otherres) = @_;
 
 	my $fname = get_disk_location($r, $id);
-	unless (defined($xres) && (!defined($dbwidth) || !defined($dbheight) || $xres < $dbheight || $yres < $dbwidth || $xres == -1)) {
-		return ($fname, 0);
+	if ($infobox ne 'box') {
+		unless (defined($xres) && (!defined($dbwidth) || !defined($dbheight) || $xres < $dbheight || $yres < $dbwidth || $xres == -1)) {
+			return ($fname, undef);
+		}
 	}
 
 	my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox);
@@ -540,6 +544,42 @@ sub ensure_cached {
 		if (Sesse::pr0n::Overload::is_in_overload($r)) {
 			$r->log->warn("In overload mode, not scaling $id to $xres x $yres");
 			error($r, 'System is in overload mode, not doing any scaling');
+		}
+
+		# If we're being asked for just the box, make a new image with just the box.
+		# We don't care about @otherres since each of these images are
+		# already pretty cheap to generate, but we need the exact width so we can make
+		# one in the right size.
+		$r->log->warn("BOX: $infobox");
+		if ($infobox eq 'box') {
+			my ($img, $width, $height);
+
+			# This is slow, but should fortunately almost never happen, so don't bother
+			# special-casing it.
+			if (!defined($dbwidth) || !defined($dbheight)) {
+				$img = read_original_image($r, $id, $dbwidth, $dbheight);
+				$width = $img->Get('columns');
+				$height = $img->Get('rows');
+				@$img = ();
+			} else {
+				$img = Image::Magick->new;
+				$width = $dbwidth;
+				$height = $dbheight;
+			}
+			
+			if (defined($xres) && defined($yres)) {
+				($width, $height) = scale_aspect($width, $height, $xres, $yres);
+			}
+			$img->Set(size=>($width . "x24"));
+			$img->Read('xc:white');
+				
+			my $info = Image::ExifTool::ImageInfo($fname);
+			make_infobox($img, $info, $r);
+				
+			$err = $img->write(filename => $cachename);
+			$r->log->info("New infobox cache: $width x 24 for $id.jpg");
+			
+			return ($cachename, 'image/png');
 		}
 	
 		my $img = make_mipmap($r, $fname, $id, $dbwidth, $dbheight, $xres, $yres, @otherres);
@@ -576,7 +616,7 @@ sub ensure_cached {
 				$cimg->Resize(width=>$nwidth, height=>$nheight, filter=>$filter);
 			}
 
-			if (($nwidth >= 800 || $nheight >= 600 || $xres == -1) && $infobox == 1) {
+			if (($nwidth >= 800 || $nheight >= 600 || $xres == -1) && $infobox ne 'nobox') {
 				my $info = Image::ExifTool::ImageInfo($fname);
 				make_infobox($cimg, $info, $r);
 			}
@@ -616,7 +656,7 @@ sub ensure_cached {
 			}
 		}
 	}
-	return ($cachename, 1);
+	return ($cachename, 'image/jpeg');
 }
 
 sub get_mimetype_from_filename {
