@@ -64,6 +64,8 @@ function parse_image_num(url, default_value) {
  * pick_image_size, below.
  */
 var fixed_sizes = [
+	[ 2048, 1536 ],
+	[ 1920, 1440 ],
 	[ 1600, 1200 ],
 	[ 1400, 1050 ],
 	[ 1280, 960 ],
