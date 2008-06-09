@@ -408,7 +408,7 @@ sub make_mipmap {
 		my $large_enough = 1;
 		for my $i (0..($#res/2)) {
 			my ($xres, $yres) = ($res[$i*2], $res[$i*2+1]);
-			if ($xres > $new_mmwidth || $yres > $new_mmheight) {
+			if ($xres == -1 || $xres > $new_mmwidth || $yres > $new_mmheight) {
 				$large_enough = 0;
 				last;
 			}
