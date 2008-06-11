@@ -491,7 +491,9 @@ EOF
 				# Make cache while we're at it.
 				# Don't do it for the resource forks Mac OS X loves to upload :-(
 				if ($filename !~ /^\.(_|DS_Store)/) {
-					Sesse::pr0n::Common::ensure_cached($r, $filename, $newid, undef, undef, 1, 80, 64, 320, 256, -1, -1);
+					# FIXME: Ideally we'd want to ensure cache of -1x-1 here as well (for NEFs), but that would
+					# preclude mipmapping in its current form.
+					Sesse::pr0n::Common::ensure_cached($r, $filename, $newid, undef, undef, 1, 80, 64, 320, 256);
 				}
 				
 				# OK, we got this far, commit
