@@ -384,7 +384,7 @@ sub make_mipmap {
 
 	# If we don't know the size, we'll need to read it in anyway
 	if (!defined($dbwidth) || !defined($dbheight)) {
-		$img = read_original_image($r, $id, $dbwidth, $dbheight);
+		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
 		$width = $img->Get('columns');
 		$height = $img->Get('rows');
 	} else {
@@ -435,7 +435,7 @@ sub make_mipmap {
 					$img = Image::Magick->new;
 					$img->Read($last_good_mmlocation);
 				} else {
-					$img = read_original_image($r, $id, $dbwidth, $dbheight);
+					$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
 				}
 			}
 			my $cimg;
@@ -464,15 +464,15 @@ sub make_mipmap {
 	}
 
 	if (!defined($img)) {
-		$img = read_original_image($r, $id, $dbwidth, $dbheight);
+		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
 	}
 	return $img;
 }
 
 sub read_original_image {
-	my ($r, $id, $dbwidth, $dbheight) = @_;
+	my ($r, $filename, $id, $dbwidth, $dbheight) = @_;
 
-	my $fname = get_disk_location($r, $id);
+	my $physical_fname = get_disk_location($r, $id);
 
 	# Read in the original image
 	my $magick = new Image::Magick;
@@ -481,11 +481,12 @@ sub read_original_image {
 	# ImageMagick can handle NEF files, but it does it by calling dcraw as a delegate.
 	# The delegate support is rather broken and causes very odd stuff to happen when
 	# more than one thread does this at the same time. Thus, we simply do it ourselves.
-	if ($fname =~ /\.nef$/i) {
+	$r->log->warn("$physical_fname - $filename");
+	if ($filename =~ /\.nef$/i) {
 		# this would suffice if ImageMagick gets to fix their handling
-		# $fname = "NEF:$fname";
+		# $physical_fname = "NEF:$physical_fname";
 		
-		open DCRAW, "-|", "dcraw", "-w", "-c", $fname
+		open DCRAW, "-|", "dcraw", "-w", "-c", $physical_fname
 			or error("dcraw: $!");
 		$err = $magick->Read(file => \*DCRAW);
 		close(DCRAW);
@@ -499,15 +500,15 @@ sub read_original_image {
 		#if (!$infobox) {
 		#	$magick->Set(colorspace=>'YCbCr');
 		#}
-		$err = $magick->Read($fname);
+		$err = $magick->Read($physical_fname);
 	}
 	
 	if ($err) {
-		$r->log->warn("$fname: $err");
+		$r->log->warn("$physical_fname: $err");
 		$err =~ /(\d+)/;
 		if ($1 >= 400) {
 			undef $magick;
-			error($r, "$fname: $err");
+			error($r, "$physical_fname: $err");
 		}
 	}
 
@@ -556,7 +557,7 @@ sub ensure_cached {
 			# This is slow, but should fortunately almost never happen, so don't bother
 			# special-casing it.
 			if (!defined($dbwidth) || !defined($dbheight)) {
-				$img = read_original_image($r, $id, $dbwidth, $dbheight);
+				$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
 				$width = $img->Get('columns');
 				$height = $img->Get('rows');
 				@$img = ();
@@ -597,7 +598,7 @@ sub ensure_cached {
 			return ($cachename, 'image/png');
 		}
 	
-		my $img = make_mipmap($r, $fname, $id, $dbwidth, $dbheight, $xres, $yres, @otherres);
+		my $img = make_mipmap($r, $filename, $id, $dbwidth, $dbheight, $xres, $yres, @otherres);
 
 		while (defined($xres) && defined($yres)) {
 			my ($nxres, $nyres) = (shift @otherres, shift @otherres);
