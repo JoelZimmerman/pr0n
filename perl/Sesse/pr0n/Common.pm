@@ -481,7 +481,6 @@ sub read_original_image {
 	# ImageMagick can handle NEF files, but it does it by calling dcraw as a delegate.
 	# The delegate support is rather broken and causes very odd stuff to happen when
 	# more than one thread does this at the same time. Thus, we simply do it ourselves.
-	$r->log->warn("$physical_fname - $filename");
 	if ($filename =~ /\.nef$/i) {
 		# this would suffice if ImageMagick gets to fix their handling
 		# $physical_fname = "NEF:$physical_fname";
