@@ -129,9 +129,10 @@ sub Resize {
 	my $samp_v2 = 1;
 
 	my $filter;
-	if ($args{'filter'} eq 'Lanczos' ||
-	    $args{'filter'} eq 'Mitchell') {
+	if ($args{'filter'} eq 'Lanczos') {
 		$filter = $qscale::LANCZOS;
+	} elsif ($args{'filter'} eq 'Mitchell') {
+		$filter = $qscale::MITCHELL;
 	} else {
 		die "Unknown filter " . $args{'filter'};
 	}
