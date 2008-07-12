@@ -2,8 +2,9 @@ package Sesse::pr0n::Common;
 use strict;
 use warnings;
 
-use Sesse::pr0n::Templates;
 use Sesse::pr0n::Overload;
+use Sesse::pr0n::QscaleProxy;
+use Sesse::pr0n::Templates;
 
 use Apache2::RequestRec (); # for $r->content_type
 use Apache2::RequestIO ();  # for $r->print
@@ -379,12 +380,14 @@ sub stat_image_from_id {
 # Takes in an image ID and a set of resolutions, and returns (generates if needed)
 # the smallest mipmap larger than the largest of them.
 sub make_mipmap {
-	my ($r, $filename, $id, $dbwidth, $dbheight, @res) = @_;
+	my ($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale, @res) = @_;
 	my ($img, $mmimg, $width, $height);
+	
+	my $physical_fname = get_disk_location($r, $id);
 
 	# If we don't know the size, we'll need to read it in anyway
 	if (!defined($dbwidth) || !defined($dbheight)) {
-		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
+		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale);
 		$width = $img->Get('columns');
 		$height = $img->Get('rows');
 	} else {
@@ -429,13 +432,13 @@ sub make_mipmap {
 		my $mmres = $mmlist[$i];
 
 		my $mmlocation = get_mipmap_location($r, $id, $mmres->[0], $mmres->[1]);
-		if (! -r $mmlocation or (-M $mmlocation > -M $filename)) {
+		if (! -r $mmlocation or (-M $mmlocation > -M $physical_fname)) {
 			if (!defined($img)) {
 				if (defined($last_good_mmlocation)) {
-					$img = Image::Magick->new;
+					$img = Sesse::pr0n::QscaleProxy->new;
 					$img->Read($last_good_mmlocation);
 				} else {
-					$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
+					$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale);
 				}
 			}
 			my $cimg;
@@ -445,7 +448,7 @@ sub make_mipmap {
 				$cimg = $img->Clone();
 			}
 			$r->log->info("Making mipmap for $id: " . $mmres->[0] . " x " . $mmres->[1]);
-			$cimg->Resize(width=>$mmres->[0], height=>$mmres->[1], filter=>'Lanczos');
+			$cimg->Resize(width=>$mmres->[0], height=>$mmres->[1], filter=>'Lanczos', 'sampling-factor'=>'1x1');
 			$cimg->Strip();
 			my $err = $cimg->write(
 				filename => $mmlocation,
@@ -458,24 +461,29 @@ sub make_mipmap {
 		}
 		if ($last && !defined($img)) {
 			# OK, read in the smallest one
-			$img = Image::Magick->new;
+			$img = Sesse::pr0n::QscaleProxy->new;
 			my $err = $img->Read($mmlocation);
 		}
 	}
 
 	if (!defined($img)) {
-		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
+		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale);
 	}
 	return $img;
 }
 
 sub read_original_image {
-	my ($r, $filename, $id, $dbwidth, $dbheight) = @_;
+	my ($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale) = @_;
 
 	my $physical_fname = get_disk_location($r, $id);
 
 	# Read in the original image
-	my $magick = new Image::Magick;
+	my $magick;
+	if ($can_use_qscale && $filename =~ /\.jpeg$/i || $filename =~ /\.jpg$/i) {
+		$magick = Sesse::pr0n::QscaleProxy->new;
+	} else {
+		$magick = Image::Magick->new;
+	}
 	my $err;
 
 	# ImageMagick can handle NEF files, but it does it by calling dcraw as a delegate.
@@ -512,7 +520,12 @@ sub read_original_image {
 	}
 
 	# If we use ->[0] unconditionally, text rendering (!) seems to crash
-	my $img = (scalar @$magick > 1) ? $magick->[0] : $magick;
+	my $img;
+	if (ref($magick)) {
+		$img = $magick;
+	} else {
+		$img = (scalar @$magick > 1) ? $magick->[0] : $magick;
+	}
 
 	my $width = $img->Get('columns');
 	my $height = $img->Get('rows');
@@ -556,7 +569,7 @@ sub ensure_cached {
 			# This is slow, but should fortunately almost never happen, so don't bother
 			# special-casing it.
 			if (!defined($dbwidth) || !defined($dbheight)) {
-				$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
+				$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, 0);
 				$width = $img->Get('columns');
 				$height = $img->Get('rows');
 				@$img = ();
@@ -596,8 +609,13 @@ sub ensure_cached {
 			
 			return ($cachename, 'image/png');
 		}
-	
-		my $img = make_mipmap($r, $filename, $id, $dbwidth, $dbheight, $xres, $yres, @otherres);
+
+		my $can_use_qscale = 0;
+		if ($infobox eq 'nobox') {
+			$can_use_qscale = 1;
+		}
+
+		my $img = make_mipmap($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale, $xres, $yres, @otherres);
 
 		while (defined($xres) && defined($yres)) {
 			my ($nxres, $nyres) = (shift @otherres, shift @otherres);
@@ -628,7 +646,7 @@ sub ensure_cached {
 			}
 
 			if ($xres != -1) {
-				$cimg->Resize(width=>$nwidth, height=>$nheight, filter=>$filter);
+				$cimg->Resize(width=>$nwidth, height=>$nheight, filter=>$filter, 'sampling-factor'=>$sf);
 			}
 
 			if (($nwidth >= 800 || $nheight >= 600 || $xres == -1) && $infobox ne 'nobox') {
