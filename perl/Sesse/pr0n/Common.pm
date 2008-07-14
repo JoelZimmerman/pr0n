@@ -435,7 +435,11 @@ sub make_mipmap {
 		if (! -r $mmlocation or (-M $mmlocation > -M $physical_fname)) {
 			if (!defined($img)) {
 				if (defined($last_good_mmlocation)) {
-					$img = Sesse::pr0n::QscaleProxy->new;
+					if ($can_use_qscale) {
+						$img = Sesse::pr0n::QscaleProxy->new;
+					} else {
+						$img = Image::Magick->new;
+					}
 					$img->Read($last_good_mmlocation);
 				} else {
 					$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale);
@@ -461,7 +465,11 @@ sub make_mipmap {
 		}
 		if ($last && !defined($img)) {
 			# OK, read in the smallest one
-			$img = Sesse::pr0n::QscaleProxy->new;
+			if ($can_use_qscale) {
+				$img = Sesse::pr0n::QscaleProxy->new;
+			} else {
+				$img = Image::Magick->new;
+			}
 			my $err = $img->Read($mmlocation);
 		}
 	}
@@ -479,7 +487,7 @@ sub read_original_image {
 
 	# Read in the original image
 	my $magick;
-	if ($can_use_qscale && $filename =~ /\.jpeg$/i || $filename =~ /\.jpg$/i) {
+	if ($can_use_qscale && ($filename =~ /\.jpeg$/i || $filename =~ /\.jpg$/i)) {
 		$magick = Sesse::pr0n::QscaleProxy->new;
 	} else {
 		$magick = Image::Magick->new;
