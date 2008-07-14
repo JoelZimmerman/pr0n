@@ -732,7 +732,7 @@ sub make_infobox {
 		my ($a, $b) = ($1, $2);
 		my $gcd = gcd($a, $b);
 		push @classic_fields, [ $a/$gcd . "/" . $b/$gcd . "s", $shutter_priority ];
-	} elsif (defined($info->{'ExposureTime'}) && $info->{'ExposureTime'} =~ /^(\d+)$/) {
+	} elsif (defined($info->{'ExposureTime'}) && $info->{'ExposureTime'} =~ /^(\d+(?:\.\d+))$/) {
 		push @classic_fields, [ $1 . "s", $shutter_priority ];
 	}
 
