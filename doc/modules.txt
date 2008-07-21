@@ -11,4 +11,4 @@ Digest::SHA1                libdigest-sha1-perl        Verifying passwords
 HTML::TagCloud              libhtml-tagcloud-perl      Tag cloud on /+tags/
 jpegtran                    libjpeg-progs              Lossless JPEG rotation
 dcraw                       dcraw                      NEF support
-
+Qscale                      N/A                        Faster image scaling support
