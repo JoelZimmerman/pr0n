@@ -41,12 +41,7 @@ function find_width()
 }
 
 function parse_image_num(url, default_value) {
-	var url_array = (window.location.toString().split("#"));
-	if (url_array.length != 2) {
-		return default_value;
-	}
-
-	var num = parseInt(url_array[1]);
+	var num = parseInt(window.location.hash.substr(1));
 	if (num > 1 && num <= global_image_list.length) {  // and then num != NaN
 		return (num - 1);
 	} else {
