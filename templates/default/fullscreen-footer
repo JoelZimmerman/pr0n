@@ -2,12 +2,12 @@
 var global_vhost = "%VHOST%";
 var global_infobox = "%INFOBOX%";
 var global_return_url = "%RETURNURL%";
-var global_image_num = parse_image_num(window.location, %START%);
+var global_image_num = parse_image_num(%START%);
 var global_select = %SEL%;
 // end generated
     </script>
   </head>
-  <body onresize="relayout();" onload="init_ajax(); relayout();" onkeydown="key_down(event.keyCode);" onkeyup="key_up(event.keyCode);">
+  <body onresize="relayout();" onload="init_ajax(); relayout(); setInterval('check_for_hash_change()', 1000);" onkeydown="key_down(event.keyCode);" onkeyup="key_up(event.keyCode);" onhashchange="check_for_hash_change();" onclick="check_for_hash_change();">
     <div>
       <div class="container" id="main"><div id="iehack"></div></div>
       <img id="previous" src="/previous.png" alt="&lt;-" onmousedown="if (can_go_previous()) set_opacity('previous', 1.0)" onmouseup="if (can_go_previous()) { set_opacity('previous', 0.7); go_previous(); }" onmouseout="if (can_go_previous()) { set_opacity('previous', 0.7); }" />

@@ -40,9 +40,9 @@ function find_width()
 	return [null,null];
 }
 
-function parse_image_num(url, default_value) {
+function parse_image_num(default_value) {
 	var num = parseInt(window.location.hash.substr(1));
-	if (num > 1 && num <= global_image_list.length) {  // and then num != NaN
+	if (num >= 1 && num <= global_image_list.length) {  // and then num != NaN
 		return (num - 1);
 	} else {
 		return default_value;
@@ -394,6 +394,8 @@ function key_down(which)
 		}
 	} else if (which == 27) {   // escape
 		set_opacity("close", 0.99);
+	} else {
+		check_for_hash_change();
 	}
 }
 
@@ -413,6 +415,8 @@ function key_up(which) {
 		do_close();
 	} else if (which == 32 && global_select) {   // space
 		select_image(global_image_list[global_image_num][0], global_image_list[global_image_num][1]);
+	} else {
+		check_for_hash_change();
 	}
 }
 
@@ -430,5 +434,15 @@ function ie_png_hack()
 		
 		var close = document.getElementById("close");
 		close.outerHTML = "<span id=\"close\" style=\"display: inline-block; position: absolute; top: 0px; right: 0px; width: 50px; height: 50px; filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + close.src + "')\" onmousedown=\"set_opacity('close', 1.0)\" onmouseup=\"set_opacity('close', 0.7); do_close();\" onmouseout=\"set_opacity('close', 0.7);\" />";
+	}
+}
+
+function check_for_hash_change() {
+	var num = parseInt(window.location.hash.substr(1));
+	if (num >= 1 && num <= global_image_list.length) {  // and then num != NaN
+		if (--num != global_image_num) {
+			global_image_num = num;
+			relayout();
+		}
 	}
 }
