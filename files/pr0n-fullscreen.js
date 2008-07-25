@@ -176,8 +176,7 @@ function display_image_num(num, element_id)
 		center_image(num);
 		
 		// replace the anchor part (if any) with the image number
-		var baseurl = (window.location.toString().split("#"))[0];
-		window.location = baseurl + "#" + (num+1);
+		window.location.hash = "#" + (num+1);
 	}
 
 	return img;
