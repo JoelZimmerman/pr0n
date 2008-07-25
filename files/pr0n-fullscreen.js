@@ -40,15 +40,6 @@ function find_width()
 	return [null,null];
 }
 
-function parse_image_num(default_value) {
-	var num = parseInt(window.location.hash.substr(1));
-	if (num >= 1 && num <= global_image_list.length) {  // and then num != NaN
-		return (num - 1);
-	} else {
-		return default_value;
-	}
-}
-
 /*
  * pr0n can resize to any size we'd like, but we're much more likely
  * to have this set of fixed-resolution screens cached, so to increase
@@ -436,12 +427,19 @@ function ie_png_hack()
 	}
 }
 
-function check_for_hash_change() {
+function parse_image_num(default_value) {
 	var num = parseInt(window.location.hash.substr(1));
 	if (num >= 1 && num <= global_image_list.length) {  // and then num != NaN
-		if (--num != global_image_num) {
-			global_image_num = num;
-			relayout();
-		}
+		return (num - 1);
+	} else {
+		return default_value;
+	}
+}
+
+function check_for_hash_change() {
+	var num = parse_image_num(-1);
+	if (num != -1 && num != global_image_num) {
+		global_image_num = num;
+		relayout();
 	}
 }
