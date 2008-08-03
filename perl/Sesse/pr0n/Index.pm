@@ -150,14 +150,14 @@ sub handler {
 	my ($date, $name);
 
 	if ($event eq '+all' || defined($tag)) {
-		$ref = $dbh->selectrow_hashref("SELECT EXTRACT(EPOCH FROM MAX(last_update)) AS last_update FROM events WHERE vhost=?",
+		$ref = $dbh->selectrow_hashref("SELECT EXTRACT(EPOCH FROM MAX(last_update)) AS last_update FROM last_picture_cache WHERE vhost=?",
 			undef, $r->get_server_name)
 			or error($r, "Could not list events", 404, "File not found");
 		$date = undef;
 		$name = Sesse::pr0n::Templates::fetch_template($r, 'all-event-title');
 		$r->set_last_modified($ref->{'last_update'});
 	} else {
-		$ref = $dbh->selectrow_hashref("SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events WHERE vhost=? AND event=?",
+		$ref = $dbh->selectrow_hashref("SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events NATURAL JOIN last_picture_cache WHERE vhost=? AND event=?",
 			undef, $r->get_server_name, $event)
 			or error($r, "Could not find event $event", 404, "File not found");
 

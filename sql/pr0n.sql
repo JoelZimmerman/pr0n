@@ -3,7 +3,6 @@ CREATE TABLE events (
     "date" character varying NOT NULL,
     name character varying NOT NULL,
     vhost character varying NOT NULL,
-    last_update timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (vhost, event)
 );
@@ -13,6 +12,7 @@ CREATE TABLE last_picture_cache (
    vhost varchar NOT NULL,
    event varchar NOT NULL,
    last_picture timestamp without time zone,
+   last_update timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
    PRIMARY KEY (vhost,event),
    FOREIGN KEY (vhost,event) REFERENCES events(vhost,event)

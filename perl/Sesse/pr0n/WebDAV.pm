@@ -468,7 +468,7 @@ EOF
 					
 				$dbh->do('INSERT INTO images (id,vhost,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?,?)',
 					undef, $newid, $r->get_server_name, $event, $user, $takenby, $filename);
-				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
+				$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
 					undef, $r->get_server_name, $event);
 
 				# Now save the file to disk
@@ -606,7 +606,7 @@ EOF
 			eval {
 				$dbh->do('INSERT INTO images (id,vhost,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?,?)',
 					undef, $newid, $r->get_server_name, $event, $user, $takenby, $filename);
-				$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
+				$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
 					undef, $r->get_server_name, $event);
 
 				# Now save the file to disk
@@ -708,7 +708,7 @@ EOF
 		$dbh->do('DELETE FROM images WHERE vhost=? AND event=? AND filename=?',
 			undef, $r->get_server_name, $event, $filename)
 			or dberror($r, "Couldn't remove file");
-		$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
+		$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
 			undef, $r->get_server_name, $event)
 			or dberror($r, "Couldn't invalidate cache");
 		$r->status(200);
