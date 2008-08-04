@@ -28,7 +28,7 @@ sub handler {
 		$dbh->do('UPDATE images SET selected=\'t\' WHERE vhost=? AND event=? AND filename=?', undef, $r->get_server_name, $event, $filename);
 	}
 
-	$dbh->do('UPDATE events SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, $r->get_server_name, $event)
+	$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, $r->get_server_name, $event)
 		or dberror($r, "Cache invalidation failed");
 
 	Sesse::pr0n::Common::footer($r);
