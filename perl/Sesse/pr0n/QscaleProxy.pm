@@ -159,6 +159,9 @@ sub write {
 		return $self->{'magick'}->write(%args);
 	}
 
+	# For some reason we seem to get conditions of some sort when using
+	# qscale for this, but not when using ImageMagick. Thus, we put the
+	# atomic-write code here and not elsewhere in pr0n.
 	my $filename = $args{'filename'};
 	my $quality = $args{'quality'};
 
@@ -171,11 +174,17 @@ sub write {
 		die "Unknown interlacing mode " . $args{'interlace'};
 	}
 
-	my $ret = qscale::qscale_save_jpeg($self->{'qscale'}, $filename, $quality, $jpeg_mode);
+	my $tmpname = $filename . "-tmp-$$-" . int(rand(100000));
+	unlink($filename);
+	my $ret = qscale::qscale_save_jpeg($self->{'qscale'}, $tmpname, $quality, $jpeg_mode);
 	if ($ret == 0) {
-		return 0;
+		if (rename($tmpname, $filename)) {
+			return 0;
+		} else {
+			return "400 Image renaming to from $tmpname to $filename failed: $!";
+		}
 	} else {
-		return "400 Image saving to $filename failed";
+		return "400 Image saving to $tmpname failed";
 	}
 }
 
