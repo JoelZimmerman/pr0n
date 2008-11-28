@@ -26,7 +26,7 @@ sub handler {
 	# find the last modification
 	my $ref = $dbh->selectrow_hashref('SELECT EXTRACT(EPOCH FROM last_update) AS last_update FROM last_picture_cache WHERE vhost=? ORDER BY last_update DESC LIMIT 1',
 		undef, $r->get_server_name)
-		or error($r, "Could not any events", 404, "File not found");
+		or error($r, "Could not find any events", 404, "File not found");
 	$r->set_last_modified($ref->{'last_update'});
 	$r->content_type('text/html; charset=utf-8');
 		                
