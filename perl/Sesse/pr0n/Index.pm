@@ -77,7 +77,7 @@ sub handler {
 	}
 	
 	# Any NEF files => default to processing
-	my $ref = $dbh->selectrow_hashref("SELECT * FROM images WHERE vhost=? $where AND LOWER(filename) LIKE '%.nef' LIMIT 1",
+	my $ref = $dbh->selectrow_hashref("SELECT * FROM images WHERE vhost=? $where AND ( LOWER(filename) LIKE '%.nef' OR LOWER(filename) LIKE '%.cr2' ) LIMIT 1",
 		undef, $r->get_server_name)
 		and $defsettings{'xres'} = $defsettings{'yres'} = undef;
 	
