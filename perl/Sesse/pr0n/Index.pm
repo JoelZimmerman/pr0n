@@ -96,7 +96,7 @@ sub handler {
 		if (($s eq "num" || $s eq "xres" || $s eq "yres") && defined($val) && $val == -1) {
 			$settings{$s} = $val;
 		}
-		if ($s eq "model" || $s eq "lens" || $s eq "author") {
+		if (($s eq "model" || $s eq "lens" || $s eq "author") && defined($val)) {
 			$settings{$s} = Sesse::pr0n::Common::pretty_unescape($val);
 		}
 	}
