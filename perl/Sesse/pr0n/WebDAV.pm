@@ -470,6 +470,7 @@ EOF
 					undef, $newid, $r->get_server_name, $event, $user, $takenby, $filename);
 				$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
 					undef, $r->get_server_name, $event);
+				Sesse::pr0n::Common::purge_cache($r, "/$event/");
 
 				# Now save the file to disk
 				$fname = Sesse::pr0n::Common::get_disk_location($r, $newid);

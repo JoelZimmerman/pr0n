@@ -26,6 +26,7 @@ use LWP::Simple;
 use Image::ExifTool;
 use HTML::Entities;
 use URI::Escape;
+use File::Basename;
 
 BEGIN {
 	use Exporter ();
@@ -879,7 +880,7 @@ sub gcd {
 }
 
 sub add_new_event {
-	my ($dbh, $id, $date, $desc, $vhost) = @_;
+	my ($r, $dbh, $id, $date, $desc) = @_;
 	my @errors = ();
 
 	if (!defined($id) || $id =~ /^\s*$/ || $id !~ /^([a-zA-Z0-9-]+)$/) {
@@ -896,12 +897,14 @@ sub add_new_event {
 		return @errors;
 	}
 		
+	my $vhost = $r->get_server_name;
 	$dbh->do("INSERT INTO events (event,date,name,vhost) VALUES (?,?,?,?)",
 		undef, $id, $date, $desc, $vhost)
 		or return ("Kunne ikke sette inn ny hendelse" . $dbh->errstr);
 	$dbh->do("INSERT INTO last_picture_cache (vhost,event,last_picture) VALUES (?,?,NULL)",
 		undef, $vhost, $id)
 		or return ("Kunne ikke sette inn ny cache-rad" . $dbh->errstr);
+	purge_cache($r, "/");
 
 	return ();
 }
@@ -918,6 +921,69 @@ sub guess_charset {
 	}
 
 	return $decoded;
+}
+
+# Depending on your front-end cache, you might want to get creative somehow here.
+# This example assumes you have a front-end cache and it can translate an X-Pr0n-Purge
+# regex tacked onto a request into something useful. The elements given in
+# should not be regexes, though, as e.g. Squid will not be able to handle that.
+sub purge_cache {
+	my ($r, @elements) = @_;
+	return if (scalar @elements == 0);
+
+	my @pe = ();
+	for my $elem (@elements) {
+		$r->log->info("Purging $elem");
+		(my $e = $elem) =~ s/[.+*|()]/\\$&/g;
+		push @pe, $e;
+	}
+
+	my $regex = "^";
+	if (scalar @pe == 1) {
+		$regex .= $pe[0];
+	} else {
+		$regex .= "(" . join('|', @pe) . ")";
+	}
+	$regex .= "(\\?.*)?\$";
+	$r->headers_out->{'X-Pr0n-Purge'} = $regex;
+
+	$r->log->info($r->headers_out->{'X-Pr0n-Purge'});
+}
+				
+# Find a list of all cache URLs for a given image, given what we have on disk.
+sub get_all_cache_urls {
+	my ($r, $dbh, $id) = @_;
+        my $dir = POSIX::floor($id / 256);
+	my @ret = ();
+
+	my $q = $dbh->prepare('SELECT event, filename FROM images WHERE id=?')
+		or die "Couldn't prepare: " . $dbh->errstr;
+	$q->execute($id)
+		or die "Couldn't find event and filename: " . $dbh->errstr;
+	my $ref = $q->fetchrow_hashref;	
+	my $event = $ref->{'event'};
+	my $filename = $ref->{'filename'};
+	$q->finish;
+
+	my $base = get_base($r) . "cache/$dir";
+	for my $file (<$base/$id-*>) {
+		my $fname = File::Basename::basename($file);
+		if ($fname =~ /^$id-mipmap-.*\.jpg$/) {
+			# Mipmaps don't have an URL, ignore
+		} elsif ($fname =~ /^$id--1--1\.jpg$/) {
+			push @ret, "/$event/$filename";
+		} elsif ($fname =~ /^$id-(\d+)-(\d+)\.jpg$/) {
+			push @ret, "/$event/$1x$2/$filename";
+		} elsif ($fname =~ /^$id-(\d+)-(\d+)-nobox\.jpg$/) {
+			push @ret, "/$event/$1x$2/nobox/$filename";
+		} elsif ($fname =~ /^$id-(\d+)-(\d+)-box\.png$/) {
+			push @ret, "/$event/$1x$2/box/$filename";
+		} else {
+			$r->log->warning("Couldn't find a purging URL for $fname");
+		}
+	}
+
+	return @ret;
 }
 
 1;

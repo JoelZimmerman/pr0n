@@ -20,7 +20,7 @@ sub handler {
 	my $date = $apr->param('date');
 	my $desc = $apr->param('desc');
 
-	my @errors = Sesse::pr0n::Common::add_new_event($dbh, $id, $date, $desc, $r->get_server_name);
+	my @errors = Sesse::pr0n::Common::add_new_event($r, $dbh, $id, $date, $desc);
 	
 	if (scalar @errors > 0) {
 		for my $err (@errors) {

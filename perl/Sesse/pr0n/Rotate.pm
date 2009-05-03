@@ -14,6 +14,11 @@ sub handler {
 		return Apache2::Const::OK;
 	}
 
+	# FIXME: People can rotate and delete across vhosts using this interface.
+	# We should add some sanity checks.
+
+	my @to_purge = ();
+
 	Sesse::pr0n::Common::header($r, "Rotation/deletion results");
 
 	{
@@ -28,6 +33,7 @@ sub handler {
 			if ($key =~ /^rot-(\d+)-(90|180|270)$/ && $apr->param($key) eq 'on') {
 				my ($id, $rotval) = ($1,$2);
 				my $fname = Sesse::pr0n::Common::get_disk_location($r, $id);
+				push @to_purge, Sesse::pr0n::Common::get_all_cache_urls($r, $dbh, $id);
 				(my $tmpfname = $fname) =~ s/\.jpg$/-tmp.jpg/;
 
 				system("/usr/bin/jpegtran -rotate $rotval -copy all < '$fname' > '$tmpfname' && mv '$tmpfname' '$fname'") == 0
@@ -43,6 +49,7 @@ sub handler {
 				}
 			} elsif ($key =~ /^del-(\d+)$/ && $apr->param($key) eq 'on') {
 				my $id = $1;
+				push @to_purge, Sesse::pr0n::Common::get_all_cache_urls($r, $dbh, $id);
 				{
 
 					eval {
@@ -69,6 +76,10 @@ sub handler {
 	my $event = $apr->param('event');
 	$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, $r->get_server_name, $event)
 		or dberror($r, "Cache invalidation failed");
+
+	push @to_purge, "/$event/";
+	push @to_purge, "/+all/";
+	Sesse::pr0n::Common::purge_cache($r, @to_purge);
 
 	Sesse::pr0n::Common::footer($r);
 
