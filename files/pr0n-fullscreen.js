@@ -135,7 +135,7 @@ function display_image(width, height, evt, filename, element_id)
 	var main = document.getElementById("iehack");
 	var img = replace_image_element(url, element_id, main);
 
-	if (global_infobox != 'nobox') {
+	if (global_infobox != 'nobox/') {
 		var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
 		var boximg = replace_image_element(url, element_id + "_box", main);
 
