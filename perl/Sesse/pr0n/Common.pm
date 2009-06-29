@@ -312,19 +312,34 @@ sub update_image_info {
 
 sub check_access {
 	my $r = shift;
-
-	my $auth = $r->headers_in->{'authorization'};
-	if (!defined($auth) || $auth !~ m#^Basic ([a-zA-Z0-9+/]+=*)$#) {
-		$r->content_type('text/plain; charset=utf-8');
-		$r->status(401);
-		$r->headers_out->{'www-authenticate'} = 'Basic realm="pr0n.sesse.net"';
-		$r->print("Need authorization\n");
-		return undef;
-	}
 	
 	#return qw(sesse Sesse);
 
-	my ($user, $pass) = split /:/, MIME::Base64::decode_base64($1);
+	my $auth = $r->headers_in->{'authorization'};
+	if (!defined($auth)) {
+		output_401($r);
+		return undef;
+	}
+	if ($auth =~ /^Basic ([a-zA-Z0-9+\/]+=*)$/) {
+		return check_basic_auth($r, $1);
+	}
+	output_401($r);
+	return undef;
+}
+
+sub output_401 {
+	my $r = shift;
+	$r->content_type('text/plain; charset=utf-8');
+	$r->status(401);
+	$r->headers_out->{'www-authenticate'} = 'Basic realm="pr0n.sesse.net"';
+	$r->print("Need authorization\n");
+}
+
+sub check_basic_auth {
+	my ($r, $auth) = @_;	
+
+	my ($user, $pass) = split /:/, MIME::Base64::decode_base64($auth);
+
 	# WinXP is stupid :-)
 	if ($user =~ /^.*\\(.*)$/) {
 		$user = $1;
@@ -344,11 +359,8 @@ sub check_access {
 		undef, $user, $pass, $r->get_server_name);
 	if ($ref->{'auth'} != 1) {
 		$r->content_type('text/plain; charset=utf-8');
-		warn "No user exists, only $auth";
-		$r->status(401);
-		$r->headers_out->{'www-authenticate'} = 'Basic realm="pr0n.sesse.net"';
-		$r->print("Authorization failed");
 		$r->log->warn("Authentication failed for $user/$takenby");
+		output_401($r);
 		return undef;
 	}
 
