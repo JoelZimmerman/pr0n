@@ -322,7 +322,6 @@ sub check_access {
 		output_401($r);
 		return undef;
 	} 
-	$r->log->warn("Auth: $auth");
 	if ($auth =~ /^Basic ([a-zA-Z0-9+\/]+=*)$/) {
 		return check_basic_auth($r, $1);
 	}	
