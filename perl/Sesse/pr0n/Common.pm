@@ -319,7 +319,7 @@ sub check_access {
 
 	my $auth = $r->headers_in->{'authorization'};
 	if (!defined($auth)) {
-		output_401($r, 0);
+		output_401($r);
 		return undef;
 	} 
 	$r->log->warn("Auth: $auth");
@@ -329,7 +329,7 @@ sub check_access {
 	if ($auth =~ /^Digest (.*)$/) {
 		return check_digest_auth($r, $1);
 	}
-	output_401($r, 0);
+	output_401($r);
 	return undef;
 }
 
