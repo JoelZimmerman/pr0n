@@ -3,4 +3,5 @@
 --
 ALTER TABLE last_picture_cache ADD COLUMN last_update TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now();
 ALTER TABLE events DROP COLUMN last_update;
+ALTER TABLE users ADD COLUMN digest_ha1_hex character(32);
 
