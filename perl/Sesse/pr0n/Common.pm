@@ -369,18 +369,24 @@ sub check_basic_auth {
 	my ($raw_user, $pass) = split /:/, MIME::Base64::decode_base64($auth);
 	my ($user, $takenby) = extract_takenby($raw_user);
 	
-	my $oldpass = $pass;
-	$pass = Digest::SHA1::sha1_base64($pass);
-	my $ref = $dbh->selectrow_hashref('SELECT count(*) AS auth FROM users WHERE username=? AND sha1password=? AND vhost=?',
-		undef, $user, $pass, $r->get_server_name);
-	if ($ref->{'auth'} != 1) {
+	my $ref = $dbh->selectrow_hashref('SELECT sha1password,digest_ha1_hex FROM users WHERE username=? AND vhost=?',
+		undef, $user, $r->get_server_name);
+	if (!defined($ref) || $ref->{'sha1password'} ne Digest::SHA1::sha1_base64($pass)) {
 		$r->content_type('text/plain; charset=utf-8');
 		$r->log->warn("Authentication failed for $user/$takenby");
 		output_401($r);
 		return undef;
 	}
-
 	$r->log->info("Authentication succeeded for $user/$takenby");
+
+	# Make sure we can use Digest authentication in the future with this password.
+	my $ha1 = Digest::MD5::md5_hex($user . ':pr0n.sesse.net:' . $pass);
+	if (!defined($ref->{'digest_ha1_hex'}) || $ref->{'digest_ha1_hex'} ne $ha1) {
+		$dbh->do('UPDATE users SET digest_ha1_hex=? WHERE username=? AND vhost=?',
+			undef, $ha1, $user, $r->get_server_name)
+			or die "Couldn't update: " . $dbh->errstr;
+		$r->log->info("Updated Digest auth hash for for $user");
+	}
 
 	return ($user, $takenby);
 }

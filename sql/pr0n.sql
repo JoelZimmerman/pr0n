@@ -71,7 +71,7 @@ CREATE TABLE shadow_files (
 
 CREATE TABLE users (
     username character varying NOT NULL,
-    sha1password character(28) NOT NULL,
+    sha1password character(27) NOT NULL,
     vhost character varying NOT NULL,
     digest_ha1_hex character(32)
 );
@@ -103,7 +103,7 @@ GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE fake_files TO pr0n;
 GRANT SELECT,UPDATE ON TABLE images_id_seq TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE shadow_files TO pr0n;
-GRANT SELECT ON TABLE users TO pr0n;
+GRANT SELECT,UPDATE ON TABLE users TO pr0n;
 GRANT SELECT,INSERT,DELETE ON TABLE exif_info TO pr0n;
 GRANT SELECT,INSERT,DELETE ON TABLE tags TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE last_picture_cache TO pr0n;
