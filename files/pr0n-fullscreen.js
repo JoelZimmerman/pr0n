@@ -134,6 +134,9 @@ function display_image(width, height, evt, filename, element_id)
 	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/nobox/" + filename;
 	var main = document.getElementById("iehack");
 	var img = replace_image_element(url, element_id, main);
+	img.style.position = "absolute";
+	img.style.left = "0px";
+	img.style.top = "0px";
 
 	if (global_infobox != 'nobox/') {
 		var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
