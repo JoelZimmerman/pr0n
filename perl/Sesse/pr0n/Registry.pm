@@ -22,6 +22,12 @@ sub handler {
 	$r->print("\"DisplayName\"=\"$vhost\"\r\n");
 	$r->print("\"Description\"=\"$desc\"\r\n");
 	$r->print("\"HREF\"=\"http://$vhost/wizard\"\r\n");
+	$r->print("");
+	$r->print("[HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Currentversion\\Explorer\\PublishingWizard\\InternetPhotoPrinting\\Providers\\$vhost]\r\n");
+	$r->print("\"Icon\"=\"http://$vhost/pr0n.ico\"\r\n");
+	$r->print("\"DisplayName\"=\"$vhost\"\r\n");
+	$r->print("\"Description\"=\"$desc\"\r\n");
+	$r->print("\"HREF\"=\"http://$vhost/wizard\"\r\n");
 
 	return Apache2::Const::OK;
 }
