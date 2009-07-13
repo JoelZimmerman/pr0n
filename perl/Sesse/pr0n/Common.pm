@@ -1128,6 +1128,8 @@ sub get_all_cache_urls {
 			push @ret, "/$event/$1x$2/$filename";
 		} elsif ($fname =~ /^$id-(\d+)-(\d+)-nobox\.jpg$/) {
 			push @ret, "/$event/$1x$2/nobox/$filename";
+		} elsif ($fname =~ /^$id--1--1-box\.png$/) {
+			push @ret, "/$event/box/$filename";
 		} elsif ($fname =~ /^$id-(\d+)-(\d+)-box\.png$/) {
 			push @ret, "/$event/$1x$2/box/$filename";
 		} else {
