@@ -1131,7 +1131,7 @@ sub get_all_cache_urls {
 		} elsif ($fname =~ /^$id-(\d+)-(\d+)-box\.png$/) {
 			push @ret, "/$event/$1x$2/box/$filename";
 		} else {
-			$r->log->warning("Couldn't find a purging URL for $fname");
+			$r->log->warn("Couldn't find a purging URL for $fname");
 		}
 	}
 
