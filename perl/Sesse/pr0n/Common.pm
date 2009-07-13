@@ -682,7 +682,7 @@ sub read_original_image {
 
 	# If we use ->[0] unconditionally, text rendering (!) seems to crash
 	my $img;
-	if (ref($magick)) {
+	if (ref($magick) !~ /Image::Magick/) {
 		$img = $magick;
 	} else {
 		$img = (scalar @$magick > 1) ? $magick->[0] : $magick;
