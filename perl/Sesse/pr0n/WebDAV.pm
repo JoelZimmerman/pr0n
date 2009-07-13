@@ -565,7 +565,7 @@ EOF
 			my $ref = $q->fetchrow_hashref;
 
 			if ($ref->{'cnt'} == 0) {
-				my @errors = Sesse::pr0n::Common::add_new_event($dbh, $ne_id, $ne_date, $ne_desc, $r->get_server_name);
+				my @errors = Sesse::pr0n::Common::add_new_event($r, $dbh, $ne_id, $ne_date, $ne_desc);
 				if (scalar @errors > 0) {
 					die "Couldn't add new event $ne_id: " . join(', ', @errors);
 				}
