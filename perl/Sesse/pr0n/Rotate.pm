@@ -23,12 +23,13 @@ sub handler {
 
 	{
 		# Enable transactions and error raising temporarily
-		local $dbh->{AutoCommit} = 0;
 		local $dbh->{RaiseError} = 1;
 
 		my @params = $apr->param();
 		my $key;
 		for $key (@params) {
+			local $dbh->{AutoCommit} = 0;
+
 			# Rotation
 			if ($key =~ /^rot-(\d+)-(90|180|270)$/ && $apr->param($key) eq 'on') {
 				my ($id, $rotval) = ($1,$2);
