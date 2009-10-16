@@ -37,8 +37,8 @@ sub handler {
 				push @to_purge, Sesse::pr0n::Common::get_all_cache_urls($r, $dbh, $id);
 				(my $tmpfname = $fname) =~ s/\.jpg$/-tmp.jpg/;
 
-				system("/usr/bin/jpegtran -rotate $rotval -copy all < '$fname' > '$tmpfname' && mv '$tmpfname' '$fname'") == 0
-					or error($r, "Rotation of $id [/usr/bin/jpegtran -rotate $rotval -copy all < '$fname' > '$tmpfname' && mv '$tmpfname' '$fname'] failed: $!.");
+				system("/usr/bin/jpegtran -rotate $rotval -copy all < '$fname' > '$tmpfname' && /bin/mv '$tmpfname' '$fname'") == 0
+					or error($r, "Rotation of $id [/usr/bin/jpegtran -rotate $rotval -copy all < '$fname' > '$tmpfname' && /bin/mv '$tmpfname' '$fname'] failed: $!.");
 				$r->print("    <p>Rotated image ID `$id' by $rotval degrees.</p>\n");
 
 				if ($rotval == 90 || $rotval == 270) {
