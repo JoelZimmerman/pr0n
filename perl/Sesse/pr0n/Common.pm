@@ -915,7 +915,7 @@ sub make_infobox {
 
 	if (defined($info->{'ExposureBiasValue'}) && $info->{'ExposureBiasValue'} ne "0") {
 		push @classic_fields, [ $info->{'ExposureBiasValue'} . " EV", 0 ];
-	} elsif (defined($info->{'ExposureCompensation'}) && $info->{'ExposureCompensation'} != 0) {
+	} elsif (defined($info->{'ExposureCompensation'}) && $info->{'ExposureCompensation'} ne "0") {
 		push @classic_fields, [ $info->{'ExposureCompensation'} . " EV", 0 ];
 	}
 
