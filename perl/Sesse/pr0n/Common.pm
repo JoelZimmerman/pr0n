@@ -338,7 +338,8 @@ sub output_401 {
 	$r->status(401);
 	$r->headers_out->{'www-authenticate'} = 'Basic realm="pr0n.sesse.net"';
 
-	if ($options{'DigestAuth'} // 1) {
+	# Digest auth is disabled for now, due to various client problems.
+	if (0 && ($options{'DigestAuth'} // 1)) {
 		# We make our nonce similar to the scheme of RFC2069 section 2.1.1,
 		# with some changes: We don't care about client IP (these have a nasty
 		# tendency to change from request to request when load-balancing
