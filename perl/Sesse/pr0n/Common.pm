@@ -795,16 +795,9 @@ sub ensure_cached {
 			my $height = $img->Get('rows');
 			my ($nwidth, $nheight) = scale_aspect($width, $height, $xres, $yres);
 
-			# Use lanczos (sharper) for heavy scaling, mitchell (faster) otherwise
-			my $filter = 'Mitchell';
-			my $quality = 90;
-			my $sf = undef;
-
-			if ($width / $nwidth > 8.0 || $height / $nheight > 8.0) {
-				$filter = 'Lanczos';
-				$quality = 85;
-				$sf = "1x1";
-			}
+			my $filter = 'Lanczos';
+			my $quality = 87;
+			my $sf = "1x1";
 
 			if ($xres != -1) {
 				$cimg->Resize(width=>$nwidth, height=>$nheight, filter=>$filter, 'sampling-factor'=>$sf);
