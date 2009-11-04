@@ -706,7 +706,7 @@ sub ensure_cached {
 
 	my $fname = get_disk_location($r, $id);
 	if ($infobox ne 'box') {
-		unless (defined($xres) && (!defined($dbwidth) || !defined($dbheight) || $xres < $dbheight || $yres < $dbwidth || $xres == -1)) {
+		unless (defined($xres) && (!defined($dbwidth) || !defined($dbheight) || $xres < $dbwidth || $yres < $dbheight || $xres == -1)) {
 			return ($fname, undef);
 		}
 	}
