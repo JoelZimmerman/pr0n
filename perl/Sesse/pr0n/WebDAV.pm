@@ -11,7 +11,7 @@ use Apache2::Upload;
 sub handler {
 	my $r = shift;
 	my $dbh = Sesse::pr0n::Common::get_dbh();
-	
+			
 	$r->headers_out->{'DAV'} = "1,2";
 
 	# We only handle depth=0, depth=1 (cf. the RFC)
@@ -405,6 +405,10 @@ EOF
 		
 		my ($event, $autorename, $filename) = ($1, $2, $3);
 		my $size = $r->headers_in->{'content-length'};
+		if (!defined($size)) {
+			$size = $r->headers_in->{'x-expected-entity-length'};
+		}
+		$r->log->info("sz=$size");
 		my $orig_filename = $filename;
 
 		# Remove evil characters
@@ -423,7 +427,7 @@ EOF
 		# gnome-vfs and mac os x love to make zero-byte files,
 		# make them happy
 		# 
-		if ($r->headers_in->{'content-length'} == 0 || $filename =~ /^\.(_|DS_Store)/) {
+		if ($size == 0 || $filename =~ /^\.(_|DS_Store)/) {
 			$dbh->do('DELETE FROM fake_files WHERE expires_at <= now() OR (event=? AND vhost=? AND filename=?);',
 				undef, $event, $r->get_server_name, $filename)
 				or dberror($r, "Couldn't prune fake_files");
@@ -436,7 +440,7 @@ EOF
 			$r->log->info("Fake upload of $event/$filename");
 			return Apache2::Const::OK;
 		}
-
+			
 		# Get the new ID
 		my $ref = $dbh->selectrow_hashref("SELECT NEXTVAL('imageid_seq') AS id;");
 		my $newid = $ref->{'id'};
@@ -478,8 +482,7 @@ EOF
 					or die "$fname: $!";
 
 				my $buf;
-				my $content_length = $r->headers_in->{'content-length'};
-				if ($r->read($buf, $content_length)) {
+				if ($r->read($buf, $size)) {
 					print NEWFILE $buf or die "write($fname): $!";
 				}
 
