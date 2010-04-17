@@ -34,7 +34,7 @@ sub handler {
 
 	$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, $r->get_server_name, $event)
 		or dberror($r, "Cache invalidation failed");
-
+	Sesse::pr0n::Common::purge_cache($r, "/$event/");
 	Sesse::pr0n::Common::footer($r);
 
 	return Apache2::Const::OK;
