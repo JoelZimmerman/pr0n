@@ -360,17 +360,21 @@ function fade_text(opacity)
 	}
 }
 
-function select_image(evt, filename)
+function select_image(evt, filename, selected)
 {
 	if (!req) {
 		return;
 	}
 
-	draw_text("Selecting " + filename + "...");
+	if (selected) {
+		draw_text("Selecting " + filename + "...");
+	} else {
+		draw_text("Unselecting " + filename + "...");
+	}
 	
 	req.open("POST", "http://" + global_vhost + "/select", false);
 	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	req.send("mode=single&event=" + evt + "&filename=" + filename);
+	req.send("event=" + evt + "&filename=" + filename + "&selected=" + selected);
 
 	setTimeout("fade_text(0.99)", 30);
 }
@@ -407,7 +411,9 @@ function key_up(which) {
 		set_opacity("close", 0.7);
 		do_close();
 	} else if (which == 32 && global_select) {   // space
-		select_image(global_image_list[global_image_num][0], global_image_list[global_image_num][1]);
+		select_image(global_image_list[global_image_num][0], global_image_list[global_image_num][1], 1);
+	} else if (which == 85 && global_select) {   // u
+		select_image(global_image_list[global_image_num][0], global_image_list[global_image_num][1], 0);
 	} else {
 		check_for_hash_change();
 	}
