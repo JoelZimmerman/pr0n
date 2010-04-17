@@ -23,9 +23,13 @@ sub handler {
 		local $dbh->{AutoCommit} = 0;
 		local $dbh->{RaiseError} = 1;
 
-		# FIXME: need to support disable too
 		my $filename = $apr->param('filename');
-		$dbh->do('UPDATE images SET selected=\'t\' WHERE vhost=? AND event=? AND filename=?', undef, $r->get_server_name, $event, $filename);
+		my $selected = $apr->param('selected');
+		my $sql_selected = 'f';
+		if (!defined($selected) || $selected eq '1') {
+			$sql_selected = 't';
+		}
+		$dbh->do('UPDATE images SET selected=? WHERE vhost=? AND event=? AND filename=?', undef, $sql_selected, $r->get_server_name, $event, $filename);
 	}
 
 	$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, $r->get_server_name, $event)
