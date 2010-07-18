@@ -408,7 +408,6 @@ EOF
 		if (!defined($size)) {
 			$size = $r->headers_in->{'x-expected-entity-length'};
 		}
-		$r->log->info("sz=$size");
 		my $orig_filename = $filename;
 
 		# Remove evil characters
