@@ -863,10 +863,14 @@ sub make_infobox {
 	# fields"; note the comma separation. Every field has an associated "bold flag"
 	# in the second part.
 	
-	my $shutter_priority = (defined($info->{'ExposureProgram'}) &&
+	my $manual_shutter = (defined($info->{'ExposureProgram'}) &&
 		$info->{'ExposureProgram'} =~ /shutter\b.*\bpriority/i);
-	my $aperture_priority = (defined($info->{'ExposureProgram'}) &&
+	my $manual_aperture = (defined($info->{'ExposureProgram'}) &&
 		$info->{'ExposureProgram'} =~ /aperture\b.*\bpriority/i);
+	if ($info->{'ExposureProgram'} =~ /manual/i) {
+		$manual_shutter = 1;
+		$manual_aperture = 1;
+	}
 
 	my @classic_fields = ();
 	if (defined($info->{'FocalLength'}) && $info->{'FocalLength'} =~ /^(\d+)(?:\.\d+)?\s*(?:mm)?$/) {
@@ -878,24 +882,24 @@ sub make_infobox {
 	if (defined($info->{'ExposureTime'}) && $info->{'ExposureTime'} =~ /^(\d+)\/(\d+)$/) {
 		my ($a, $b) = ($1, $2);
 		my $gcd = gcd($a, $b);
-		push @classic_fields, [ $a/$gcd . "/" . $b/$gcd . "s", $shutter_priority ];
+		push @classic_fields, [ $a/$gcd . "/" . $b/$gcd . "s", $manual_shutter ];
 	} elsif (defined($info->{'ExposureTime'}) && $info->{'ExposureTime'} =~ /^(\d+(?:\.\d+)?)$/) {
-		push @classic_fields, [ $1 . "s", $shutter_priority ];
+		push @classic_fields, [ $1 . "s", $manual_shutter ];
 	}
 
 	if (defined($info->{'FNumber'}) && $info->{'FNumber'} =~ /^(\d+)\/(\d+)$/) {
 		my $f = $1/$2;
 		if ($f >= 10) {
-			push @classic_fields, [ (sprintf "f/%.0f", $f), $aperture_priority ];
+			push @classic_fields, [ (sprintf "f/%.0f", $f), $manual_aperture ];
 		} else {
-			push @classic_fields, [ (sprintf "f/%.1f", $f), $aperture_priority ];
+			push @classic_fields, [ (sprintf "f/%.1f", $f), $manual_aperture ];
 		}
 	} elsif (defined($info->{'FNumber'}) && $info->{'FNumber'} =~ /^(\d+)\.(\d+)$/) {
 		my $f = $info->{'FNumber'};
 		if ($f >= 10) {
-			push @classic_fields, [ (sprintf "f/%.0f", $f), $aperture_priority ];
+			push @classic_fields, [ (sprintf "f/%.0f", $f), $manual_aperture ];
 		} else {
-			push @classic_fields, [ (sprintf "f/%.1f", $f), $aperture_priority ];
+			push @classic_fields, [ (sprintf "f/%.1f", $f), $manual_aperture ];
 		}
 	}
 
