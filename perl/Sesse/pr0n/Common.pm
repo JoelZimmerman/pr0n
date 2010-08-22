@@ -306,7 +306,7 @@ sub update_image_info {
 
 		# update the last_picture cache as well (this should of course be done
 		# via a trigger, but this is less complicated :-) )
-		$dbh->do('UPDATE last_picture_cache SET last_picture=GREATEST(last_picture, ?) WHERE (vhost,event)=(SELECT vhost,event FROM images WHERE id=?)',
+		$dbh->do('UPDATE last_picture_cache SET last_picture=GREATEST(last_picture, ?),last_update=CURRENT_TIMESTAMP WHERE (vhost,event)=(SELECT vhost,event FROM images WHERE id=?)',
 			undef, $datetime, $id)
 			or die "Couldn't update last_picture in SQL: $!";
 	}
@@ -532,7 +532,8 @@ sub stat_image_from_id {
 }
 
 # Takes in an image ID and a set of resolutions, and returns (generates if needed)
-# the smallest mipmap larger than the largest of them.
+# the smallest mipmap larger than the largest of them, as well as the original image
+# dimensions.
 sub make_mipmap {
 	my ($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale, @res) = @_;
 	my ($img, $mmimg, $width, $height);
@@ -630,8 +631,10 @@ sub make_mipmap {
 
 	if (!defined($img)) {
 		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale);
+		$width = $img->Get('columns');
+		$height = $img->Get('rows');
 	}
-	return $img;
+	return ($img, $width, $height);
 }
 
 sub read_original_image {
@@ -689,20 +692,13 @@ sub read_original_image {
 		$img = (scalar @$magick > 1) ? $magick->[0] : $magick;
 	}
 
-	my $width = $img->Get('columns');
-	my $height = $img->Get('rows');
-
-	# Update the SQL database if it doesn't contain the required info
-	if (!defined($dbwidth) || !defined($dbheight)) {
-		$r->log->info("Updating width/height for $id: $width x $height");
-		update_image_info($r, $id, $width, $height);
-	}
-
 	return $img;
 }
 
 sub ensure_cached {
 	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres, @otherres) = @_;
+
+	my ($new_dbwidth, $new_dbheight);
 
 	my $fname = get_disk_location($r, $id);
 	if ($infobox ne 'box') {
@@ -732,8 +728,8 @@ sub ensure_cached {
 			# special-casing it.
 			if (!defined($dbwidth) || !defined($dbheight)) {
 				$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, 0);
-				$width = $img->Get('columns');
-				$height = $img->Get('rows');
+				$new_dbwidth = $width = $img->Get('columns');
+				$new_dbheight = $height = $img->Get('rows');
 				@$img = ();
 			} else {
 				$img = Image::Magick->new;
@@ -777,7 +773,8 @@ sub ensure_cached {
 			$can_use_qscale = 1;
 		}
 
-		my $img = make_mipmap($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale, $xres, $yres, @otherres);
+		my $img;
+		($img, $new_dbwidth, $new_dbheight) = make_mipmap($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale, $xres, $yres, @otherres);
 
 		while (defined($xres) && defined($yres)) {
 			my ($nxres, $nyres) = (shift @otherres, shift @otherres);
@@ -844,6 +841,13 @@ sub ensure_cached {
 			}
 		}
 	}
+	
+	# Update the SQL database if it doesn't contain the required info
+	if (!defined($dbwidth) && defined($new_dbwidth)) {
+		$r->log->info("Updating width/height for $id: $new_dbwidth x $new_dbheight");
+		update_image_info($r, $id, $new_dbwidth, $new_dbheight);
+	}
+
 	return ($cachename, 'image/jpeg');
 }
 
