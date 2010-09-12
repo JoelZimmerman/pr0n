@@ -26,10 +26,6 @@ $queue->enqueue(@ARGV);
 # Fetch username and password, and check that they actually work.
 my ($user, $pass) = get_credentials();
 my $dav = init_dav($url, $user, $pass);
-my $r = $dav->propfind(-url => $url, -depth => 0);
-if ($r == 0) {
-	die "Couldn't open $url: " . $dav->message . "\n";
-}
 
 # Fire up the worker threads, and wait for them to finish.
 my @threads = ();
@@ -61,7 +57,7 @@ sub init_dav {
 	my $ua = HTTP::DAV::UserAgent->new();
 	$ua->agent('pr0n-uploader/v1.0 (perldav)');
 	my $dav = HTTP::DAV->new(-useragent=>$ua);
-	$dav->credentials(-user=>$user, -pass=>$pass, -url=>$url);
+	$dav->credentials(-user=>$user, -pass=>$pass, -url=>$url, -realm=>'pr0n.sesse.net');
 	$dav->open(-url => $url)
 		or die "Couldn't open $url: " . $dav->message . "\n";
 	return $dav;
