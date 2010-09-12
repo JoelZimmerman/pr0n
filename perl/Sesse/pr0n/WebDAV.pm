@@ -448,13 +448,18 @@ EOF
 		}
 		
 		# Autorename if we need to
-		if (defined($autorename) && $autorename eq "autorename/") {
-			my $ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS numfiles FROM images WHERE vhost=? AND event=? AND filename=?",
-				undef, $r->get_server_name, $event, $filename)
-				or dberror($r, "Couldn't check for existing files");
-			if ($ref->{'numfiles'} > 0) {
+		$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS numfiles FROM images WHERE vhost=? AND event=? AND filename=?",
+		                               undef, $r->get_server_name, $event, $filename)
+			or dberror($r, "Couldn't check for existing files");
+		if ($ref->{'numfiles'} > 0) {
+			if (defined($autorename) && $autorename eq "autorename/") {
 				$r->log->info("Renaming $filename to $newid.jpeg");
 				$filename = "$newid.jpeg";
+			} else {
+				$r->status(403);
+				$r->content_type('text/plain; charset=utf-8');
+				$r->print("File $filename already exists in event $event, cannot overwrite");
+				return Apache2::Const::OK;
 			}
 		}
 		
