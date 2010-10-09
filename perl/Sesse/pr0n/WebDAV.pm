@@ -479,6 +479,7 @@ EOF
 				Sesse::pr0n::Common::purge_cache($r, "/$event/");
 
 				# Now save the file to disk
+				Sesse::pr0n::Common::ensure_disk_location_exists($r, $newid);	
 				$fname = Sesse::pr0n::Common::get_disk_location($r, $newid);
 				open NEWFILE, ">$fname"
 					or die "$fname: $!";

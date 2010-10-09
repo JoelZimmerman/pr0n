@@ -211,7 +211,7 @@ sub get_base {
 	my $r = shift;
 	return $r->dir_config('ImageBase');
 }
-
+				
 sub get_disk_location {
 	my ($r, $id) = @_;
         my $dir = POSIX::floor($id / 256);
@@ -228,6 +228,23 @@ sub get_cache_location {
 		return get_base($r) . "cache/$dir/$id-$width-$height-nobox.jpg";
 	} else {
 		return get_base($r) . "cache/$dir/$id-$width-$height-box.png";
+	}
+}
+
+sub ensure_disk_location_exists {
+	my ($r, $id) = @_;
+        my $dir = POSIX::floor($id / 256);
+
+	my $img_dir = get_base($r) . "/images/$dir/";
+	if (! -d $img_dir) {
+		$r->log->info("Need to create new image directory $img_dir");
+		mkdir($img_dir) or die "Couldn't create new image directory $img_dir";
+	}
+
+	my $cache_dir = get_base($r) . "/cache/$dir/";
+	if (! -d $cache_dir) {
+		$r->log->info("Need to create new cache directory $cache_dir");
+		mkdir($cache_dir) or die "Couldn't create new image directory $cache_dir";
 	}
 }
 
