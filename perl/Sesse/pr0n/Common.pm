@@ -233,7 +233,7 @@ sub get_cache_location {
 
 sub ensure_disk_location_exists {
 	my ($r, $id) = @_;
-        my $dir = POSIX::floor($id / 256);
+	my $dir = POSIX::floor($id / 256);
 
 	my $img_dir = get_base($r) . "/images/$dir/";
 	if (! -d $img_dir) {
