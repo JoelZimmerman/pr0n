@@ -1117,8 +1117,6 @@ sub purge_cache {
 	}
 	$regex .= "(\\?.*)?\$";
 	$r->headers_out->{'X-Pr0n-Purge'} = $regex;
-
-	$r->log->info($r->headers_out->{'X-Pr0n-Purge'});
 }
 				
 # Find a list of all cache URLs for a given image, given what we have on disk.
