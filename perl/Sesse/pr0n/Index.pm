@@ -93,7 +93,10 @@ sub handler {
 		if (defined($val) && $val =~ /^(\d+)$/) {
 			$settings{$s} = $val;
 		}
-		if (($s eq "num" || $s eq "xres" || $s eq "yres") && defined($val) && $val == -1) {
+		if ($s eq "num" && defined($val) && $val == -1) {
+			$settings{$s} = $val;
+		}
+		if (($s eq "xres" || $s eq "yres") && defined($val) && ($val == -1 || $val == -2)) {
 			$settings{$s} = $val;
 		}
 		if (($s eq "model" || $s eq "lens" || $s eq "author") && defined($val)) {
@@ -372,7 +375,7 @@ sub handler {
 
 			my $filename = $ref->{'filename'};
 			my $uri = $infobox . $filename;
-			if (defined($xres) && defined($yres) && $xres != -1) {
+			if (defined($xres) && defined($yres) && $xres != -1 && $xres != -2) {
 				$uri = "${xres}x$yres/$infobox$filename";
 			} elsif (defined($xres) && $xres == -1) {
 				$uri = "original/$infobox$filename";
@@ -479,7 +482,7 @@ sub print_viewres {
 	my @alternatives = qw(320x256 512x384 640x480 800x600 1024x768 1152x864 1280x960 1400x1050 1600x1200 1920x1440 2048x1536);
 	chomp (my $unlimited = Sesse::pr0n::Templates::fetch_template($r, 'viewres-unlimited'));
 	chomp (my $original = Sesse::pr0n::Templates::fetch_template($r, 'viewres-original'));
-	push @alternatives, [ $unlimited, undef, undef ];
+	push @alternatives, [ $unlimited, -2, -2 ];
 	push @alternatives, [ $original, -1, -1 ];
 
 	print_changes($r, $event, 'viewres', $settings, $defsettings,
