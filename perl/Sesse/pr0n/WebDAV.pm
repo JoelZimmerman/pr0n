@@ -368,7 +368,7 @@ EOF
 		} else {
 			# check if we have a "shadow file" for this
 			if (defined($autorename) && $autorename eq "autorename/") {
-				my $ref = $dbh->selectrow_hashref('SELECT id FROM shadow_files WHERE host=? AND event=? AND filename=? AND expires_at > now()',
+				my $ref = $dbh->selectrow_hashref('SELECT id FROM shadow_files WHERE vhost=? AND event=? AND filename=? AND expires_at > now()',
 					undef, $r->get_server_name, $event, $filename);
 				if (defined($ref)) {
 				 	($fname, $size, $mtime) = Sesse::pr0n::Common::stat_image_from_id($r, $ref->{'id'});
