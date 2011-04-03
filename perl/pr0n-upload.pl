@@ -18,6 +18,8 @@ use Thread::Queue;
 my $threads = 16;
 my $running_threads :shared = 0;
 my $queue :shared = Thread::Queue->new;
+my @succeeded :shared = ();
+my @failed :shared = ();
 
 # Enqueue all the images.
 my $url = shift @ARGV;
@@ -40,13 +42,22 @@ for my $thread (@threads) {
 	$thread->join();
 }
 
+if (scalar @failed != 0 && scalar @succeeded != 0) {
+	# Output failed files in an easily-pastable format.
+	print "\nFailed files: ", join(' ', @failed), "\n";
+}
+
 sub upload_thread {
 	$running_threads++;
 
 	my $dav = init_dav($url, $user, $pass);
 	while (my $filename = $queue->dequeue_nb) {
-		$dav->put(-local => $filename, -url => $url)
-			or warn "Couldn't upload $filename: " . $dav->message . "\n";
+		if ($dav->put(-local => $filename, -url => $url)) {
+			push @succeeded, $filename;
+		} else {
+			push @failed, $filename;
+			warn "Couldn't upload $filename: " . $dav->message . "\n";
+		}
 	}
 	
 	$running_threads--;
