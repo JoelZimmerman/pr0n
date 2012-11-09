@@ -14,12 +14,11 @@ BEGIN {
 	%EXPORT_TAGS = qw();
 	@EXPORT_OK   = qw();
 }
-our %dirs;
+our %dirs = ();
 
 sub update_dirs {
 	my $r = shift;
 	my $base = $r->dir_config('TemplateBase');
-	%dirs = ();
 	
 	for my $dir (<$base/*>) {
 		next unless -d $dir;
@@ -33,7 +32,7 @@ sub update_dirs {
 sub r_to_dir {
 	my $r = shift;
 
-	if (!defined(%dirs)) {
+	if (scalar(keys %dirs) == 0) {
 		update_dirs($r);
 	}
 	

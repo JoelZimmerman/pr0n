@@ -88,7 +88,7 @@ sub handler {
 		
 	my %settings = %defsettings;
 
-	for my $s qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen model lens author) {
+	for my $s (qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen model lens author)) {
 		my $val = $apr->param($s);
 		if (defined($val) && $val =~ /^(\d+)$/) {
 			$settings{$s} = $val;
