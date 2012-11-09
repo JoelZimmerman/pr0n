@@ -308,6 +308,10 @@ sub update_image_info {
 		
 		# Tags
 		my @tags = $exiftool->GetValue('Keywords', 'ValueConv');
+		if (scalar @tags == 0) {
+			# This is XMP-dc:Subject, an RDF bag of tags.
+			@tags = $exiftool->GetValue('Subject', 'ValueConv');
+		}
 		$dbh->do('DELETE FROM tags WHERE image=?',
 			undef, $id)
 			or die "Couldn't delete old tag information in SQL: $!";
