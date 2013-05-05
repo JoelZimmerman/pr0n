@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Sesse::pr0n::Common qw(error dberror);
-use Digest::SHA1;
+use Digest::SHA;
 use MIME::Base64;
 use Apache2::Request;
 use Apache2::Upload;
@@ -666,7 +666,7 @@ EOF
 
 		my ($event, $autorename, $filename) = ($1, $2, $3);
 		$autorename = '' if (!defined($autorename));
-		my $sha1 = Digest::SHA1::sha1_base64("/$event/$autorename$filename");
+		my $sha1 = Digest::SHA::sha1_base64("/$event/$autorename$filename");
 
 		$r->status(200);
 		$r->content_type('text/xml; charset=utf-8');

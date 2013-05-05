@@ -19,7 +19,7 @@ use DBD::Pg;
 use Image::Magick;
 use POSIX;
 use Digest::MD5;
-use Digest::SHA1;
+use Digest::SHA;
 use Digest::HMAC_SHA1;
 use MIME::Base64;
 use MIME::Types;
@@ -367,11 +367,11 @@ sub output_401 {
 		# proxies etc. are being used), and we use HMAC instead of simple
 		# hashing simply because that's a better signing method.
 		#
-		# NOTE: For some weird reason, Digest::HMAC_SHA1 doesn't like taking
+		# NOTE: For some weird reason, Digest::HMAC_SHA doesn't like taking
 		# the output from time directly (it gives a different response), so we
 		# forcefully stringify the argument.
 		my $ts = time;
-		my $nonce = Digest::HMAC_SHA1->hmac_sha1_hex($ts . "", $Sesse::pr0n::Config::db_password);
+		my $nonce = Digest::HMAC_SHA->hmac_sha1_hex($ts . "", $Sesse::pr0n::Config::db_password);
 		my $stale_nonce_text = "";
 		$stale_nonce_text = ", stale=\"true\"" if ($options{'StaleNonce'} // 0);
 
@@ -393,7 +393,7 @@ sub check_basic_auth {
 	
 	my $ref = $dbh->selectrow_hashref('SELECT sha1password,digest_ha1_hex FROM users WHERE username=? AND vhost=?',
 		undef, $user, $r->get_server_name);
-	if (!defined($ref) || $ref->{'sha1password'} ne Digest::SHA1::sha1_base64($pass)) {
+	if (!defined($ref) || $ref->{'sha1password'} ne Digest::SHA::sha1_base64($pass)) {
 		$r->content_type('text/plain; charset=utf-8');
 		$r->log->warn("Authentication failed for $user/$takenby");
 		output_401($r);
