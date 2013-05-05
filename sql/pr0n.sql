@@ -18,8 +18,10 @@ CREATE TABLE last_picture_cache (
    FOREIGN KEY (vhost,event) REFERENCES events(vhost,event)
 );
 
+CREATE SEQUENCE imageid_seq;
+
 CREATE TABLE images (
-    id serial NOT NULL PRIMARY KEY,
+    id integer DEFAULT nextval('imageid_seq') NOT NULL PRIMARY KEY,
     vhost character varying NOT NULL,
     event character varying NOT NULL,
     filename character varying NOT NULL,
