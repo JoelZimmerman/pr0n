@@ -113,7 +113,6 @@ function replace_image_element(url, element_id, parent_node)
 {
 	var img = document.getElementById(element_id);
 	if (img !== null) {
-		img.src = "data:";
 		img.parentNode.removeChild(img);
 	}
 
@@ -129,11 +128,34 @@ function replace_image_element(url, element_id, parent_node)
 	return img;
 }
 
+function rename_element(old_name, new_name)
+{
+	// Remove any element that's in the way.
+	var elem = document.getElementById(new_name);
+	if (elem !== null) {
+		elem.parentNode.removeChild(elem);
+	}
+
+	elem = document.getElementById(old_name);
+	if (elem !== null) {
+		elem.id = new_name;
+	}
+	return elem;
+}
+
 function display_image(width, height, evt, filename, element_id)
 {
 	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/nobox/" + filename;
 	var main = document.getElementById("iehack");
-	var img = replace_image_element(url, element_id, main);
+	var preload = document.getElementById("preload");
+	var img;
+	// See if we have a preload going on that we can reuse.
+	if (element_id == "image" && preload !== null && preload.src == url) {
+		rename_element("preload_box", "image_box");
+		img = rename_element("preload", "image");
+	} else {
+		img = replace_image_element(url, element_id, main);
+	}
 	img.style.position = "absolute";
 	img.style.left = "0px";
 	img.style.top = "0px";
@@ -181,13 +203,11 @@ function prepare_preload(img, num)
 	// cancel any pending preload
 	var preload = document.getElementById("preload");
 	if (preload !== null) {
-		preload.src = "data:";
 		preload.parentNode.removeChild(preload);
 	}
 	
 	var preload_box = document.getElementById("preload_box");
 	if (preload_box !== null) {
-		preload_box.src = "data:";
 		preload_box.parentNode.removeChild(preload_box);
 	}
 
