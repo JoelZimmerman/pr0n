@@ -6,8 +6,6 @@ use Sesse::pr0n::Rotate;
 use Sesse::pr0n::Select;
 use Sesse::pr0n::WebDAV;
 use Sesse::pr0n::NewEvent;
-use Sesse::pr0n::Registry;
-use Sesse::pr0n::Wizard;
 
 package Sesse::pr0n::pr0n;
 use strict;	
@@ -64,10 +62,6 @@ sub handler {
 		return Sesse::pr0n::Select::handler($r);
 	} elsif ($uri =~ m#^/newevent$#) {
 		return Sesse::pr0n::NewEvent::handler($r);
-	} elsif ($uri =~ m#^/registry$#) {
-		return Sesse::pr0n::Registry::handler($r);
-	} elsif ($uri =~ m#^/wizard$#) {
-		return Sesse::pr0n::Wizard::handler($r);
 	} elsif ($uri =~ /^\/[a-zA-Z0-9-]+\/?$/ ||
 		 $uri =~ /^\/\+all\/?$/ ||
 		 $uri =~ /^\/\+tags\/[a-zA-Z0-9-]+\/?$/) {
