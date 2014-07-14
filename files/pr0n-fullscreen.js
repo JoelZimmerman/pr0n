@@ -113,17 +113,16 @@ function replace_image_element(url, element_id, parent_node)
 {
 	var img = document.getElementById(element_id);
 	if (img !== null) {
+		if (img.src === url) {
+			return img;
+		}
 		img.parentNode.removeChild(img);
 	}
 
 	img = document.createElement("img");
 	img.id = element_id;
 	img.alt = "";
-
-	if (img.src != url) {
-		img.src = url;
-	}
-	
+	img.src = url;
 	parent_node.appendChild(img);
 	return img;
 }
