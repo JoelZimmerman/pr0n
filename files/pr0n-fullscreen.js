@@ -50,6 +50,7 @@ function find_width()
  * pick_image_size, below.
  */
 var fixed_sizes = [
+	[ 2304, 1728 ],
 	[ 2048, 1536 ],
 	[ 1920, 1440 ],
 	[ 1600, 1200 ],

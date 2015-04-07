@@ -479,7 +479,7 @@ sub print_thumbsize {
 }
 sub print_viewres {
 	my ($r, $event, $settings, $defsettings) = @_;
-	my @alternatives = qw(320x256 512x384 640x480 800x600 1024x768 1152x864 1280x960 1400x1050 1600x1200 1920x1440 2048x1536);
+	my @alternatives = qw(320x256 512x384 640x480 800x600 1024x768 1152x864 1280x960 1400x1050 1600x1200 1920x1440 2048x1536 2304x1728);
 	chomp (my $unlimited = Sesse::pr0n::Templates::fetch_template($r, 'viewres-unlimited'));
 	chomp (my $original = Sesse::pr0n::Templates::fetch_template($r, 'viewres-original'));
 	push @alternatives, [ $unlimited, -2, -2 ];
