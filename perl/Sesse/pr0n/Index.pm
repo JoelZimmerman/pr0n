@@ -164,8 +164,8 @@ sub handler {
 			undef, $r->get_server_name, $event)
 			or error($r, "Could not find event $event", 404, "File not found");
 
-		$date = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'date'}));
-		$name = HTML::Entities::encode_entities(Encode::decode_utf8($ref->{'name'}));
+		$date = HTML::Entities::encode_entities($ref->{'date'});
+		$name = HTML::Entities::encode_entities($ref->{'name'});
 		$r->set_last_modified($ref->{'last_update'});
 	}
 		                
