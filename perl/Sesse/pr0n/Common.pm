@@ -29,6 +29,7 @@ use Image::ExifTool;
 use HTML::Entities;
 use URI::Escape;
 use File::Basename;
+use Crypt::Eksblowfish::Bcrypt;
 
 BEGIN {
 	use Exporter ();
@@ -390,10 +391,18 @@ sub check_basic_auth {
 
 	my ($raw_user, $pass) = split /:/, MIME::Base64::decode_base64($auth);
 	my ($user, $takenby) = extract_takenby($raw_user);
-	
-	my $ref = $dbh->selectrow_hashref('SELECT sha1password,digest_ha1_hex FROM users WHERE username=? AND vhost=?',
+
+	my $ref = $dbh->selectrow_hashref('SELECT sha1password,cryptpassword,digest_ha1_hex FROM users WHERE username=? AND vhost=?',
 		undef, $user, $r->get_server_name);
-	if (!defined($ref) || $ref->{'sha1password'} ne Digest::SHA::sha1_base64($pass)) {
+	my ($sha1_matches, $bcrypt_matches) = (0, 0);
+	if (defined($ref) && defined($ref->{'sha1password'})) {
+		$sha1_matches = (Digest::SHA::sha1_base64($pass) eq $ref->{'sha1password'});
+	}
+	if (defined($ref) && defined($ref->{'cryptpassword'})) {
+		$bcrypt_matches = (Crypt::Eksblowfish::Bcrypt::bcrypt($pass, $ref->{'cryptpassword'}) eq $ref->{'cryptpassword'});
+	}
+
+	if (!defined($ref) || (!$sha1_matches && !$bcrypt_matches)) {
 		$r->content_type('text/plain; charset=utf-8');
 		$r->log->warn("Authentication failed for $user/$takenby");
 		output_401($r);
@@ -410,7 +419,37 @@ sub check_basic_auth {
 		$r->log->info("Updated Digest auth hash for for $user");
 	}
 
+	# Make sure we can use bcrypt authentication in the future with this password.
+	# Also remove old-style SHA1 password when we migrate.
+	if (!$bcrypt_matches) {
+		my $salt = get_pseudorandom_bytes(16);  # Doesn't need to be cryptographically secur.
+		my $hash = "\$2a\$07\$" . Crypt::Eksblowfish::Bcrypt::en_base64($salt);
+		my $cryptpassword = Crypt::Eksblowfish::Bcrypt::bcrypt($pass, $hash);
+		$dbh->do('UPDATE users SET sha1password=NULL,cryptpassword=? WHERE username=? AND vhost=?',
+			undef, $cryptpassword, $user, $r->get_server_name)
+			or die "Couldn't update: " . $dbh->errstr;
+		$r->log->info("Updated bcrypt hash for $user");
+	}
+
 	return ($user, $takenby);
+}
+
+sub get_pseudorandom_bytes {
+	my $num_left = shift;
+	my $bytes = "";
+	open my $randfh, "<", "/dev/urandom"
+		or die "/dev/urandom: $!";
+	binmode $randfh;
+	while ($num_left > 0) {
+		my $tmp;
+		if (sysread($randfh, $tmp, $num_left) == -1) {
+			die "sysread(/dev/urandom): $!";
+		}
+		$bytes .= $tmp;
+		$num_left -= length($bytes);
+	}
+	close $randfh;
+	return $bytes;
 }
 
 sub check_digest_auth {

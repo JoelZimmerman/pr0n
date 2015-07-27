@@ -9,6 +9,7 @@ DBD::Pg                     libdbd-pg-perl             PostgreSQL connection
 Image::ExifTool             libimage-exiftool-perl     Parsing EXIF data
 Digest::SHA1                libdigest-sha1-perl        Verifying passwords
 Digest::HMAC_SHA1           libdigest-hmac-perl        Verifying digest passwords
+Crypt::Eksblowfish::Bcrypt  libcrypt-eksblowfish-perl  Verifying passwords
 HTML::TagCloud              libhtml-tagcloud-perl      Tag cloud on /+tags/
 jpegtran                    libjpeg-progs              Lossless JPEG rotation
 dcraw                       dcraw                      NEF support
