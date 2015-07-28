@@ -15,7 +15,7 @@ use HTTP::DAV;
 use threads;
 use Thread::Queue;
 
-my $threads = 16;
+my $threads = 40;
 my $running_threads :shared = 0;
 my $queue :shared = Thread::Queue->new;
 my @succeeded :shared = ();
