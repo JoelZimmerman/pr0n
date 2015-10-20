@@ -21,7 +21,7 @@ sub handler {
 		$filename = $3;
 		$infobox = 'nobox' if (defined($2) && $2 eq 'nobox/');
 		$infobox = 'box' if (defined($2) && $2 eq 'box/');
-	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)(?:\@(\d+))?/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
+	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)(?:\@(\d+(?:\.\d+)?))?/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $6;
 		$xres = $2;

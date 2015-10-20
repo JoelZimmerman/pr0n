@@ -174,7 +174,7 @@ function display_image(width, height, evt, filename, element_id)
 		if (dpr == 1) {
 			url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
 		} else {
-			url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "@" + dpr + "/box/" + filename;
+			url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "@" + dpr.toFixed(2) + "/box/" + filename;
 		}
 		var boximg = replace_image_element(url, element_id + "_box", main);
 
