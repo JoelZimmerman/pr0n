@@ -121,13 +121,13 @@ while (my $ref = $q->fetchrow_hashref) {
 	next unless $any_old;
 	unlink (@files);
 	if (scalar @bothres > 0) {
-		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 'both', sort_res(@bothres));
+		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 'both', 1, sort_res(@bothres));
 	}
 	if (scalar @noboxres > 0) {
-		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 'nobox', sort_res(@noboxres));
+		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 'nobox', 1, sort_res(@noboxres));
 	}
 	if (scalar @boxres > 0) {
-		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 'box', sort_res(@boxres));
+		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 'box', 1, sort_res(@boxres));
 	}
 	
 	my @newfiles = glob("../cache/$dir/$id-*.jpg");

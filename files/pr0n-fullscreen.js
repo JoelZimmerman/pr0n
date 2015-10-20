@@ -29,7 +29,8 @@ function find_width()
 {
 	if (typeof(window.innerWidth) == 'number') {
 		// non-IE
-		return [window.innerWidth, window.innerHeight];
+		var dpr = find_dpr();
+		return [window.innerWidth * dpr, window.innerHeight * dpr];
 	} else if (document.documentElement && (document.documentElement.clientWidth || document.documentElement.clientHeight)) {
 		// IE 6+ in 'standards compliant mode'
 		return [document.documentElement.clientWidth, document.documentElement.clientHeight];
@@ -38,6 +39,11 @@ function find_width()
 		return [document.body.clientWidth, document.body.clientHeight];
 	}
 	return [null,null];
+}
+
+function find_dpr()
+{
+	return window.devicePixelRatio || 1;
 }
 
 /*
@@ -148,6 +154,7 @@ function display_image(width, height, evt, filename, element_id)
 	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/nobox/" + filename;
 	var main = document.getElementById("iehack");
 	var preload = document.getElementById("preload");
+	var dpr = find_dpr();
 	var img;
 	// See if we have a preload going on that we can reuse.
 	if (element_id == "image" && preload !== null && preload.src == url) {
@@ -159,14 +166,23 @@ function display_image(width, height, evt, filename, element_id)
 	img.style.position = "absolute";
 	img.style.left = "0px";
 	img.style.top = "0px";
+	img.style.transformOrigin = "top left";
+	img.style.transform = "scale(" + (1.0 / dpr) + ")";
 
 	if (global_infobox != 'nobox/') {
-		var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
+		var url;
+		if (dpr == 1) {
+			url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
+		} else {
+			url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "@" + dpr + "/box/" + filename;
+		}
 		var boximg = replace_image_element(url, element_id + "_box", main);
 
 		boximg.style.position = "absolute";
 		boximg.style.left = "0px";
 		boximg.style.bottom = "-1px";
+		boximg.style.transformOrigin = "bottom left";
+		boximg.style.transform = "scale(" + (1.0 / dpr) + ")";
 	}
 
 	return img;
@@ -267,6 +283,7 @@ function set_opacity(id, amount)
 function center_image(num)
 {
 	var screen_size = find_width();
+	var dpr = find_dpr();
 	var width, height;
 	
 	if (global_image_list[num][2] == -1) {
@@ -284,11 +301,11 @@ function center_image(num)
 	// center the image on-screen
 	var main = document.getElementById("main");
 	main.style.position = "absolute";
-	main.style.left = (screen_size[0] - width) / 2 + "px";
-	main.style.top = (screen_size[1] - height) / 2 + "px"; 
-	main.style.width = width + "px";
-	main.style.height = height + "px";
-	main.style.lineHeight = height + "px";
+	main.style.left = (((screen_size[0] - width) / 2) / dpr) + "px";
+	main.style.top = (((screen_size[1] - height) / 2) / dpr) + "px";
+	main.style.width = (width / dpr) + "px";
+	main.style.height = (height / dpr) + "px";
+	main.style.lineHeight = (height / dpr) + "px";
 }
 
 function relayout()

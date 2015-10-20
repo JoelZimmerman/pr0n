@@ -14,20 +14,21 @@ sub handler {
 #	}
 
 	# Find the event and file name
-	my ($event,$filename,$xres,$yres);
+	my ($event,$filename,$xres,$yres,$dpr);
 	my $infobox = 'both';
 	if ($r->uri =~ m#^/([a-zA-Z0-9-]+)/original/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
 		$infobox = 'nobox' if (defined($2) && $2 eq 'nobox/');
 		$infobox = 'box' if (defined($2) && $2 eq 'box/');
-	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
+	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)(?:\@(\d+))?/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
-		$filename = $5;
+		$filename = $6;
 		$xres = $2;
 		$yres = $3;
-		$infobox = 'nobox' if (defined($4) && $4 eq 'nobox/');
-		$infobox = 'box' if (defined($4) && $4 eq 'box/');
+		$dpr = $4;
+		$infobox = 'nobox' if (defined($5) && $5 eq 'nobox/');
+		$infobox = 'box' if (defined($5) && $5 eq 'box/');
 	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
@@ -36,6 +37,7 @@ sub handler {
 		$infobox = 'nobox' if (defined($2) && $2 eq 'nobox/');
 		$infobox = 'box' if (defined($2) && $2 eq 'box/');
 	}
+	$dpr //= 1;
 
 	my ($id, $dbwidth, $dbheight);
 	#if ($event eq 'single' && $filename =~ /^(\d+)\.jpeg$/) {
@@ -52,7 +54,7 @@ sub handler {
 	$dbheight = $ref->{'height'};
 
 	# Scale if we need to do so
-	my ($fname, $mime_type) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres);
+	my ($fname, $mime_type) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $infobox, $dpr, $xres, $yres);
 
 	# Output the image to the user
 	if (!defined($mime_type)) {

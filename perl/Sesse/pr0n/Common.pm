@@ -220,7 +220,7 @@ sub get_disk_location {
 }
 
 sub get_cache_location {
-	my ($r, $id, $width, $height, $infobox) = @_;
+	my ($r, $id, $width, $height, $infobox, $dpr) = @_;
         my $dir = POSIX::floor($id / 256);
 
 	if ($infobox eq 'both') {
@@ -228,7 +228,11 @@ sub get_cache_location {
 	} elsif ($infobox eq 'nobox') {
 		return get_base($r) . "cache/$dir/$id-$width-$height-nobox.jpg";
 	} else {
-		return get_base($r) . "cache/$dir/$id-$width-$height-box.png";
+		if ($dpr == 1) {
+			return get_base($r) . "cache/$dir/$id-$width-$height-box.png";
+		} else {
+			return get_base($r) . "cache/$dir/$id-$width-$height-box\@$dpr.png";
+		}
 	}
 }
 
@@ -756,7 +760,7 @@ sub read_original_image {
 }
 
 sub ensure_cached {
-	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $xres, $yres, @otherres) = @_;
+	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $dpr, $xres, $yres, @otherres) = @_;
 
 	my ($new_dbwidth, $new_dbheight);
 
@@ -767,7 +771,7 @@ sub ensure_cached {
 		}
 	}
 
-	my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox);
+	my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox, $dpr);
 	my $err;
 	if (! -r $cachename or (-M $cachename > -M $fname)) {
 		# If we are in overload mode (aka Slashdot mode), refuse to generate
@@ -800,12 +804,12 @@ sub ensure_cached {
 			if (defined($xres) && defined($yres)) {
 				($width, $height) = scale_aspect($width, $height, $xres, $yres);
 			}
-			$height = 24;
+			$height = 24 * $dpr;
 			$img->Set(size=>($width . "x" . $height));
 			$img->Read('xc:white');
 				
 			my $info = Image::ExifTool::ImageInfo($fname);
-			if (make_infobox($img, $info, $r)) {
+			if (make_infobox($img, $info, $r, $dpr)) {
 				$img->Quantize(colors=>16, dither=>'False');
 
 				# Since the image is grayscale, ImageMagick overrides us and writes this
@@ -838,7 +842,7 @@ sub ensure_cached {
 
 		while (defined($xres) && defined($yres)) {
 			my ($nxres, $nyres) = (shift @otherres, shift @otherres);
-			my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox);
+			my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox, $dpr);
 			
 			my $cimg;
 			if (defined($nxres) && defined($nyres)) {
@@ -863,7 +867,7 @@ sub ensure_cached {
 
 			if (($nwidth >= 800 || $nheight >= 600 || $xres == -1) && $infobox ne 'nobox') {
 				my $info = Image::ExifTool::ImageInfo($fname);
-				make_infobox($cimg, $info, $r);
+				make_infobox($cimg, $info, $r, 1);
 			}
 
 			# Strip EXIF tags etc.
@@ -919,7 +923,7 @@ sub get_mimetype_from_filename {
 }
 
 sub make_infobox {
-	my ($img, $info, $r) = @_;
+	my ($img, $info, $r, $dpr) = @_;
 
 	# The infobox is of the form
 	# "Time - date - focal length, shutter time, aperture, sensitivity, exposure bias - flash",
@@ -1048,7 +1052,7 @@ sub make_infobox {
 			$font = '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf';
 		}
 
-		my (undef, undef, $h, undef, $w) = ($img->QueryFontMetrics(text=>$part->[0], font=>$font, pointsize=>12));
+		my (undef, undef, $h, undef, $w) = ($img->QueryFontMetrics(text=>$part->[0], font=>$font, pointsize=>12*$dpr));
 
 		$tw += $w;
 		$th = $h if ($h > $th);
@@ -1057,7 +1061,7 @@ sub make_infobox {
 	return 0 if ($tw > $img->Get('columns'));
 
 	my $x = 0;
-	my $y = $img->Get('rows') - 24;
+	my $y = $img->Get('rows') - 24*$dpr;
 
 	# Hit exact DCT blocks
 	$y -= ($y % 8);
@@ -1065,13 +1069,13 @@ sub make_infobox {
 	my $points = sprintf "%u,%u %u,%u", $x, $y, ($img->Get('columns') - 1), ($img->Get('rows') - 1);
 	my $lpoints = sprintf "%u,%u %u,%u", $x, $y, ($img->Get('columns') - 1), $y;
 	$img->Draw(primitive=>'rectangle', stroke=>'white', fill=>'white', points=>$points);
-	$img->Draw(primitive=>'line', stroke=>'black', points=>$lpoints);
+	$img->Draw(primitive=>'line', stroke=>'black', strokewidth=>$dpr, points=>$lpoints);
 
 	# Start writing out the text
 	$x = ($img->Get('columns') - $tw) / 2;
 
-	my $room = ($img->Get('rows') - 1 - $y - $th);
-	$y = ($img->Get('rows') - 1) - $room/2;
+	my $room = ($img->Get('rows') - $dpr - $y - $th);
+	$y = ($img->Get('rows') - $dpr) - $room/2;
 	
 	for my $part (@parts) {
 		my $font;
@@ -1080,8 +1084,8 @@ sub make_infobox {
 		} else {
 			$font = '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf';
 		}
-		$img->Annotate(text=>$part->[0], font=>$font, pointsize=>12, x=>int($x), y=>int($y));
-		$x += ($img->QueryFontMetrics(text=>$part->[0], font=>$font, pointsize=>12))[4];
+		$img->Annotate(text=>$part->[0], font=>$font, pointsize=>12*$dpr, x=>int($x), y=>int($y));
+		$x += ($img->QueryFontMetrics(text=>$part->[0], font=>$font, pointsize=>12*$dpr))[4];
 	}
 
 	return 1;
