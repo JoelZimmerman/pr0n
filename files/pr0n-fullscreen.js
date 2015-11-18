@@ -151,7 +151,7 @@ function rename_element(old_name, new_name)
 
 function display_image(width, height, evt, filename, element_id)
 {
-	var url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/nobox/" + filename;
+	var url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/nobox/" + filename;
 	var main = document.getElementById("iehack");
 	var preload = document.getElementById("preload");
 	var dpr = find_dpr();
@@ -172,9 +172,9 @@ function display_image(width, height, evt, filename, element_id)
 	if (global_infobox != 'nobox/') {
 		var url;
 		if (dpr == 1) {
-			url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
+			url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
 		} else {
-			url = "http://" + global_vhost + "/" + evt + "/" + width + "x" + height + "@" + dpr.toFixed(2) + "/box/" + filename;
+			url = window.location.origin + "/" + evt + "/" + width + "x" + height + "@" + dpr.toFixed(2) + "/box/" + filename;
 		}
 		var boximg = replace_image_element(url, element_id + "_box", main);
 
@@ -409,7 +409,7 @@ function select_image(evt, filename, selected)
 		draw_text("Unselecting " + filename + "...");
 	}
 	
-	req.open("POST", "http://" + global_vhost + "/select", false);
+	req.open("POST", window.location.origin + "/select", false);
 	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	req.send("event=" + evt + "&filename=" + filename + "&selected=" + selected);
 
