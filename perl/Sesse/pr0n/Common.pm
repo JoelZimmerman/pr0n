@@ -18,7 +18,6 @@ use DBI;
 use DBD::Pg;
 use Image::Magick;
 use POSIX;
-use Digest::MD5;
 use Digest::SHA;
 use Digest::HMAC_SHA1;
 use MIME::Base64;
@@ -351,9 +350,6 @@ sub check_access {
 	if ($auth =~ /^Basic ([a-zA-Z0-9+\/]+=*)$/) {
 		return check_basic_auth($r, $1);
 	}	
-	if ($auth =~ /^Digest (.*)$/) {
-		return check_digest_auth($r, $1);
-	}
 	output_401($r);
 	return undef;
 }
@@ -364,29 +360,6 @@ sub output_401 {
 	$r->status(401);
 	$r->headers_out->{'www-authenticate'} = 'Basic realm="pr0n.sesse.net"';
 
-	# Digest auth is disabled for now, due to various client problems.
-	if (0 && ($options{'DigestAuth'} // 1)) {
-		# We make our nonce similar to the scheme of RFC2069 section 2.1.1,
-		# with some changes: We don't care about client IP (these have a nasty
-		# tendency to change from request to request when load-balancing
-		# proxies etc. are being used), and we use HMAC instead of simple
-		# hashing simply because that's a better signing method.
-		#
-		# NOTE: For some weird reason, Digest::HMAC_SHA doesn't like taking
-		# the output from time directly (it gives a different response), so we
-		# forcefully stringify the argument.
-		my $ts = time;
-		my $nonce = Digest::HMAC_SHA->hmac_sha1_hex($ts . "", $Sesse::pr0n::Config::db_password);
-		my $stale_nonce_text = "";
-		$stale_nonce_text = ", stale=\"true\"" if ($options{'StaleNonce'} // 0);
-
-		$r->headers_out->{'www-authenticate'} =
-			"Digest realm=\"pr0n.sesse.net\", " .
-			"nonce=\"$nonce\", " .
-			"opaque=\"$ts\", " .
-			"qop=\"auth\"" . $stale_nonce_text;  # FIXME: support auth-int
-	}
-
 	$r->print("Need authorization\n");
 }
 
@@ -396,7 +369,7 @@ sub check_basic_auth {
 	my ($raw_user, $pass) = split /:/, MIME::Base64::decode_base64($auth);
 	my ($user, $takenby) = extract_takenby($raw_user);
 
-	my $ref = $dbh->selectrow_hashref('SELECT sha1password,cryptpassword,digest_ha1_hex FROM users WHERE username=? AND vhost=?',
+	my $ref = $dbh->selectrow_hashref('SELECT sha1password,cryptpassword FROM users WHERE username=? AND vhost=?',
 		undef, $user, $r->get_server_name);
 	my ($sha1_matches, $bcrypt_matches) = (0, 0);
 	if (defined($ref) && defined($ref->{'sha1password'})) {
@@ -413,15 +386,6 @@ sub check_basic_auth {
 		return undef;
 	}
 	$r->log->info("Authentication succeeded for $user/$takenby");
-
-	# Make sure we can use Digest authentication in the future with this password.
-	my $ha1 = Digest::MD5::md5_hex($user . ':pr0n.sesse.net:' . $pass);
-	if (!defined($ref->{'digest_ha1_hex'}) || $ref->{'digest_ha1_hex'} ne $ha1) {
-		$dbh->do('UPDATE users SET digest_ha1_hex=? WHERE username=? AND vhost=?',
-			undef, $ha1, $user, $r->get_server_name)
-			or die "Couldn't update: " . $dbh->errstr;
-		$r->log->info("Updated Digest auth hash for for $user");
-	}
 
 	# Make sure we can use bcrypt authentication in the future with this password.
 	# Also remove old-style SHA1 password when we migrate.
@@ -454,105 +418,6 @@ sub get_pseudorandom_bytes {
 	}
 	close $randfh;
 	return $bytes;
-}
-
-sub check_digest_auth {
-	my ($r, $auth) = @_;	
-
-	# We're a bit more liberal than RFC2069 in the parsing here, allowing
-	# quoted strings everywhere.
-	my %auth = ();
-	while ($auth =~ s/^ ([a-zA-Z]+)                # key
-	                 =                 
-                         (                            
-                           [^",]*                     # either something that doesn't contain comma or quotes
-                         |
-                           " ( [^"\\] | \\ . ) * "    # or a full quoted string
-                         )
-                         (?: (?: , \s* ) + | $ )      # delimiter(s), or end of string
-                        //x) {
-		my ($key, $value) = ($1, $2);
-		if ($value =~ /^"(.*)"$/) {
-			$value = $1;
-			$value =~ s/\\(.)/$1/g;
-		}
-		$auth{$key} = $value;
-	}
-	unless (exists($auth{'username'}) &&
-	        exists($auth{'uri'}) &&
-	        exists($auth{'nonce'}) &&
-	        exists($auth{'opaque'}) &&
-	        exists($auth{'response'})) {
-		output_401($r);
-		return undef;
-	}
-	if ($r->uri ne $auth{'uri'}) {	
-		output_401($r);
-		return undef;
-	}
-	
-	# Verify that the opaque data does indeed look like a timestamp, and that the nonce
-	# is indeed a signed version of it.
-	if ($auth{'opaque'} !~ /^\d+$/) {
-		output_401($r);
-		return undef;
-	}
-	my $compare_nonce = Digest::HMAC_SHA1->hmac_sha1_hex($auth{'opaque'}, $Sesse::pr0n::Config::db_password);
-	if ($auth{'nonce'} ne $compare_nonce) {
-		output_401($r);
-		return undef;
-	}
-
-	# Now look up the user's HA1 from the database, and calculate HA2.	
-	my ($user, $takenby) = extract_takenby($auth{'username'});
-	my $ref = $dbh->selectrow_hashref('SELECT digest_ha1_hex FROM users WHERE username=? AND vhost=?',
-		undef, $user, $r->get_server_name);
-	if (!defined($ref)) {
-		output_401($r);
-		return undef;
-	}
-	if (!defined($ref->{'digest_ha1_hex'}) || $ref->{'digest_ha1_hex'} !~ /^[0-9a-f]{32}$/) {
-		# A user that exists but has empty HA1 is a user that's not
-		# ready for digest auth, so we hack it and resend 401,
-		# only this time without digest auth.
-		output_401($r, DigestAuth => 0);
-		return undef;
-	}
-	my $ha1 = $ref->{'digest_ha1_hex'};
-	my $ha2 = Digest::MD5::md5_hex($r->method . ':' . $auth{'uri'});
-	my $response;
-	if (exists($auth{'qop'}) && $auth{'qop'} eq 'auth') {
-		unless (exists($auth{'nc'}) && exists($auth{'cnonce'})) {
-			output_401($r);
-			return undef;
-		}	
-
-		$response = $ha1;
-		$response .= ':' . $auth{'nonce'};
-		$response .= ':' . $auth{'nc'};
-		$response .= ':' . $auth{'cnonce'};
-		$response .= ':' . $auth{'qop'};
-		$response .= ':' . $ha2;
-	} else {
-		$response = $ha1;
-		$response .= ':' . $auth{'nonce'};
-		$response .= ':' . $ha2;
-	}
-	if ($auth{'response'} ne Digest::MD5::md5_hex($response)) {	
-		output_401($r);
-		return undef;
-	}
-
-	# OK, everything is good, and there's only one thing we need to check: That the nonce
-	# isn't too old. If it is, but everything else is ok, we tell the browser that and it
-	# will re-encrypt with the new nonce.
-	my $timediff = time - $auth{'opaque'};
-	if ($timediff < 0 || $timediff > 300) {
-		output_401($r, StaleNonce => 1);
-		return undef;
-	}
-
-	return ($user, $takenby);
 }
 
 sub extract_takenby {

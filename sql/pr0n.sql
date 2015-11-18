@@ -75,7 +75,6 @@ CREATE TABLE users (
     username character varying NOT NULL,
     sha1password character(27),
     vhost character varying NOT NULL,
-    digest_ha1_hex character(32),
     cryptpassword character varying
 );
 
