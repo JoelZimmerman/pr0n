@@ -220,7 +220,6 @@ sub handler {
 		$returnurl =~ s/&amp;/&/g;
 
 		Sesse::pr0n::Templates::print_template($r, "fullscreen-footer", {
-			vhost => $r->get_server_name,
 			returnurl => $returnurl,
 			start => $settings{'start'} - 1,
 			sel => $settings{'sel'},
