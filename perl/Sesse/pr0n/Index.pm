@@ -212,7 +212,6 @@ sub handler {
 			Sesse::pr0n::Templates::print_template($r, $io, "overloadmode");
 		}
 
-		print_viewres($r, $io, $event, \%settings, \%defsettings);
 		print_selected($r, $io, $event, \%settings, \%defsettings) if ($num_selected > 0);
 		print_fullscreen($r, $io, $event, \%settings, \%defsettings);
 		print_nextprev($r, $io, $event, $where, \%settings, \%defsettings);
@@ -438,18 +437,6 @@ sub print_changes {
 		$io->print("\n");
 	}
 	$io->print("    </p>\n");
-}
-
-sub print_viewres {
-	my ($r, $io, $event, $settings, $defsettings) = @_;
-	my @alternatives = qw(320x256 512x384 640x480 800x600 1024x768 1152x864 1280x960 1400x1050 1600x1200 1920x1440 2048x1536 2304x1728);
-	chomp (my $unlimited = Sesse::pr0n::Templates::fetch_template($r, 'viewres-unlimited'));
-	chomp (my $original = Sesse::pr0n::Templates::fetch_template($r, 'viewres-original'));
-	push @alternatives, [ $unlimited, -2, -2 ];
-	push @alternatives, [ $original, -1, -1 ];
-
-	print_changes($r, $io, $event, 'viewres', $settings, $defsettings,
-		      'xres', 'yres', \@alternatives);
 }
 
 sub print_nextprev {
