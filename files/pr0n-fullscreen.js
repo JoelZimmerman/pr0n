@@ -218,35 +218,7 @@ function can_go_previous()
 function set_opacity(id, amount)
 {
 	var elem = document.getElementById(id);
-	if (typeof(elem.style.opacity) != 'undefined') {            // W3C
-		elem.style.opacity = amount;
-	} else if (typeof(elem.style.mozOpacity) != 'undefined') {  // older Mozilla
-		elem.style.mozOpacity = amount;
-	} else if (typeof(elem.style.filter) != 'undefined') {      // IE
-		if (elem.style.filter.indexOf("alpha") == -1) {
-			// add an alpha filter if there isn't one already
-			if (elem.style.filter) {
-				elem.style.filter += " ";
-			} else {
-				elem.style.filter = "";
-			}
-			elem.style.filter += "alpha(opacity=" + (amount*100.0) + ")";
-		} else {	
-			// ugh? this seems to break in color index mode...
-			if (typeof(elem.filters) == 'unknown') {
-				elem.style.filter = "alpha(opacity=" + (amount*100.0) + ")";
-			} else {
-				elem.filters.alpha.opacity = (amount * 100.0);
-			}
-		}
-	} else {                             // no alpha support
-		if (amount > 0.5) {
-			elem.style.visibility = "visible";
-			elem.style.zorder = 1;
-		} else {
-			elem.style.visibility = "hidden";
-		}
-	}
+	elem.style.opacity = amount;
 }
 
 function center_image(num)
