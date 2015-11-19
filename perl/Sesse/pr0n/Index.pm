@@ -48,7 +48,6 @@ sub handler {
 		start => 1,
 		num => 250,
 		all => 1,
-		infobox => 1,
 		rot => 0,
 		sel => 0,
 		fullscreen => 0,
@@ -71,7 +70,7 @@ sub handler {
 	
 	my %settings = %defsettings;
 
-	for my $s (qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen model lens author)) {
+	for my $s (qw(thumbxres thumbyres xres yres start num all rot sel fullscreen model lens author)) {
 		my $val = $r->param($s);
 		if (defined($val) && $val =~ /^(\d+)$/) {
 			$settings{$s} = $val;
@@ -94,7 +93,6 @@ sub handler {
 	my $start = $settings{'start'};
 	my $num = $settings{'num'};
 	my $all = $settings{'all'};
-	my $infobox = $settings{'infobox'} ? '' : 'nobox/';
 	my $rot = $settings{'rot'};
 	my $sel = $settings{'sel'};
 	my $model = $settings{'model'};
@@ -202,8 +200,7 @@ sub handler {
 		Sesse::pr0n::Templates::print_template($r, $io, "fullscreen-footer", {
 			returnurl => $returnurl,
 			start => $settings{'start'} - 1,
-			sel => $settings{'sel'},
-			infobox => $infobox
+			sel => $settings{'sel'}
 		});
 	} else {
 		Sesse::pr0n::Common::header($r, $io, "$name [$event]");
@@ -216,7 +213,6 @@ sub handler {
 		}
 
 		print_viewres($r, $io, $event, \%settings, \%defsettings);
-		print_infobox($r, $io, $event, \%settings, \%defsettings);
 		print_selected($r, $io, $event, \%settings, \%defsettings) if ($num_selected > 0);
 		print_fullscreen($r, $io, $event, \%settings, \%defsettings);
 		print_nextprev($r, $io, $event, $where, \%settings, \%defsettings);
@@ -346,11 +342,11 @@ sub handler {
 			}
 
 			my $filename = $ref->{'filename'};
-			my $uri = $infobox . $filename;
+			my $uri = $filename;
 			if (defined($xres) && defined($yres) && $xres != -1 && $xres != -2) {
-				$uri = "${xres}x$yres/$infobox$filename";
+				$uri = "${xres}x$yres/$filename";
 			} elsif (defined($xres) && $xres == -1) {
-				$uri = "original/$infobox$filename";
+				$uri = "original/$filename";
 			}
 			
 			my $prefix = "";
@@ -454,36 +450,6 @@ sub print_viewres {
 
 	print_changes($r, $io, $event, 'viewres', $settings, $defsettings,
 		      'xres', 'yres', \@alternatives);
-}
-
-sub print_infobox {
-	my ($r, $io, $event, $settings, $defsettings) = @_;
-
-	chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'infobox'));
-	chomp (my $on = Sesse::pr0n::Templates::fetch_template($r, 'infobox-on'));
-	chomp (my $off = Sesse::pr0n::Templates::fetch_template($r, 'infobox-off'));
-
-        $io->print("    <p>$title:\n");
-
-	my %newsettings = %$settings;
-
-	if ($settings->{'infobox'} == 1) {
-		$io->print($on);
-	} else {
-		$newsettings{'infobox'} = 1;
-		Sesse::pr0n::Common::print_link($io, $on, "/$event/", \%newsettings, $defsettings);
-	}
-
-	$io->print(' ');
-
-	if ($settings->{'infobox'} == 0) {
-		$io->print($off);
-	} else {
-		$newsettings{'infobox'} = 0;
-		Sesse::pr0n::Common::print_link($io, $off, "/$event/", \%newsettings, $defsettings);
-	}
-	
-	$io->print('</p>');
 }
 
 sub print_nextprev {

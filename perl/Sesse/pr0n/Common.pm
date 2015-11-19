@@ -216,16 +216,14 @@ sub get_cache_location {
 	my ($r, $id, $width, $height, $infobox, $dpr) = @_;
         my $dir = POSIX::floor($id / 256);
 
-	if ($infobox eq 'both') {
-		return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height.jpg";
-	} elsif ($infobox eq 'nobox') {
-		return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-nobox.jpg";
-	} else {
+	if ($infobox) {
 		if ($dpr == 1) {
 			return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-box.png";
 		} else {
 			return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-box\@$dpr.png";
 		}
+	} else {
+		return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-nobox.jpg";
 	}
 }
 
@@ -438,14 +436,14 @@ sub stat_image_from_id {
 # the smallest mipmap larger than the largest of them, as well as the original image
 # dimensions.
 sub make_mipmap {
-	my ($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale, @res) = @_;
+	my ($r, $filename, $id, $dbwidth, $dbheight, @res) = @_;
 	my ($img, $mmimg, $width, $height);
 	
 	my $physical_fname = get_disk_location($r, $id);
 
 	# If we don't know the size, we'll need to read it in anyway
 	if (!defined($dbwidth) || !defined($dbheight)) {
-		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale);
+		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
 		$width = $img->Get('columns');
 		$height = $img->Get('rows');
 	} else {
@@ -493,14 +491,10 @@ sub make_mipmap {
 		if (! -r $mmlocation or (-M $mmlocation > -M $physical_fname)) {
 			if (!defined($img)) {
 				if (defined($last_good_mmlocation)) {
-					if ($can_use_qscale) {
-						$img = Sesse::pr0n::QscaleProxy->new;
-					} else {
-						$img = Image::Magick->new;
-					}
+					$img = Sesse::pr0n::QscaleProxy->new;
 					$img->Read($last_good_mmlocation);
 				} else {
-					$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale);
+					$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
 				}
 			}
 			my $cimg;
@@ -523,17 +517,13 @@ sub make_mipmap {
 		}
 		if ($last && !defined($img)) {
 			# OK, read in the smallest one
-			if ($can_use_qscale) {
-				$img = Sesse::pr0n::QscaleProxy->new;
-			} else {
-				$img = Image::Magick->new;
-			}
+			$img = Sesse::pr0n::QscaleProxy->new;
 			my $err = $img->Read($mmlocation);
 		}
 	}
 
 	if (!defined($img)) {
-		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale);
+		$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight);
 		$width = $img->Get('columns');
 		$height = $img->Get('rows');
 	}
@@ -541,13 +531,13 @@ sub make_mipmap {
 }
 
 sub read_original_image {
-	my ($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale) = @_;
+	my ($r, $filename, $id, $dbwidth, $dbheight) = @_;
 
 	my $physical_fname = get_disk_location($r, $id);
 
 	# Read in the original image
 	my $magick;
-	if ($can_use_qscale && ($filename =~ /\.jpeg$/i || $filename =~ /\.jpg$/i)) {
+	if ($filename =~ /\.jpeg$/i || $filename =~ /\.jpg$/i) {
 		$magick = Sesse::pr0n::QscaleProxy->new;
 	} else {
 		$magick = Image::Magick->new;
@@ -604,7 +594,7 @@ sub ensure_cached {
 	my ($new_dbwidth, $new_dbheight);
 
 	my $fname = get_disk_location($r, $id);
-	if ($infobox ne 'box') {
+	if (!$infobox) {
 		unless (defined($xres) && (!defined($dbwidth) || !defined($dbheight) || $xres < $dbwidth || $yres < $dbheight || $xres == -1)) {
 			return ($fname, undef);
 		}
@@ -620,11 +610,11 @@ sub ensure_cached {
 			error($r, 'System is in overload mode, not doing any scaling');
 		}
 
-		# If we're being asked for just the box, make a new image with just the box.
+		# If we're being asked for the box, make a new image with it.
 		# We don't care about @otherres since each of these images are
 		# already pretty cheap to generate, but we need the exact width so we can make
 		# one in the right size.
-		if ($infobox eq 'box') {
+		if ($infobox) {
 			my ($img, $width, $height);
 
 			# This is slow, but should fortunately almost never happen, so don't bother
@@ -671,13 +661,8 @@ sub ensure_cached {
 			return ($cachename, 'image/png');
 		}
 
-		my $can_use_qscale = 0;
-		if ($infobox eq 'nobox') {
-			$can_use_qscale = 1;
-		}
-
 		my $img;
-		($img, $new_dbwidth, $new_dbheight) = make_mipmap($r, $filename, $id, $dbwidth, $dbheight, $can_use_qscale, $xres, $yres, @otherres);
+		($img, $new_dbwidth, $new_dbheight) = make_mipmap($r, $filename, $id, $dbwidth, $dbheight, $xres, $yres, @otherres);
 
 		while (defined($xres) && defined($yres)) {
 			my ($nxres, $nyres) = (shift @otherres, shift @otherres);
@@ -702,11 +687,6 @@ sub ensure_cached {
 
 			if ($xres != -1) {
 				$cimg->Resize(width=>$nwidth, height=>$nheight, filter=>$filter, 'sampling-factor'=>$sf);
-			}
-
-			if (($nwidth >= 800 || $nheight >= 600 || $xres == -1) && $infobox ne 'nobox') {
-				my $info = Image::ExifTool::ImageInfo($fname);
-				make_infobox($cimg, $info, $r, 1);
 			}
 
 			# Strip EXIF tags etc.

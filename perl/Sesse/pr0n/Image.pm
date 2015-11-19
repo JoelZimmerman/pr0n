@@ -13,29 +13,26 @@ sub handler {
 #		die "Har du lest FAQen?";
 #	}
 
-	# Find the event and file name
+	# Find the event and file name (nobox/ is for compatibility with legacy URLs).
 	my ($event,$filename,$xres,$yres,$dpr);
-	my $infobox = 'both';
+	my $infobox = 0;
 	if ($r->path_info =~ m#^/([a-zA-Z0-9-]+)/original/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
-		$infobox = 'nobox' if (defined($2) && $2 eq 'nobox/');
-		$infobox = 'box' if (defined($2) && $2 eq 'box/');
+		$infobox = 1 if (defined($2) && $2 eq 'box/');
 	} elsif ($r->path_info =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)(?:\@(\d+(?:\.\d+)?))?/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $6;
 		$xres = $2;
 		$yres = $3;
 		$dpr = $4;
-		$infobox = 'nobox' if (defined($5) && $5 eq 'nobox/');
-		$infobox = 'box' if (defined($5) && $5 eq 'box/');
+		$infobox = 1 if (defined($5) && $5 eq 'box/');
 	} elsif ($r->path_info =~ m#^/([a-zA-Z0-9-]+)/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
 		$xres = -1;
 		$yres = -1;
-		$infobox = 'nobox' if (defined($2) && $2 eq 'nobox/');
-		$infobox = 'box' if (defined($2) && $2 eq 'box/');
+		$infobox = 1 if (defined($2) && $2 eq 'box/');
 	}
 	$dpr //= 1;
 

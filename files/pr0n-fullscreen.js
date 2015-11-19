@@ -169,21 +169,20 @@ function display_image(width, height, evt, filename, element_id)
 	img.style.transformOrigin = "top left";
 	img.style.transform = "scale(" + (1.0 / dpr) + ")";
 
-	if (global_infobox != 'nobox/') {
-		var url;
-		if (dpr == 1) {
-			url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
-		} else {
-			url = window.location.origin + "/" + evt + "/" + width + "x" + height + "@" + dpr.toFixed(2) + "/box/" + filename;
-		}
-		var boximg = replace_image_element(url, element_id + "_box", main);
-
-		boximg.style.position = "absolute";
-		boximg.style.left = "0px";
-		boximg.style.bottom = "-1px";
-		boximg.style.transformOrigin = "bottom left";
-		boximg.style.transform = "scale(" + (1.0 / dpr) + ")";
+	// Infobox.
+	var url;
+	if (dpr == 1) {
+		url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
+	} else {
+		url = window.location.origin + "/" + evt + "/" + width + "x" + height + "@" + dpr.toFixed(2) + "/box/" + filename;
 	}
+	var boximg = replace_image_element(url, element_id + "_box", main);
+
+	boximg.style.position = "absolute";
+	boximg.style.left = "0px";
+	boximg.style.bottom = "-1px";
+	boximg.style.transformOrigin = "bottom left";
+	boximg.style.transform = "scale(" + (1.0 / dpr) + ")";
 
 	return img;
 }
