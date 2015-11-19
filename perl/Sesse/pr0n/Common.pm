@@ -1026,7 +1026,7 @@ sub get_all_cache_urls {
 sub set_last_modified {
 	my ($res, $mtime) = @_;
 
-	my $str = POSIX::strftime("%a, %d %b %Y %H:%M:%S %Z", localtime($mtime));
+	my $str = POSIX::strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime($mtime));
 	$res->headers({ 'Last-Modified' => $str });
 }
 
