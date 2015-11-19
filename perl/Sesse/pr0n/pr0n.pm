@@ -28,6 +28,7 @@ sub handler {
 		 $uri eq '/previous.png' ||
 		 $uri eq '/next.png' ||
 		 $uri eq '/close.png' ||
+		 $uri eq '/options.png' ||
 		 $uri =~ m#^/usage/([a-zA-Z0-9_.]+)$#) {
 		$uri =~ s#^/##;
 		my $fname = $Sesse::pr0n::Config::image_base . 'files/' . $uri;

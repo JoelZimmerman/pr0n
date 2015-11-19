@@ -121,7 +121,7 @@ function rename_element(old_name, new_name)
 
 function display_image(width, height, evt, filename, element_id)
 {
-	var url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/nobox/" + filename;
+	var url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/" + filename;
 	var main = document.getElementById("iehack");
 	var preload = document.getElementById("preload");
 	var dpr = find_dpr();
@@ -139,20 +139,30 @@ function display_image(width, height, evt, filename, element_id)
 	img.style.transformOrigin = "top left";
 	img.style.transform = "scale(" + (1.0 / dpr) + ")";
 
-	// Infobox.
-	var url;
-	if (dpr == 1) {
-		url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
-	} else {
-		url = window.location.origin + "/" + evt + "/" + width + "x" + height + "@" + dpr.toFixed(2) + "/box/" + filename;
-	}
-	var boximg = replace_image_element(url, element_id + "_box", main);
+	// Update the "download original" link.
+	var original_url = window.location.origin + "/" + evt + "/original/" + filename;
+	document.getElementById("origdownload").href = original_url;
 
-	boximg.style.position = "absolute";
-	boximg.style.left = "0px";
-	boximg.style.bottom = "-1px";
-	boximg.style.transformOrigin = "bottom left";
-	boximg.style.transform = "scale(" + (1.0 / dpr) + ")";
+	if (global_infobox) {
+		var url;
+		if (dpr == 1) {
+			url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
+		} else {
+			url = window.location.origin + "/" + evt + "/" + width + "x" + height + "@" + dpr.toFixed(2) + "/box/" + filename;
+		}
+		var boximg = replace_image_element(url, element_id + "_box", main);
+
+		boximg.style.position = "absolute";
+		boximg.style.left = "0px";
+		boximg.style.bottom = "-1px";
+		boximg.style.transformOrigin = "bottom left";
+		boximg.style.transform = "scale(" + (1.0 / dpr) + ")";
+	} else {
+		var boximg = document.getElementById(element_id + "_box");
+		if (boximg !== null) {
+			boximg.parentNode.removeChild(boximg);
+		}
+	}
 
 	return img;
 }
@@ -218,6 +228,14 @@ function can_go_previous()
 function set_opacity(id, amount)
 {
 	var elem = document.getElementById(id);
+
+	// If optionmenu is visible, options is also visible.
+	if (id === "options" && amount < 0.7) {
+		var optionmenu = document.getElementById("optionmenu");
+		if (optionmenu.style.display === "block") {
+			amount = 0.7;
+		}
+	}
 	elem.style.opacity = amount;
 }
 
@@ -256,9 +274,10 @@ function relayout()
 		prepare_preload(img, global_image_num + 1);
 	}
 
-	set_opacity("previous", can_go_previous() ? 0.7 : 0.1);
-	set_opacity("next", can_go_next() ? 0.7 : 0.1);
-	set_opacity("close", 0.7);
+	set_opacity("previous", can_go_previous() ? global_default_opacity : 0.1);
+	set_opacity("next", can_go_next() ? global_default_opacity : 0.1);
+	set_opacity("close", global_default_opacity);
+	set_opacity("options", global_default_opacity);
 }
 
 function go_previous()
@@ -269,12 +288,12 @@ function go_previous()
 
 	var img = display_image_num(--global_image_num, "image");
 	if (can_go_previous()) {
-		set_opacity("previous", 0.7);
+		set_opacity("previous", global_default_opacity);
 		prepare_preload(img, global_image_num - 1);
 	} else {
 		set_opacity("previous", 0.1);
 	}
-	set_opacity("next", can_go_next() ? 0.7 : 0.1);
+	set_opacity("next", can_go_next() ? global_default_opacity : 0.1);
 }
 
 function go_next()
@@ -285,17 +304,28 @@ function go_next()
 
 	var img = display_image_num(++global_image_num, "image");
 	if (can_go_next()) {
-		set_opacity("next", 0.7);
+		set_opacity("next", global_default_opacity);
 		prepare_preload(img, global_image_num + 1);
 	} else {
 		set_opacity("next", 0.1);
 	}
-	set_opacity("previous", can_go_previous() ? 0.7 : 0.1);
+	set_opacity("previous", can_go_previous() ? global_default_opacity : 0.1);
 }
 
 function do_close()
 {
 	window.location = global_return_url;
+}
+
+function toggle_optionmenu()
+{
+	var optionmenu = document.getElementById("optionmenu");
+	if (optionmenu.style.display === "block") {
+		optionmenu.style.display = "none";
+	} else {
+		optionmenu.style.display = "block";
+		set_opacity("options", 0.7);
+	}
 }
 
 function draw_text(msg)
@@ -377,16 +407,16 @@ function key_down(which)
 function key_up(which) {
 	if (which == 39) {   // right
 		if (can_go_next()) {
-			set_opacity("next", 0.7);
+			set_opacity("next", global_default_opacity);
 			go_next();
 		}
 	} else if (which == 37) {   // left
 		if (can_go_previous()) {
-			set_opacity("previous", 0.7);
+			set_opacity("previous", global_default_opacity);
 			go_previous();
 		}
 	} else if (which == 27) {   // escape
-		set_opacity("close", 0.7);
+		set_opacity("close", global_default_opacity);
 		do_close();
 	} else if (which == 32 && global_select) {   // space
 		select_image(global_image_list[global_image_num][0], global_image_list[global_image_num][1], 1);
@@ -412,4 +442,17 @@ function check_for_hash_change() {
 		global_image_num = num;
 		relayout();
 	}
+}
+
+function toggle_immersive() {
+	if (global_default_opacity == 0.7) {
+		global_default_opacity = 0.0;
+		global_infobox = false;
+		document.getElementById('immersivetoggle').innerHTML = 'Show decorations';
+	} else {
+		global_default_opacity = 0.7;
+		global_infobox = true;
+		document.getElementById('immersivetoggle').innerHTML = 'Hide all decorations';
+	}
+	relayout();
 }
