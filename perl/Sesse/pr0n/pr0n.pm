@@ -69,7 +69,10 @@ sub handler {
 	} elsif ($uri =~ /^\/[a-zA-Z0-9-]+\/?$/ ||
 		 $uri =~ /^\/\+all\/?$/) {
 		return Sesse::pr0n::Index::handler($r);
-	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/(\d+x\d+(\@\d+(\.\d+)?)?/|original/)((?:no)?box/)?[a-zA-Z0-9._()-]+$#) {
+	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/
+		           (\d+x\d+ ( \@\d+(\.\d+)? )? / | original/ )?
+                           ((?:no)?box/)?
+                           [a-zA-Z0-9._()-]+$#x) {
 		return Sesse::pr0n::Image::handler($r);
 	}
 
