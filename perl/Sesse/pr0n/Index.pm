@@ -69,11 +69,6 @@ sub handler {
 		undef, Sesse::pr0n::Common::get_server_name($r))
 		and $defsettings{'xres'} = $defsettings{'yres'} = undef;
 	
-	# Reduce the front page load when in overload mode.
-	if (Sesse::pr0n::Overload::is_in_overload($r)) {
-		$defsettings{'num'} = 100;
-	}
-		
 	my %settings = %defsettings;
 
 	for my $s (qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen model lens author)) {
@@ -221,7 +216,6 @@ sub handler {
 		}
 
 		print_viewres($r, $io, $event, \%settings, \%defsettings);
-		print_pagelimit($r, $io, $event, \%settings, \%defsettings);
 		print_infobox($r, $io, $event, \%settings, \%defsettings);
 		print_selected($r, $io, $event, \%settings, \%defsettings) if ($num_selected > 0);
 		print_fullscreen($r, $io, $event, \%settings, \%defsettings);
@@ -460,38 +454,6 @@ sub print_viewres {
 
 	print_changes($r, $io, $event, 'viewres', $settings, $defsettings,
 		      'xres', 'yres', \@alternatives);
-}
-
-sub print_pagelimit {
-	my ($r, $io, $event, $settings, $defsettings) = @_;
-	
-	my $title = Sesse::pr0n::Templates::fetch_template($r, 'imgsperpage');
-	chomp $title;
-	$io->print("    <p>$title:\n");
-	
-	# Get choices
-	chomp (my $unlimited = Sesse::pr0n::Templates::fetch_template($r, 'imgsperpage-unlimited'));
-	my @alternatives = qw(10 50 100 250 500);
-	push @alternatives, $unlimited;
-	
-	for my $num (@alternatives) {
-		my %newsettings = %$settings;
-
-		if ($num !~ /^\d+$/) { # unlimited
-			$newsettings{'num'} = -1;
-		} else {
-			$newsettings{'num'} = $num;
-		}
-
-		$io->print("      ");
-		if (eq_with_undef($settings->{'num'}, $newsettings{'num'})) {
-			$io->print($num);
-		} else {
-			Sesse::pr0n::Common::print_link($io, $num, "/$event/", \%newsettings, $defsettings);
-		}
-		$io->print("\n");
-	}
-	$io->print("    </p>\n");
 }
 
 sub print_infobox {
