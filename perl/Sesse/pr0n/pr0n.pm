@@ -6,6 +6,7 @@ use Sesse::pr0n::Rotate;
 use Sesse::pr0n::Select;
 use Sesse::pr0n::WebDAV;
 use Sesse::pr0n::NewEvent;
+use IO::File::WithPath;
 
 package Sesse::pr0n::pr0n;
 use strict;	
@@ -14,7 +15,7 @@ use warnings;
 sub handler {
 	my $r = shift;
 
-	my $uri = $r->uri;
+	my $uri = $r->path_info;
 	if ($uri eq '/' || $uri =~ /^\/\+tags\/?$/) {
 		return Sesse::pr0n::Listing::handler($r);
 	} elsif ($uri eq '/robots.txt' ||
@@ -33,29 +34,32 @@ sub handler {
 		 $uri eq '/pr0n.ico' ||
 		 $uri =~ m#^/usage/([a-zA-Z0-9_.]+)$#) {
 		$uri =~ s#^/##;
-		my $fname = Sesse::pr0n::Common::get_base($r) . 'files/' . $uri;
+		my $fname = $Sesse::pr0n::Config::image_base . 'files/' . $uri;
 		my (undef, undef, undef, undef, undef, undef, undef, $size, undef, $mtime) = stat($fname)
 			or error($r, "stat of $fname: $!");
 
-		$r->content_type(Sesse::pr0n::Common::get_mimetype_from_filename($uri));
-		$r->set_content_length($size);	
-		$r->set_last_modified($mtime);
+		my $res = Plack::Response->new(200);
+		$res->content_type(Sesse::pr0n::Common::get_mimetype_from_filename($uri));
+		$res->content_length($size);	
+		Sesse::pr0n::Common::set_last_modified($res, $mtime);
 
-		if((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
-			return $rc;
-		}
+		#if((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
+		#	return $rc;
+		#}
 
-		$r->sendfile(Sesse::pr0n::Common::get_base($r) . 'files/' . $uri);
-		return Apache2::Const::OK;
+		$res->content(IO::File::WithPath->new($Sesse::pr0n::Config::image_base . 'files/' . $uri));
+		return $res;
 	} elsif ($uri eq '/newevent.html') {
-		$r->content_type('text/html; charset=utf-8');
-		$r->sendfile(Sesse::pr0n::Common::get_base($r) . "files/newevent.html");
-		return Apache2::Const::OK;
+		my $res = Plack::Response->new(200);
+		$res->content_type('text/html; charset=utf-8');
+		$res->content(IO::File::WithPath->new($Sesse::pr0n::Config::image_base . 'files/newevent.html'));
+		return $res;
 	} elsif ($uri =~ m#^/webdav#) {
 		return Sesse::pr0n::WebDAV::handler($r);
 	} elsif ($uri =~ m#^/usage/([a-zA-Z0-9.-]+)$#) {
-		$r->sendfile(Sesse::pr0n::Common::get_base($r) . "usage/$1");
-		return Apache2::Const::OK;
+		my $res = Plack::Response->new(200);
+		$res->content(IO::File::WithPath->new($Sesse::pr0n::Config::image_base . "usage/$1"));
+		return $res;
 	} elsif ($uri =~ m#^/rotate$#) {
 		return Sesse::pr0n::Rotate::handler($r);
 	} elsif ($uri =~ m#^/select$#) {
@@ -70,11 +74,14 @@ sub handler {
 		return Sesse::pr0n::Image::handler($r);
 	}
 
-	$r->status(404);
-	Sesse::pr0n::Common::header($r, "404 File Not Found");
-	$r->print("     <p>The file you requested was not found.</p>");
-	Sesse::pr0n::Common::footer($r);
-	return Apache2::Const::OK;
+	my $res = Plack::Response->new(404);
+	my $io = IO::String->new;
+	Sesse::pr0n::Common::header($r, $io, "404 File Not Found");
+	$io->print("     <p>The file you requested was not found.</p>");
+	Sesse::pr0n::Common::footer($r, $io);
+	$io->setpos(0);
+	$res->body($io);
+	return $res;
 }
 
 1;

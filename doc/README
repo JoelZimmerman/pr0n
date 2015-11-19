@@ -5,85 +5,44 @@ any of the images on pr0n.sesse.net etc.) is licensed under the GNU General
 Public License, version 2. For the full license text, see the COPYING file.
 
 Documentation? Forget it; if you can't set it up, use something else. You can
-have a typical Apache 2 vhost snippet, though:
+have a typical Varnish snippet, though:
 
-<VirtualHost *:8008>
-    ServerAdmin sgunderson@bigfoot.com
-    DocumentRoot /srv/pr0n.sesse.net
-    ServerName pr0n.sesse.net
-    ServerAlias pr0n.sesse.net bilder.knatten.com pannekake.samfundet.no
+backend pr0n {
+    .host = "127.0.0.1";
+    .port = "5015";
+}
 
-    LogLevel info
-    ErrorLog /var/log/apache2/error-pr0n.sesse.net.log
-    CustomLog /var/log/apache2/access-pr0n.sesse.net.log combined
+sub vcl_recv {
+    if (req.http.host == "pr0n.sesse.net") {
+        set req.backend_hint = pr0n;
+    }
+}
 
-    ServerSignature On
-    PerlSwitches -wT
-    
-    # Keep this on during debugging
-#    PerlModule Apache2::Reload
-#    PerlInitHandler Apache2::Reload
-#    PerlSetVar ReloadAll Off
-#    PerlSetVar ReloadModules "Sesse::pr0n::*"
-#    PerlSetVar ReloadConstantRedefineWarnings Off
+sub vcl_deliver {
+    if (resp.http.x-varnish-host && resp.http.x-pr0n-purge) {
+        set resp.http.escaped-regex = regsuball(resp.http.x-pr0n-purge, "\\", "\\\\");
+        ban ( "obj.http.x-varnish-host == " + resp.http.x-varnish-host + " && obj.http.x-varnish-url ~ " + resp.http.escaped-regex );
+        unset resp.http.escaped-regex;
+    }
+    unset resp.http.x-varnish-host;
+    unset resp.http.x-varnish-url;
+    unset resp.http.x-pr0n-purge;
+}
 
-    # Share the loadavg module
-    PerlModule Sesse::pr0n::Overload
+sub vcl_backend_response {
+    if (bereq.http.host == "pr0n.sesse.net") {
+        set beresp.ttl = 1w;
+        set beresp.http.x-varnish-host = bereq.http.host;
+        set beresp.http.x-varnish-url = bereq.url;
+        if (beresp.http.content-type ~ "^(text/html|text/plain|text/xml|text/css|application/x-javascript|application/javascript)") {
+            set beresp.do_gzip = true;
+        }
+    } else {
+        unset beresp.http.x-varnish-host;
+    }
+}
 
-    PerlSetVar ImageBase /srv/pr0n.sesse.net/
-    PerlSetVar TemplateBase /srv/pr0n.sesse.net/templates
-    PerlSetVar OverloadMode Off
-    PerlSetVar OverloadEnableThreshold 100.0
-    PerlSetVar OverloadDisableThreshold 5.0
+To redeploy after changes:
 
-    # All URLs are handled by the central pr0n module
-    <Location />
-        SetHandler modperl
-        PerlResponseHandler Sesse::pr0n::pr0n
-    </Location>                                            
-</VirtualHost>
+  sudo service pr0n reload && sudo varnishadm 'ban obj.http.x-varnish-host ~ "."'
 
-<VirtualHost *:443>
-    ServerAdmin sgunderson@bigfoot.com
-    DocumentRoot /srv/pr0n.sesse.net
-    ServerName pr0n.sesse.net
-    ServerAlias pr0n.sesse.net bilder.knatten.com pannekake.samfundet.no
-
-    LogLevel info
-    ErrorLog /var/log/apache2/error-pr0n.sesse.net.log
-    CustomLog /var/log/apache2/access-pr0n.sesse.net.log combined
-
-    ServerSignature On
-    PerlSwitches -wT
-    
-    SSLEngine on
-    SSLCertificateFile ssl/pr0n.sesse.net.crt
-    SSLCertificateKeyFile ssl/pr0n.sesse.net.key
-    
-    # Keep this on during debugging
-#    PerlModule Apache2::Reload
-#    PerlInitHandler Apache2::Reload
-#    PerlSetVar ReloadAll Off
-#    PerlSetVar ReloadModules "Sesse::pr0n::*"
-#    PerlSetVar ReloadConstantRedefineWarnings Off
-
-    # Share the loadavg module
-    PerlModule Sesse::pr0n::Overload
-
-    PerlSetVar ImageBase /srv/pr0n.sesse.net/
-    PerlSetVar TemplateBase /srv/pr0n.sesse.net/templates
-    PerlSetVar OverloadMode Off
-    PerlSetVar OverloadEnableThreshold 100.0
-    PerlSetVar OverloadDisableThreshold 5.0
-
-    # All URLs are handled by the central pr0n module
-    <Location />
-        SetHandler modperl
-        PerlResponseHandler Sesse::pr0n::pr0n
-    </Location>                                            
-</VirtualHost>
-
-Also, mod_deflate is recommended; just install it and use the default
-configuration, and it will work transparently. (You might want to add
-text/css and application/x-javascript to the list of compressed
-formats, but it's not really _that_ important.)

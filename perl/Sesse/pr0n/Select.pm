@@ -3,41 +3,41 @@ use strict;
 use warnings;
 
 use Sesse::pr0n::Common qw(error dberror);
-use Apache2::Request;
 
 sub handler {
 	my $r = shift;
-	my $apr = Apache2::Request->new($r);
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 	my ($user, $takenby) = Sesse::pr0n::Common::check_access($r);
-	if (!defined($user)) {
-		return Apache2::Const::OK;
-	}
+	return Sesse::pr0n::Common::generate_401($r) if (!defined($user));
 
-	my $event = $apr->param('event');
+	my $event = $r->param('event');
 
-	Sesse::pr0n::Common::header($r, "Selection results");
+	my $res = Plack::Response->new(200);
+	my $io = IO::String->new;
+	Sesse::pr0n::Common::header($r, $io, "Selection results");
 
 	{
 		# Enable transactions and error raising temporarily
 		local $dbh->{AutoCommit} = 0;
 		local $dbh->{RaiseError} = 1;
 
-		my $filename = $apr->param('filename');
-		my $selected = $apr->param('selected');
+		my $filename = $r->param('filename');
+		my $selected = $r->param('selected');
 		my $sql_selected = 'f';
 		if (!defined($selected) || $selected eq '1') {
 			$sql_selected = 't';
 		}
-		$dbh->do('UPDATE images SET selected=? WHERE vhost=? AND event=? AND filename=?', undef, $sql_selected, $r->get_server_name, $event, $filename);
+		$dbh->do('UPDATE images SET selected=? WHERE vhost=? AND event=? AND filename=?', undef, $sql_selected, Sesse::pr0n::Common::get_server_name($r), $event, $filename);
 	}
 
-	$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, $r->get_server_name, $event)
-		or dberror($r, "Cache invalidation failed");
-	Sesse::pr0n::Common::purge_cache($r, "/$event/");
-	Sesse::pr0n::Common::footer($r);
+	$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, Sesse::pr0n::Common::get_server_name($r), $event)
+		or return dberror($r, "Cache invalidation failed");
+	Sesse::pr0n::Common::purge_cache($r, $res, "/$event/");
+	Sesse::pr0n::Common::footer($r, $io);
 
-	return Apache2::Const::OK;
+	$io->setpos(0);
+	$res->body($io);
+	return $res;
 }
 
 1;

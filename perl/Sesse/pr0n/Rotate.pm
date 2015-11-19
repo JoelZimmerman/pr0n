@@ -3,16 +3,12 @@ use strict;
 use warnings;
 
 use Sesse::pr0n::Common qw(error dberror);
-use Apache2::Request;
 
 sub handler {
 	my $r = shift;
-	my $apr = Apache2::Request->new($r);
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 	my ($user, $takenby) = Sesse::pr0n::Common::check_access($r);
-	if (!defined($user)) {
-		return Apache2::Const::OK;
-	}
+	return Sesse::pr0n::Common::generate_401($r) if (!defined($user));
 
 	# FIXME: People can rotate and delete across vhosts using this interface.
 	# We should add some sanity checks.
@@ -21,34 +17,37 @@ sub handler {
 
 	Sesse::pr0n::Common::header($r, "Rotation/deletion results");
 
+	my $res = Plack::Response->new(200);
+	my $io = IO::String->new;
+
 	{
 		# Enable transactions and error raising temporarily
 		local $dbh->{RaiseError} = 1;
 
-		my @params = $apr->param();
+		my @params = $r->param();
 		my $key;
 		for $key (@params) {
 			local $dbh->{AutoCommit} = 0;
 
 			# Rotation
-			if ($key =~ /^rot-(\d+)-(90|180|270)$/ && $apr->param($key) eq 'on') {
+			if ($key =~ /^rot-(\d+)-(90|180|270)$/ && $r->param($key) eq 'on') {
 				my ($id, $rotval) = ($1,$2);
 				my $fname = Sesse::pr0n::Common::get_disk_location($r, $id);
 				push @to_purge, Sesse::pr0n::Common::get_all_cache_urls($r, $dbh, $id);
 				(my $tmpfname = $fname) =~ s/\.jpg$/-tmp.jpg/;
 
 				system("/usr/bin/jpegtran -rotate $rotval -copy all < '$fname' > '$tmpfname' && /bin/mv '$tmpfname' '$fname'") == 0
-					or error($r, "Rotation of $id [/usr/bin/jpegtran -rotate $rotval -copy all < '$fname' > '$tmpfname' && /bin/mv '$tmpfname' '$fname'] failed: $!.");
-				$r->print("    <p>Rotated image ID `$id' by $rotval degrees.</p>\n");
+					or return error($r, "Rotation of $id [/usr/bin/jpegtran -rotate $rotval -copy all < '$fname' > '$tmpfname' && /bin/mv '$tmpfname' '$fname'] failed: $!.");
+				$io->print("    <p>Rotated image ID `$id' by $rotval degrees.</p>\n");
 
 				if ($rotval == 90 || $rotval == 270) {
 					my $q = $dbh->do('UPDATE images SET height=width,width=height WHERE id=?', undef, $id)
-						or dberror($r, "Size clear of $id failed");
+						or return dberror($r, "Size clear of $id failed");
 					$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE (vhost,event)=( SELECT vhost,event FROM images WHERE id=? )',
 						undef, $id)
-						or dberror($r, "Cache invalidation at $id failed");
+						or return dberror($r, "Cache invalidation at $id failed");
 				}
-			} elsif ($key =~ /^del-(\d+)$/ && $apr->param($key) eq 'on') {
+			} elsif ($key =~ /^del-(\d+)$/ && $r->param($key) eq 'on') {
 				my $id = $1;
 				push @to_purge, Sesse::pr0n::Common::get_all_cache_urls($r, $dbh, $id);
 				{
@@ -66,25 +65,26 @@ sub handler {
 					if ($@) {
 # Some error occurred, rollback and bomb out
 						$dbh->rollback;
-						dberror($r, "Transaction aborted because $@");
+						return dberror($r, "Transaction aborted because $@");
 					}
 				}
-				$r->print("    <p>Deleted image `$id'.</p>\n");
+				$io->print("    <p>Deleted image `$id'.</p>\n");
 			}
 		}
 	}
 	
-	my $event = $apr->param('event');
-	$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, $r->get_server_name, $event)
-		or dberror($r, "Cache invalidation failed");
+	my $event = $r->param('event');
+	$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?', undef, Sesse::pr0n::Common::get_server_name($r), $event)
+		or return dberror($r, "Cache invalidation failed");
 
 	push @to_purge, "/$event/";
 	push @to_purge, "/+all/";
-	Sesse::pr0n::Common::purge_cache($r, @to_purge);
+	Sesse::pr0n::Common::purge_cache($r, $res, @to_purge);
 
-	Sesse::pr0n::Common::footer($r);
-
-	return Apache2::Const::OK;
+	Sesse::pr0n::Common::footer($r, $io);
+	$io->setpos(0);
+	$res->body($io);
+	return $res;
 }
 
 1;

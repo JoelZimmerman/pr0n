@@ -16,12 +16,12 @@ sub handler {
 	# Find the event and file name
 	my ($event,$filename,$xres,$yres,$dpr);
 	my $infobox = 'both';
-	if ($r->uri =~ m#^/([a-zA-Z0-9-]+)/original/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
+	if ($r->path_info =~ m#^/([a-zA-Z0-9-]+)/original/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
 		$infobox = 'nobox' if (defined($2) && $2 eq 'nobox/');
 		$infobox = 'box' if (defined($2) && $2 eq 'box/');
-	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)(?:\@(\d+(?:\.\d+)?))?/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
+	} elsif ($r->path_info =~ m#^/([a-zA-Z0-9-]+)/(\d+)x(\d+)(?:\@(\d+(?:\.\d+)?))?/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $6;
 		$xres = $2;
@@ -29,7 +29,7 @@ sub handler {
 		$dpr = $4;
 		$infobox = 'nobox' if (defined($5) && $5 eq 'nobox/');
 		$infobox = 'box' if (defined($5) && $5 eq 'box/');
-	} elsif ($r->uri =~ m#^/([a-zA-Z0-9-]+)/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
+	} elsif ($r->path_info =~ m#^/([a-zA-Z0-9-]+)/((?:no)?box/)?([a-zA-Z0-9._()-]+)$#) {
 		$event = $1;
 		$filename = $3;
 		$xres = -1;
@@ -46,8 +46,8 @@ sub handler {
 	
 	# Look it up in the database
 	my $ref = $dbh->selectrow_hashref('SELECT id,width,height FROM images WHERE event=? AND vhost=? AND filename=?',
-		undef, $event, $r->get_server_name, $filename);
-	error($r, "Could not find $event/$filename", 404, "File not found") unless (defined($ref));
+		undef, $event, Sesse::pr0n::Common::get_server_name($r), $filename);
+	return error($r, "Could not find $event/$filename", 404, "File not found") unless (defined($ref));
 
 	$id = $ref->{'id'};
 	$dbwidth = $ref->{'width'};
@@ -57,25 +57,26 @@ sub handler {
 	my ($fname, $mime_type) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $infobox, $dpr, $xres, $yres);
 
 	# Output the image to the user
+	my $res = Plack::Response->new(200);
+
 	if (!defined($mime_type)) {
 		$mime_type = Sesse::pr0n::Common::get_mimetype_from_filename($filename);
 	}
-	$r->content_type($mime_type);
+	$res->content_type($mime_type);
 	
 	my (undef, undef, undef, undef, undef, undef, undef, $size, undef, $mtime) = stat($fname)
-                or error($r, "stat of $fname: $!");
+                or return error($r, "stat of $fname: $!");
 		
-	$r->set_content_length($size);
-	$r->set_last_modified($mtime);
+	$res->content_length($size);
+	Sesse::pr0n::Common::set_last_modified($res, $mtime);
 
-	# If the client can use cache, by all means do so
-	if ((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
-		return $rc;
-	}
+	# # If the client can use cache, by all means do so
+	#if ((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
+	#	return $rc;
+	#}
 
-	$r->sendfile($fname);
-
-	return Apache2::Const::OK;
+	$res->content(IO::File::WithPath->new($fname));
+	return $res;
 }
 
 1;

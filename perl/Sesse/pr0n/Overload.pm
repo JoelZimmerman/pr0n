@@ -22,7 +22,7 @@ sub is_in_overload {
 	my $r = shift;
 
 	# Manually set overload mode
-	if (lc($r->dir_config('OverloadMode')) eq 'on') {
+	if ($Sesse::pr0n::Config::overload_mode) {
 		return 1;
 	}
 
@@ -31,8 +31,8 @@ sub is_in_overload {
 		$in_overload = 0;
 	}
 
-	my $enable_threshold = $r->dir_config('OverloadEnableThreshold') || 10.0;
-	my $disable_threshold = $r->dir_config('OverloadDisableThreshold') || 5.0;
+	my $enable_threshold = $Sesse::pr0n::Config::overload_enable_threshold // 10.0;
+	my $disable_threshold = $Sesse::pr0n::Config::overload_disable_threshold // 5.0;
 	
 	# Check if our load average estimate is more than a minute old
 	if (!defined($last_update) || (time - $last_update) > 60) {
@@ -48,17 +48,17 @@ sub is_in_overload {
 
 		if ($in_overload) {
 			if ($loadavg < $disable_threshold) {
-				$r->log->info("Current load average is $loadavg (threshold: $disable_threshold), leaving overload mode");
+				Sesse::pr0n::Common::log_info($r, "Current load average is $loadavg (threshold: $disable_threshold), leaving overload mode");
 				$in_overload = 0;
 			} else {
-				$r->log->warn("Current load average is $loadavg (threshold: $disable_threshold), staying in overload mode");
+				Sesse::pr0n::Common::log_warn($r, "Current load average is $loadavg (threshold: $disable_threshold), staying in overload mode");
 			}
 		} else {
 			if ($loadavg > $enable_threshold) {
-				$r->log->warn("Current load average is $loadavg (threshold: $enable_threshold), entering overload mode");
+				Sesse::pr0n::Common::log_warn($r, "Current load average is $loadavg (threshold: $enable_threshold), entering overload mode");
 				$in_overload = 1;
 			} else {
-				$r->log->info("Current load average is $loadavg (threshold: $enable_threshold)");
+				Sesse::pr0n::Common::log_info($r, "Current load average is $loadavg (threshold: $enable_threshold)");
 			}
 		}
 	}

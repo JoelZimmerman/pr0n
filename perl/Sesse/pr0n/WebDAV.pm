@@ -5,53 +5,46 @@ use warnings;
 use Sesse::pr0n::Common qw(error dberror);
 use Digest::SHA;
 use MIME::Base64;
-use Apache2::Request;
-use Apache2::Upload;
 
 sub handler {
 	my $r = shift;
 	my $dbh = Sesse::pr0n::Common::get_dbh();
-			
-	$r->headers_out->{'DAV'} = "1,2";
+
+	my $res = Plack::Response->new(200);
+	my $io = IO::String->new;
+	$r->header('DAV' => "1,2");
 
 	# We only handle depth=0, depth=1 (cf. the RFC)
-	my $depth = $r->headers_in->{'depth'};
+	my $depth = $r->header('depth');
 	$depth = 0 if (!defined($depth));
 	if (defined($depth) && $depth ne "0" && $depth ne "1") {
-		$r->content_type('text/plain; charset="utf-8"');
-		$r->status(403);
-		$r->print("Invalid depth setting");
-		return Apache2::Const::OK;
-	}
-
-	my ($user,$takenby) = Sesse::pr0n::Common::check_access($r);
-	if (!defined($user)) {
-		return Apache2::Const::OK;
+		$res->status(403);	
+		$res->content_type('text/plain; charset="utf-8"');
+		$res->body("Invalid depth setting");
+		return $res;
 	}
 
 	# Just "ping, are you alive and do you speak WebDAV"
 	if ($r->method eq "OPTIONS") {
-		$r->content_type('text/plain; charset="utf-8"');
-		$r->status(200);
-		$r->headers_out->{'allow'} = 'OPTIONS,PUT';
-		$r->headers_out->{'ms-author-via'} = 'DAV';
-		return Apache2::Const::OK;
+		$res->content_type('text/plain; charset="utf-8"');
+		$res->header('allow' => 'OPTIONS,PUT');
+		$res->header('ms-author-via' => 'DAV');
+		return $res;
 	}
 	
+	my ($user,$takenby) = Sesse::pr0n::Common::check_access($r);
+	return Sesse::pr0n::Common::generate_401($r) if (!defined($user));
+
 	# Directory listings et al
 	if ($r->method eq "PROPFIND") {
-		# We ignore the body, but we _must_ consume it fully before
-		# we output anything, or Squid will get seriously confused
-		$r->discard_request_body;
+		$res->content_type('text/xml; charset="utf-8"');
+		$res->status(207);
 
-		$r->content_type('text/xml; charset="utf-8"');
-		$r->status(207);
-
-		if ($r->uri =~ m#^/webdav/?$#) {
-			$r->headers_out->{'content-location'} = "/webdav/";
+		if ($r->path_info =~ m#^/webdav/?$#) {
+			$res->header('content-location' => "/webdav/");
 		
 			# Root directory
-			$r->print(<<"EOF");
+			$io->print(<<"EOF");
 <?xml version="1.0" encoding="utf-8"?>
 <multistatus xmlns="DAV:">
   <response>
@@ -68,7 +61,7 @@ EOF
 
 			# Optionally list the upload/ dir
 			if ($depth >= 1) {
-				$r->print(<<"EOF");
+				$io->print(<<"EOF");
   <response>
      <href>/webdav/upload/</href>
      <propstat>
@@ -81,12 +74,12 @@ EOF
   </response>
 EOF
 			}
-			$r->print("</multistatus>\n");
-		 } elsif ($r->uri =~ m#^/webdav/upload/?$#) {
-			$r->headers_out->{'content-location'} = "/webdav/upload/";
+			$io->print("</multistatus>\n");
+		 } elsif ($r->path_info =~ m#^/webdav/upload/?$#) {
+			$res->header('content-location' => "/webdav/upload/");
 			
 			# Upload root directory
-			$r->print(<<"EOF");
+			$io->print(<<"EOF");
 <?xml version="1.0" encoding="utf-8"?>
 <multistatus xmlns="DAV:">
   <response>
@@ -104,16 +97,16 @@ EOF
 			# Optionally list all events
 			if ($depth >= 1) {
 				my $q = $dbh->prepare('SELECT * FROM events WHERE vhost=?') or
-					dberror($r, "Couldn't list events");
-				$q->execute($r->get_server_name) or
-					dberror($r, "Couldn't get events");
+					return dberror($r, "Couldn't list events");
+				$q->execute(Sesse::pr0n::Common::get_server_name($r)) or
+					return dberror($r, "Couldn't get events");
 		
 				while (my $ref = $q->fetchrow_hashref()) {
-					my $id = $ref->{'event'};
-					my $name = $ref->{'name'};
+					my $id = Encode::encode_utf8($ref->{'event'});
+					my $name = Encode::encode_utf8($ref->{'name'});
 				
 					$name =~ s/&/\&amp;/g;  # hack :-)
-					$r->print(<<"EOF");
+					$io->print(<<"EOF");
   <response>
      <href>/webdav/upload/$id/</href>
      <propstat>
@@ -130,24 +123,24 @@ EOF
 				$q->finish;
 			}
 
-			$r->print("</multistatus>\n");
-		} elsif ($r->uri =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/?$#) {
+			$io->print("</multistatus>\n");
+		} elsif ($r->path_info =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/?$#) {
 			my $event = $1;
 			
-			$r->headers_out->{'content-location'} = "/webdav/upload/$event/";
+			$res->header('content-location' => "/webdav/upload/$event/");
 			
 			# Check that we do indeed exist
 			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numev FROM events WHERE vhost=? AND event=?',
-				undef, $r->get_server_name, $event);
+				undef, Sesse::pr0n::Common::get_server_name($r), $event);
 			if ($ref->{'numev'} != 1) {
-				$r->status(404);
-				$r->content_type('text/plain; charset=utf-8');
-				$r->print("Couldn't find event in database");
-				return Apache2::Const::OK;
+				$res->status(404);
+				$res->content_type('text/plain; charset=utf-8');
+				$res->body("Couldn't find event in database");
+				return $res;
 			}
 			
 			# OK, list the directory
-			$r->print(<<"EOF");
+			$io->print(<<"EOF");
 <?xml version="1.0" encoding="utf-8"?>
 <multistatus xmlns="DAV:">
   <response>
@@ -165,9 +158,9 @@ EOF
 			# List all the files within too, of course :-)
 			if ($depth >= 1) {
 				my $q = $dbh->prepare('SELECT * FROM images WHERE vhost=? AND event=?') or
-					dberror($r, "Couldn't list images");
-				$q->execute($r->get_server_name, $event) or
-					dberror($r, "Couldn't get events");
+					return dberror($r, "Couldn't list images");
+				$q->execute(Sesse::pr0n::Common::get_server_name($r), $event) or
+					return dberror($r, "Couldn't get events");
 		
 				while (my $ref = $q->fetchrow_hashref()) {
 					my $id = $ref->{'id'};
@@ -178,7 +171,7 @@ EOF
 					$mtime = POSIX::strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime($mtime));
 					my $mime_type = Sesse::pr0n::Common::get_mimetype_from_filename($filename);
 
-					$r->print(<<"EOF");
+					$io->print(<<"EOF");
   <response>
      <href>/webdav/upload/$event/$filename</href>
      <propstat>
@@ -196,7 +189,7 @@ EOF
 				$q->finish;
 
 				# And the magical autorename folder
-				$r->print(<<"EOF");
+				$io->print(<<"EOF");
   <response>
      <href>/webdav/upload/$event/autorename/</href>
      <propstat>
@@ -210,27 +203,28 @@ EOF
 EOF
 			}
 
-			$r->print("</multistatus>\n");
-
-			return Apache2::Const::OK;
-		} elsif ($r->uri =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/autorename/?$#) {
+			$io->print("</multistatus>\n");
+			$io->setpos(0);
+			$res->body($io);
+			return $res;
+		} elsif ($r->path_info =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/autorename/?$#) {
 			# The autorename folder is always empty
 			my $event = $1;
 			
-			$r->headers_out->{'content-location'} = "/webdav/upload/$event/autorename/";
+			$res->header('content-location' => "/webdav/upload/$event/autorename/");
 			
 			# Check that we do indeed exist
 			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numev FROM events WHERE vhost=? AND event=?',
-				undef, $r->get_server_name, $event);
+				undef, Sesse::pr0n::Common::get_server_name($r), $event);
 			if ($ref->{'numev'} != 1) {
-				$r->status(404);
-				$r->content_type('text/plain; charset=utf-8');
-				$r->print("Couldn't find event in database");
-				return Apache2::Const::OK;
+				$res->status(404);
+				$res->content_type('text/plain; charset=utf-8');
+				$res->body("Couldn't find event in database");
+				return $res;
 			}
 			
 			# OK, list the (empty) directory
-			$r->print(<<"EOF");
+			$res->body(<<"EOF");
 <?xml version="1.0" encoding="utf-8"?>
 <multistatus xmlns="DAV:">
   <response>
@@ -246,15 +240,15 @@ EOF
 </multistatus>
 EOF
 	
-			return Apache2::Const::OK;
-		} elsif ($r->uri =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/([a-zA-Z0-9._()-]+)$#) {
+			return $res;
+		} elsif ($r->path_info =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/([a-zA-Z0-9._()-]+)$#) {
 			# stat a single file
 			my ($event, $filename) = ($1, $2);
 			my ($fname, $size, $mtime);
 			
 			# check if we have a pending fake file for this
 			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numfiles FROM fake_files WHERE event=? AND vhost=? AND filename=? AND expires_at > now()',
-				undef, $event, $r->get_server_name, $filename);
+				undef, $event, Sesse::pr0n::Common::get_server_name($r), $filename);
 			if ($ref->{'numfiles'} == 1) {
 				$fname = "/dev/null";
 				$size = 0;
@@ -264,15 +258,15 @@ EOF
 			}
 			
 			if (!defined($fname)) {
-				$r->status(404);
-				$r->content_type('text/plain; charset=utf-8');
-				$r->print("Couldn't find file");
-				return Apache2::Const::OK;
+				$res->status(404);
+				$res->content_type('text/plain; charset=utf-8');
+				$res->body("Couldn't find file");
+				return $res;
 			}
 			my $mime_type = Sesse::pr0n::Common::get_mimetype_from_filename($filename);
 			
 			$mtime = POSIX::strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime($mtime));
-			$r->print(<<"EOF");
+			$res->body(<<"EOF");
 <?xml version="1.0" encoding="utf-8"?>
 <multistatus xmlns="DAV:">
   <response>
@@ -289,15 +283,15 @@ EOF
   </response>
 </multistatus>
 EOF
-			return Apache2::Const::OK;
-		} elsif ($r->uri =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/autorename/(.{1,250})$#) {
+			return $res;
+		} elsif ($r->path_info =~ m#^/webdav/upload/([a-zA-Z0-9-]+)/autorename/(.{1,250})$#) {
 			# stat a single file in autorename
 			my ($event, $filename) = ($1, $2);
 			my ($fname, $size, $mtime);
 			
 			# check if we have a pending fake file for this
 			my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numfiles FROM fake_files WHERE event=? AND vhost=? AND filename=? AND expires_at > now()',
-				undef, $event, $r->get_server_name, $filename);
+				undef, $event, Sesse::pr0n::Common::get_server_name($r), $filename);
 			if ($ref->{'numfiles'} == 1) {
 				$fname = "/dev/null";
 				$size = 0;
@@ -305,22 +299,22 @@ EOF
 			} else {
 				# check if we have a "shadow file" for this
 				my $ref = $dbh->selectrow_hashref('SELECT id FROM shadow_files WHERE vhost=? AND event=? AND filename=? AND expires_at > now()',
-					undef, $r->get_server_name, $event, $filename);
+					undef, Sesse::pr0n::Common::get_server_name($r), $event, $filename);
 				if (defined($ref)) {
 				 	($fname, $size, $mtime) = Sesse::pr0n::Common::stat_image_from_id($r, $ref->{'id'});
 				}
 			}
 			
 			if (!defined($fname)) {
-				$r->status(404);
-				$r->content_type('text/plain; charset=utf-8');
-				$r->print("Couldn't find file");
-				return Apache2::Const::OK;
+				$res->status(404);
+				$res->content_type('text/plain; charset=utf-8');
+				$res->body("Couldn't find file");
+				return $res;
 			}
 			my $mime_type = Sesse::pr0n::Common::get_mimetype_from_filename($filename);
 			
 			$mtime = POSIX::strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime($mtime));
-			$r->print(<<"EOF");
+			$io->print(<<"EOF");
 <?xml version="1.0" encoding="utf-8"?>
 <multistatus xmlns="DAV:">
   <response>
@@ -338,19 +332,22 @@ EOF
 </multistatus>
 EOF
 		} else {
-			$r->status(404);
-			$r->content_type('text/plain; charset=utf-8');
-			$r->print("Couldn't find file");
+			$res->status(404);
+			$res->content_type('text/plain; charset=utf-8');
+			$res->body("Couldn't find file");
+			return $res;
 		}
-		return Apache2::Const::OK;
+		$io->setpos(0);
+		$res->body($io);
+		return $res;
 	}
 	
 	if ($r->method eq "HEAD" or $r->method eq "GET") {
-		if ($r->uri !~ m#^/webdav/upload/([a-zA-Z0-9-]+)/(autorename/)?(.{1,250})$#) {
-			$r->status(404);
-			$r->content_type('text/xml; charset=utf-8');
-			$r->print("<?xml version=\"1.0\"?>\n<p>Couldn't find file</p>");
-			return Apache2::Const::OK;
+		if ($r->path_info !~ m#^/webdav/upload/([a-zA-Z0-9-]+)/(autorename/)?(.{1,250})$#) {
+			$res->status(404);
+			$res->content_type('text/xml; charset=utf-8');
+			$res->body("<?xml version=\"1.0\"?>\n<p>Couldn't find file</p>");
+			return $res;
 		}
 
 		my ($event, $autorename, $filename) = ($1, $2, $3);
@@ -360,7 +357,7 @@ EOF
 
 		# check if we have a pending fake file for this
 		my $ref = $dbh->selectrow_hashref('SELECT count(*) AS numfiles FROM fake_files WHERE event=? AND vhost=? AND filename=? AND expires_at > now()',
-			undef, $event, $r->get_server_name, $filename);
+			undef, $event, Sesse::pr0n::Common::get_server_name($r), $filename);
 		if ($ref->{'numfiles'} == 1) {
 			$fname = "/dev/null";
 			$size = 0;
@@ -369,7 +366,7 @@ EOF
 			# check if we have a "shadow file" for this
 			if (defined($autorename) && $autorename eq "autorename/") {
 				my $ref = $dbh->selectrow_hashref('SELECT id FROM shadow_files WHERE vhost=? AND event=? AND filename=? AND expires_at > now()',
-					undef, $r->get_server_name, $event, $filename);
+					undef, Sesse::pr0n::Common::get_server_name($r), $event, $filename);
 				if (defined($ref)) {
 				 	($fname, $size, $mtime) = Sesse::pr0n::Common::stat_image_from_id($r, $ref->{'id'});
 				}
@@ -379,34 +376,34 @@ EOF
 		}
 		
 		if (!defined($fname)) {
-			$r->status(404);
-			$r->content_type('text/plain; charset=utf-8');
-			$r->print("Couldn't find file");
-			return Apache2::Const::OK;
+			$res->status(404);
+			$res->content_type('text/plain; charset=utf-8');
+			$res->body("Couldn't find file");
+			return $res;
 		}
 		
-		$r->status(200);
-		$r->set_content_length($size);
-		$r->set_last_modified($mtime);
+		$res->status(200);
+		$res->set_content_length($size);
+		Sesse::pr0n::Common::set_last_modified($res, $mtime);
 	
 		if ($r->method eq "GET") {
-			$r->sendfile($fname);
+			$res->content(IO::File::WithPath->new($fname));
 		}
-		return Apache2::Const::OK;
+		return $res;
 	}
 	
 	if ($r->method eq "PUT") {
-		if ($r->uri !~ m#^/webdav/upload/([a-zA-Z0-9-]+)/(autorename/)?(.{1,250})$#) {
-			$r->status(403);
-			$r->content_type('text/plain; charset=utf-8');
-			$r->print("No access");
-			return Apache2::Const::OK;
+		if ($r->path_info !~ m#^/webdav/upload/([a-zA-Z0-9-]+)/(autorename/)?(.{1,250})$#) {
+			$res->status(403);
+			$res->content_type('text/plain; charset=utf-8');
+			$res->body("No access");
+			return $res;
 		}
 		
 		my ($event, $autorename, $filename) = ($1, $2, $3);
-		my $size = $r->headers_in->{'content-length'};
+		my $size = $r->header('content-length');
 		if (!defined($size)) {
-			$size = $r->headers_in->{'x-expected-entity-length'};
+			$size = $r->header('x-expected-entity-length');
 		}
 		my $orig_filename = $filename;
 
@@ -415,10 +412,10 @@ EOF
 			if (defined($autorename) && $autorename eq "autorename/") {
 				$filename =~ tr/a-zA-Z0-9.()-/_/c;
 			} else {
-				$r->status(403);
-				$r->content_type('text/plain; charset=utf-8');
-				$r->print("Illegal characters in filename");
-				return Apache2::Const::OK;
+				$res->status(403);
+				$res->content_type('text/plain; charset=utf-8');
+				$res->body("Illegal characters in filename");
+				return $res;
 			}
 		}
 		
@@ -428,38 +425,38 @@ EOF
 		# 
 		if ($size == 0 || $filename =~ /^\.(_|DS_Store)/) {
 			$dbh->do('DELETE FROM fake_files WHERE expires_at <= now() OR (event=? AND vhost=? AND filename=?);',
-				undef, $event, $r->get_server_name, $filename)
-				or dberror($r, "Couldn't prune fake_files");
+				undef, $event, Sesse::pr0n::Common::get_server_name($r), $filename)
+				or return dberror($r, "Couldn't prune fake_files");
 			$dbh->do('INSERT INTO fake_files (vhost,event,filename,expires_at) VALUES (?,?,?,now() + interval \'1 day\');',
-				undef, $r->get_server_name, $event, $filename)
-				or dberror($r, "Couldn't add file");
-			$r->content_type('text/plain; charset="utf-8"');
-			$r->status(201);
-			$r->print("OK");
-			$r->log->info("Fake upload of $event/$filename");
-			return Apache2::Const::OK;
+				undef, Sesse::pr0n::Common::get_server_name($r), $event, $filename)
+				or return dberror($r, "Couldn't add file");
+			$res->content_type('text/plain; charset="utf-8"');
+			$res->status(201);
+			$res->body("OK");
+			Sesse::pr0n::Common::log_info($r, "Fake upload of $event/$filename");
+			return $res;
 		}
 			
 		# Get the new ID
 		my $ref = $dbh->selectrow_hashref("SELECT NEXTVAL('imageid_seq') AS id;");
 		my $newid = $ref->{'id'};
 		if (!defined($newid)) {
-			dberror($r, "Couldn't get new ID");
+			return dberror($r, "Couldn't get new ID");
 		}
 		
 		# Autorename if we need to
 		$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS numfiles FROM images WHERE vhost=? AND event=? AND filename=?",
-		                               undef, $r->get_server_name, $event, $filename)
-			or dberror($r, "Couldn't check for existing files");
+		                               undef, Sesse::pr0n::Common::get_server_name($r), $event, $filename)
+			or return dberror($r, "Couldn't check for existing files");
 		if ($ref->{'numfiles'} > 0) {
 			if (defined($autorename) && $autorename eq "autorename/") {
-				$r->log->info("Renaming $filename to $newid.jpeg");
+				Sesse::pr0n::Common::log_info($r, "Renaming $filename to $newid.jpeg");
 				$filename = "$newid.jpeg";
 			} else {
-				$r->status(403);
-				$r->content_type('text/plain; charset=utf-8');
-				$r->print("File $filename already exists in event $event, cannot overwrite");
-				return Apache2::Const::OK;
+				$res->status(403);
+				$res->content_type('text/plain; charset=utf-8');
+				$res->body("File $filename already exists in event $event, cannot overwrite");
+				return $res;
 			}
 		}
 		
@@ -472,23 +469,19 @@ EOF
 			# Try to insert this new file
 			eval {
 				$dbh->do('DELETE FROM fake_files WHERE vhost=? AND event=? AND filename=?',
-					undef, $r->get_server_name, $event, $filename);
+					undef, Sesse::pr0n::Common::get_server_name($r), $event, $filename);
 					
 				$dbh->do('INSERT INTO images (id,vhost,event,uploadedby,takenby,filename) VALUES (?,?,?,?,?,?)',
-					undef, $newid, $r->get_server_name, $event, $user, $takenby, $filename);
-				Sesse::pr0n::Common::purge_cache($r, "/$event/");
+					undef, $newid, Sesse::pr0n::Common::get_server_name($r), $event, $user, $takenby, $filename);
+				Sesse::pr0n::Common::purge_cache($r, $res, "/$event/");
 
 				# Now save the file to disk
 				Sesse::pr0n::Common::ensure_disk_location_exists($r, $newid);	
 				$fname = Sesse::pr0n::Common::get_disk_location($r, $newid);
-				open NEWFILE, ">$fname"
+
+				open NEWFILE, ">", $fname
 					or die "$fname: $!";
-
-				my $buf;
-				if ($r->read($buf, $size)) {
-					print NEWFILE $buf or die "write($fname): $!";
-				}
-
+				print NEWFILE $r->content;
 				close NEWFILE or die "close($fname): $!";
 				
 				# Orient stuff correctly
@@ -506,51 +499,50 @@ EOF
 				# OK, we got this far, commit
 				$dbh->commit;
 
-				$r->log->notice("Successfully wrote $event/$filename to $fname");
+				Sesse::pr0n::Common::log_info($r, "Successfully wrote $event/$filename to $fname");
 			};
 			if ($@) {
 				# Some error occurred, rollback and bomb out
 				$dbh->rollback;
-				error($r, "Transaction aborted because $@");
 				unlink($fname);
+				return error($r, "Transaction aborted because $@");
 			}
 		}
 
 		# Insert a `shadow file' we can stat the next day or so
 		if (defined($autorename) && $autorename eq "autorename/") {
 			$dbh->do('DELETE FROM shadow_files WHERE expires_at <= now() OR (vhost=? AND event=? AND filename=?);',
-				undef, $r->get_server_name, $event, $filename)
-				or dberror($r, "Couldn't prune shadow_files");
+				undef, Sesse::pr0n::Common::get_server_name($r), $event, $filename)
+				or return dberror($r, "Couldn't prune shadow_files");
 			$dbh->do('INSERT INTO shadow_files (vhost,event,filename,id,expires_at) VALUES (?,?,?,?,now() + interval \'1 day\');',
-				undef, $r->get_server_name, $event, $orig_filename, $newid)
-				or dberror($r, "Couldn't add shadow file");
-			$r->log->info("Added shadow entry for $event/$filename");
+				undef, Sesse::pr0n::Common::get_server_name($r), $event, $orig_filename, $newid)
+				or return dberror($r, "Couldn't add shadow file");
+			Sesse::pr0n::Common::log_info($r, "Added shadow entry for $event/$filename");
 		}
 
-		$r->content_type('text/plain; charset="utf-8"');
-		$r->status(201);
-		$r->print("OK");
-
-		return Apache2::Const::OK;
+		$res->content_type('text/plain; charset="utf-8"');
+		$res->status(201);
+		$res->body("OK");
+		return $res;
 	}
 	
 	# Yes, we fake locks. :-)
 	if ($r->method eq "LOCK") {
-		if ($r->uri !~ m#^/webdav/upload/([a-zA-Z0-9-]+)/(autorename/)?([a-zA-Z0-9._-]+)$#) {
-			$r->status(403);
-			$r->content_type('text/plain; charset=utf-8');
-			$r->print("No access");
-			return Apache2::Const::OK;
+		if ($r->path_info !~ m#^/webdav/upload/([a-zA-Z0-9-]+)/(autorename/)?([a-zA-Z0-9._-]+)$#) {
+			$res->status(403);
+			$res->content_type('text/plain; charset=utf-8');
+			$res->body("No access");
+			return $res;
 		}
 
 		my ($event, $autorename, $filename) = ($1, $2, $3);
 		$autorename = '' if (!defined($autorename));
 		my $sha1 = Digest::SHA::sha1_base64("/$event/$autorename$filename");
 
-		$r->status(200);
-		$r->content_type('text/xml; charset=utf-8');
+		$res->status(200);
+		$res->content_type('text/xml; charset=utf-8');
 
-		$r->print(<<"EOF");
+		$io->print(<<"EOF");
 <?xml version="1.0" encoding="utf-8"?>
 <prop xmlns="DAV:">
   <lockdiscovery>
@@ -569,38 +561,39 @@ EOF
   </lockdiscovery>
 </prop>
 EOF
-		return Apache2::Const::OK;
+		$io->setpos(0);
+		$res->body($io);
+		return $res;
 	}
 	
 	if ($r->method eq "UNLOCK") {
-		$r->content_type('text/plain; charset="utf-8"');
-		$r->status(200);
-		$r->print("OK");
-
-		return Apache2::Const::OK;
+		$res->content_type('text/plain; charset="utf-8"');
+		$res->status(200);
+		$res->body("OK");
+		return $res;
 	}
 
 	if ($r->method eq "DELETE") {
-		if ($r->uri !~ m#^/webdav/upload/([a-zA-Z0-9-]+)/(autorename/)?(\._[a-zA-Z0-9._-]+)$#) {
-			$r->status(403);
-			$r->content_type('text/plain; charset=utf-8');
-			$r->print("No access");
-			return Apache2::Const::OK;
+		if ($r->path_info !~ m#^/webdav/upload/([a-zA-Z0-9-]+)/(autorename/)?(\._[a-zA-Z0-9._-]+)$#) {
+			$res->status(403);
+			$res->content_type('text/plain; charset=utf-8');
+			$res->body("No access");
+			return $res;
 		}
 		
 		my ($event, $autorename, $filename) = ($1, $2, $3);
 		$dbh->do('DELETE FROM images WHERE vhost=? AND event=? AND filename=?',
-			undef, $r->get_server_name, $event, $filename)
-			or dberror($r, "Couldn't remove file");
+			undef, Sesse::pr0n::Common::get_server_name($r), $event, $filename)
+			or return dberror($r, "Couldn't remove file");
 		$dbh->do('UPDATE last_picture_cache SET last_update=CURRENT_TIMESTAMP WHERE vhost=? AND event=?',
-			undef, $r->get_server_name, $event)
-			or dberror($r, "Couldn't invalidate cache");
-		$r->status(200);
-		$r->print("OK");
+			undef, Sesse::pr0n::Common::get_server_name($r), $event)
+			or return dberror($r, "Couldn't invalidate cache");
+		$res->status(200);
+		$res->body("OK");
 
-		$r->log->info("deleted $event/$filename");
+		Sesse::pr0n::Common::log_info($r, "deleted $event/$filename");
 		
-		return Apache2::Const::OK;
+		return $res;
 	}
 	
 	if ($r->method eq "MOVE" or
@@ -608,18 +601,17 @@ EOF
 	    $r->method eq "RMCOL" or
 	    $r->method eq "RENAME" or
 	    $r->method eq "COPY") {
-		$r->content_type('text/plain; charset="utf-8"');
-		$r->status(403);
-		$r->print("Sorry, you do not have access to that feature.");
-		return Apache2::Const::OK;
+		$res->content_type('text/plain; charset="utf-8"');
+		$res->status(403);
+		$res->body("Sorry, you do not have access to that feature.");
+		return $res;
 	}
 
-	$r->content_type('text/plain; charset=utf-8');
-	$r->log->error("unknown method " . $r->method);
-	$r->status(500);
-	$r->print("Unknown method");
-	
-	return Apache2::Const::OK;
+	$res->content_type('text/plain; charset=utf-8');
+	Sesse::pr0n::Common::log_error($r, "unknown method " . $r->method);
+	$res->status(500);
+	$res->body("Unknown method");
+	return $res;
 }
 
 1;

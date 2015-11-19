@@ -1,0 +1,12 @@
+[Unit]
+Description=pr0n app server
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/start_server --port=127.0.0.1:5015 -- plackup -I/srv/pr0n.sesse.net/perl -s Starlet /srv/pr0n.sesse.net/perl/pr0n.psgi
+Type=simple
+Restart=on-failure
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

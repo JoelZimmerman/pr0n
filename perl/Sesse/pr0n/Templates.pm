@@ -18,7 +18,7 @@ our %dirs = ();
 
 sub update_dirs {
 	my $r = shift;
-	my $base = $r->dir_config('TemplateBase');
+	my $base = $Sesse::pr0n::Config::template_base;
 	
 	for my $dir (<$base/*>) {
 		next unless -d $dir;
@@ -36,7 +36,7 @@ sub r_to_dir {
 		update_dirs($r);
 	}
 	
-	my $site = $r->get_server_name();
+	my $site = Sesse::pr0n::Common::get_server_name($r);
 	if (defined($dirs{$site})) {
 		return $site;
 	} else {
@@ -55,7 +55,7 @@ sub fetch_template {
 
 	my $newcache = {};
 
-	my $base = $r->dir_config('TemplateBase');
+	my $base = $Sesse::pr0n::Config::template_base;
 	open TEMPLATE, "<$base/$dir/$template"
 		or ($dir ne 'default' and open TEMPLATE, "<$base/default/$template")
 		or Sesse::pr0n::Common::error($r, "Couldn't open $dir/$template: $!");
@@ -84,8 +84,8 @@ sub process_template {
 }
 
 sub print_template {
-	my ($r, $template, $args) = @_;
-	$r->print(process_template($r, $template, $args));
+	my ($r, $io, $template, $args) = @_;
+	$io->print(process_template($r, $template, $args));
 }
 
 1;

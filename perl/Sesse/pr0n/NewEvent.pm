@@ -3,37 +3,37 @@ use strict;
 use warnings;
 
 use Sesse::pr0n::Common qw(error dberror);
-use Apache2::Request;
 
 sub handler {
 	my $r = shift;
-	my $apr = Apache2::Request->new($r);
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 	my $user = Sesse::pr0n::Common::check_access($r);
-	if (!defined($user)) {
-		return Apache2::Const::OK;
-	}
+	return Sesse::pr0n::Common::generate_401($r) if (!defined($user));
 
-	Sesse::pr0n::Common::header($r, "Legger til ny hendelse");
+	my $res = Plack::Response->new(200);
+	my $io = IO::String->new;
+	Sesse::pr0n::Common::header($r, $io, "Legger til ny hendelse");
 	
-	my $id = $apr->param('id');
-	my $date = $apr->param('date');
-	my $desc = $apr->param('desc');
+	my $id = $r->param('id');
+	my $date = Encode::decode_utf8($r->param('date'));
+	my $desc = Encode::decode_utf8($r->param('desc'));
 
-	my @errors = Sesse::pr0n::Common::add_new_event($r, $dbh, $id, $date, $desc);
+	my @errors = Sesse::pr0n::Common::add_new_event($r, $res, $dbh, $id, $date, $desc);
 	
 	if (scalar @errors > 0) {
 		for my $err (@errors) {
-			$r->print("    <p>Feil: $err</p>\n");
+			$io->print("    <p>Feil: $err</p>\n");
 		}
-		$r->print("    <p>Rett opp i feilene over før du går videre.</p>\n");
+		$io->print("    <p>Rett opp i feilene over før du går videre.</p>\n");
 	} else {
-		$r->print("    <p>Hendelsen '$id' lagt til.</p>");
+		$io->print("    <p>Hendelsen '$id' lagt til.</p>");
 	}
 	
-	Sesse::pr0n::Common::footer($r);
+	Sesse::pr0n::Common::footer($r, $io);
 
-	return Apache2::Const::OK;
+	$io->setpos(0);
+	$res->body($io);
+	return $res;
 }
 
 1;

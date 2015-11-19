@@ -3,22 +3,20 @@ use strict;
 use warnings;
 
 use Sesse::pr0n::Common qw(error dberror);
-use Apache2::Request;
 use POSIX;
 
 sub handler {
 	my $r = shift;
-	my $apr = Apache2::Request->new($r);
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 
 	my ($event, $abspath, $datesort, $tag);
-	if ($r->uri =~ /^\/\+all\/?/) {
+	if ($r->path_info =~ /^\/\+all\/?/) {
 		$event = '+all';
 		$abspath = 1;
 		$tag = undef; 
 
 		$datesort = 'DESC NULLS LAST';
-	} elsif ($r->uri =~ /^\/\+tags\/([a-zA-Z0-9-]+)\/?$/) {
+	} elsif ($r->path_info =~ /^\/\+tags\/([a-zA-Z0-9-]+)\/?$/) {
 		$tag = $1;
 		$event = "+tags/$tag";
 		$abspath = 1;
@@ -26,8 +24,8 @@ sub handler {
 		$datesort = 'DESC NULLS LAST';
 	} else {
 		# Find the event
-		$r->uri =~ /^\/([a-zA-Z0-9-]+)\/?$/
-			or error($r, "Could not extract event");
+		$r->path_info =~ /^\/([a-zA-Z0-9-]+)\/?$/
+			or return error($r, "Could not extract event");
 		$event = $1;
 		$abspath = 0;
 		$tag = undef;
@@ -35,17 +33,18 @@ sub handler {
 	}
 
 	# Fix common error: pr0n.sesse.net/event -> pr0n.sesse.net/event/
-	if ($r->uri !~ /\/$/) {
-		$r->headers_out->{'location'} = $r->uri . "/";
-		return Apache2::Const::REDIRECT;
+	if ($r->path_info !~ /\/$/) {
+		my $res = Plack::Response->new(301);
+		$res->header('Location' => $r->path_info . "/");
+		return $res;
 	}
 
 	# Internal? (Ugly?) 
-	if ($r->get_server_name =~ /internal/ || $r->get_server_name =~ /skoyen\.bilder\.knatten\.com/ || $r->get_server_name =~ /lia\.heimdal\.org/) {
+	if (Sesse::pr0n::Common::get_server_name($r) =~ /internal/ ||
+	    Sesse::pr0n::Common::get_server_name($r) =~ /skoyen\.bilder\.knatten\.com/ ||
+	    Sesse::pr0n::Common::get_server_name($r) =~ /lia\.heimdal\.org/) {
 		my $user = Sesse::pr0n::Common::check_access($r);
-		if (!defined($user)) {
-			return Apache2::Const::OK;
-		}
+		return Sesse::pr0n::Common::generate_401($r) if (!defined($user));
 	}
 
 	# Read the appropriate settings from the query string into the settings hash
@@ -78,7 +77,7 @@ sub handler {
 	
 	# Any NEF files => default to processing
 	my $ref = $dbh->selectrow_hashref("SELECT * FROM images WHERE vhost=? $where AND ( LOWER(filename) LIKE '%.nef' OR LOWER(filename) LIKE '%.cr2' ) LIMIT 1",
-		undef, $r->get_server_name)
+		undef, Sesse::pr0n::Common::get_server_name($r))
 		and $defsettings{'xres'} = $defsettings{'yres'} = undef;
 	
 	# Reduce the front page load when in overload mode.
@@ -89,7 +88,7 @@ sub handler {
 	my %settings = %defsettings;
 
 	for my $s (qw(thumbxres thumbyres xres yres start num all infobox rot sel fullscreen model lens author)) {
-		my $val = $apr->param($s);
+		my $val = $r->param($s);
 		if (defined($val) && $val =~ /^(\d+)$/) {
 			$settings{$s} = $val;
 		}
@@ -154,47 +153,49 @@ sub handler {
 
 	if ($event eq '+all' || defined($tag)) {
 		$ref = $dbh->selectrow_hashref("SELECT EXTRACT(EPOCH FROM MAX(last_update)) AS last_update FROM last_picture_cache WHERE vhost=?",
-			undef, $r->get_server_name)
-			or error($r, "Could not list events", 404, "File not found");
+			undef, Sesse::pr0n::Common::get_server_name($r))
+			or return error($r, "Could not list events", 404, "File not found");
 		$date = undef;
 		$name = Sesse::pr0n::Templates::fetch_template($r, 'all-event-title');
-		$r->set_last_modified($ref->{'last_update'});
+		Sesse::pr0n::Common::set_last_modified($r, $ref->{'last_update'});
 	} else {
 		$ref = $dbh->selectrow_hashref("SELECT name,date,EXTRACT(EPOCH FROM last_update) AS last_update FROM events NATURAL JOIN last_picture_cache WHERE vhost=? AND event=?",
-			undef, $r->get_server_name, $event)
-			or error($r, "Could not find event $event", 404, "File not found");
+			undef, Sesse::pr0n::Common::get_server_name($r), $event)
+			or return error($r, "Could not find event $event", 404, "File not found");
 
 		$date = HTML::Entities::encode_entities($ref->{'date'});
 		$name = HTML::Entities::encode_entities($ref->{'name'});
-		$r->set_last_modified($ref->{'last_update'});
+		Sesse::pr0n::Common::set_last_modified($r, $ref->{'last_update'});
 	}
 		                
-	# If the client can use cache, do so
-	if ((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
-		return $rc;
-	}
+	# # If the client can use cache, do so
+	# if ((my $rc = $r->meets_conditions) != Apache2::Const::OK) {
+	# 	return $rc;
+	# }
 	
 	# Count the number of selected images.
-	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE vhost=? $where AND selected=\'t\'", undef, $r->get_server_name);
+	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE vhost=? $where AND selected=\'t\'", undef, Sesse::pr0n::Common::get_server_name($r));
 	my $num_selected = $ref->{'num_selected'};
 
 	# Find all images related to this event.
 	my $limit = (defined($start) && defined($num) && !$settings{'fullscreen'}) ? (" LIMIT $num OFFSET " . ($start-1)) : "";
 
 	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date $datesort,takenby,date,filename $limit")
-		or dberror($r, "prepare()");
-	$q->execute($r->get_server_name)
-		or dberror($r, "image enumeration");
+		or return dberror($r, "prepare()");
+	$q->execute(Sesse::pr0n::Common::get_server_name($r))
+		or return dberror($r, "image enumeration");
 
 	# Print the page itself
+	my $res = Plack::Response->new(200);
+	my $io = IO::String->new;
 	if ($settings{'fullscreen'}) {
-		$r->content_type("text/html; charset=utf-8");
+		$res->content_type("text/html; charset=utf-8");
 
 		if (defined($tag)) {
-			my $title = Sesse::pr0n::Templates::process_template($r, "tag-title", { tag => $tag });
-			Sesse::pr0n::Templates::print_template($r, "fullscreen-header", { title => $title });
+			my $title = Sesse::pr0n::Templates::process_template($res, $io, "tag-title", { tag => $tag });
+			Sesse::pr0n::Templates::print_template($r, $io, "fullscreen-header", { title => $title });
 		} else {
-			Sesse::pr0n::Templates::print_template($r, "fullscreen-header", { title => "$name [$event]" });
+			Sesse::pr0n::Templates::print_template($r, $io, "fullscreen-header", { title => "$name [$event]" });
 		}
 
 		my @files = ();
@@ -207,19 +208,19 @@ sub handler {
 		for my $i (0..$#files) {
 			my $line = sprintf "        [ \"%s\", \"%s\", %d, %d ]", @{$files[$i]};
 			$line .= "," unless ($i == $#files);
-			$r->print($line . "\n");
+			$io->print($line . "\n");
 		}
 
 		my %settings_no_fullscreen = %settings;
 		$settings_no_fullscreen{'fullscreen'} = 0;
 
-		my $returnurl = "http://" . $r->get_server_name . "/" . $event . "/" .
+		my $returnurl = "http://" . Sesse::pr0n::Common::get_server_name($r) . "/" . $event . "/" .
 			Sesse::pr0n::Common::get_query_string(\%settings_no_fullscreen, \%defsettings);
 		
 		# *whistle*
 		$returnurl =~ s/&amp;/&/g;
 
-		Sesse::pr0n::Templates::print_template($r, "fullscreen-footer", {
+		Sesse::pr0n::Templates::print_template($r, $io, "fullscreen-footer", {
 			returnurl => $returnurl,
 			start => $settings{'start'} - 1,
 			sel => $settings{'sel'},
@@ -227,26 +228,26 @@ sub handler {
 		});
 	} else {
 		if (defined($tag)) {
-			my $title = Sesse::pr0n::Templates::process_template($r, "tag-title", { tag => $tag });
-			Sesse::pr0n::Common::header($r, $title);
+			my $title = Sesse::pr0n::Templates::process_template($r, $io, "tag-title", { tag => $tag });
+			Sesse::pr0n::Common::header($r, $io, $title);
 		} else {
-			Sesse::pr0n::Common::header($r, "$name [$event]");
+			Sesse::pr0n::Common::header($r, $io, "$name [$event]");
 		}
 		if (defined($date)) {
-			Sesse::pr0n::Templates::print_template($r, "date", { date => $date });
+			Sesse::pr0n::Templates::print_template($r, $io, "date", { date => $date });
 		}
 
 		if (Sesse::pr0n::Overload::is_in_overload($r)) {
-			Sesse::pr0n::Templates::print_template($r, "overloadmode");
+			Sesse::pr0n::Templates::print_template($r, $io, "overloadmode");
 		}
 
-		print_thumbsize($r, $event, \%settings, \%defsettings);
-		print_viewres($r, $event, \%settings, \%defsettings);
-		print_pagelimit($r, $event, \%settings, \%defsettings);
-		print_infobox($r, $event, \%settings, \%defsettings);
-		print_selected($r, $event, \%settings, \%defsettings) if ($num_selected > 0);
-		print_fullscreen($r, $event, \%settings, \%defsettings);
-		print_nextprev($r, $event, $where, \%settings, \%defsettings);
+		print_thumbsize($r, $io, $event, \%settings, \%defsettings);
+		print_viewres($r, $io, $event, \%settings, \%defsettings);
+		print_pagelimit($r, $io, $event, \%settings, \%defsettings);
+		print_infobox($r, $io, $event, \%settings, \%defsettings);
+		print_selected($r, $io, $event, \%settings, \%defsettings) if ($num_selected > 0);
+		print_fullscreen($r, $io, $event, \%settings, \%defsettings);
+		print_nextprev($r, $io, $event, $where, \%settings, \%defsettings);
 	
 		if (1 || $event ne '+all') {
 			# Find the equipment used
@@ -260,7 +261,7 @@ sub handler {
 				GROUP BY 1,2
 				ORDER BY 1,2")
 				or die "Couldn't prepare to find equipment: $!";
-			$eq->execute($r->get_server_name)
+			$eq->execute(Sesse::pr0n::Common::get_server_name($r))
 				or die "Couldn't find equipment: $!";
 
 			my @equipment = ();
@@ -281,7 +282,7 @@ sub handler {
 			$eq->finish;
 
 			if (scalar @equipment > 0) {
-				Sesse::pr0n::Templates::print_template($r, "equipment-start");
+				Sesse::pr0n::Templates::print_template($r, $io, "equipment-start");
 				for my $e (@equipment) {
 					my $eqspec = $e->{'model'};
 					$eqspec .= ', ' . $e->{'lens'} if (defined($e->{'lens'}));
@@ -306,12 +307,12 @@ sub handler {
 
 					# This isn't correct for all languages. Fix if we ever need to care. :-)
 					if ($e->{'num'} == 1) {
-						Sesse::pr0n::Templates::print_template($r, "equipment-item-singular", { eqspec => $eqspec, filterurl => $url, action => $action });
+						Sesse::pr0n::Templates::print_template($r, $io, "equipment-item-singular", { eqspec => $eqspec, filterurl => $url, action => $action });
 					} else {
-						Sesse::pr0n::Templates::print_template($r, "equipment-item", { eqspec => $eqspec, num => $e->{'num'}, filterurl => $url, action => $action });
+						Sesse::pr0n::Templates::print_template($r, $io, "equipment-item", { eqspec => $eqspec, num => $e->{'num'}, filterurl => $url, action => $action });
 					}
 				}
-				Sesse::pr0n::Templates::print_template($r, "equipment-end");
+				Sesse::pr0n::Templates::print_template($r, $io, "equipment-end");
 			}
 		}
 
@@ -321,8 +322,8 @@ sub handler {
 		
 		# Print out all thumbnails
 		if ($rot == 1) {
-			$r->print("    <form method=\"post\" action=\"/rotate\">\n");
-			$r->print("      <input type=\"hidden\" name=\"event\" value=\"$event\" />\n");
+			$io->print("    <form method=\"post\" action=\"/rotate\">\n");
+			$io->print("      <input type=\"hidden\" name=\"event\" value=\"$event\" />\n");
 		}
 
 		while (my $ref = $q->fetchrow_hashref()) {
@@ -336,7 +337,7 @@ sub handler {
 			my $groupkey = $takenby . $day;
 
 			if ($groupkey ne $lastupl) {
-				$r->print("    </p>\n\n") if ($lastupl ne "" && $rot != 1);
+				$io->print("    </p>\n\n") if ($lastupl ne "" && $rot != 1);
 				$lastupl = $groupkey;
 
 				my %newsettings = %settings;
@@ -354,13 +355,13 @@ sub handler {
 
 				my $url = "/$event/" . Sesse::pr0n::Common::get_query_string(\%newsettings, \%defsettings);
 				
-				$r->print("    <h2>");
-				Sesse::pr0n::Templates::print_template($r, "submittedby", { author => $takenby, action => $action, filterurl => $url, date => $day });
-				print_fullscreen_fromhere($r, $event, \%settings, \%defsettings, $img_num);
-				$r->print("</h2>\n");
+				$io->print("    <h2>");
+				Sesse::pr0n::Templates::print_template($r, $io, "submittedby", { author => $takenby, action => $action, filterurl => $url, date => $day });
+				print_fullscreen_fromhere($r, $io, $event, \%settings, \%defsettings, $img_num);
+				$io->print("</h2>\n");
 
 				if ($rot != 1) {
-					$r->print("    <p class=\"photos\">\n");
+					$io->print("    <p class=\"photos\">\n");
 				}
 			}
 
@@ -386,20 +387,20 @@ sub handler {
 			}
 		
 			if ($rot == 1) {	
-				$r->print("    <p>");
+				$io->print("    <p>");
 			} else {
-				$r->print("     ");
+				$io->print("     ");
 			}
-			$r->print("<a href=\"$prefix$uri\"><img src=\"$prefix${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
+			$io->print("<a href=\"$prefix$uri\"><img src=\"$prefix${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
 		
 			if ($rot == 1) {
-				$r->print("      90 <input type=\"checkbox\" name=\"rot-" .
+				$io->print("      90 <input type=\"checkbox\" name=\"rot-" .
 					$ref->{'id'} . "-90\" />\n");
-				$r->print("      180 <input type=\"checkbox\" name=\"rot-" .
+				$io->print("      180 <input type=\"checkbox\" name=\"rot-" .
 					$ref->{'id'} . "-180\" />\n");
-				$r->print("      270 <input type=\"checkbox\" name=\"rot-" .
+				$io->print("      270 <input type=\"checkbox\" name=\"rot-" .
 					$ref->{'id'} . "-270\" />\n");
-				$r->print("      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" .
+				$io->print("      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" .
 					"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Del <input type=\"checkbox\" name=\"del-" . $ref->{'id'} . "\" /></p>\n");
 			}
 			
@@ -407,17 +408,19 @@ sub handler {
 		}
 
 		if ($rot == 1) {
-			$r->print("      <input type=\"submit\" value=\"Rotate\" />\n");
-			$r->print("    </form>\n");
+			$io->print("      <input type=\"submit\" value=\"Rotate\" />\n");
+			$io->print("    </form>\n");
 		} else {
-			$r->print("    </p>\n");
+			$io->print("    </p>\n");
 		}
 
-		print_nextprev($r, $event, $where, \%settings, \%defsettings);
-		Sesse::pr0n::Common::footer($r);
+		print_nextprev($r, $io, $event, $where, \%settings, \%defsettings);
+		Sesse::pr0n::Common::footer($r, $io);
 	}
 
-	return Apache2::Const::OK;
+	$io->setpos(0);
+	$res->body($io);
+	return $res;
 }
 
 sub eq_with_undef {
@@ -429,11 +432,11 @@ sub eq_with_undef {
 }
 
 sub print_changes {
-	my ($r, $event, $template, $settings, $defsettings, $var1, $var2, $alternatives) = @_;
+	my ($r, $io, $event, $template, $settings, $defsettings, $var1, $var2, $alternatives) = @_;
 
 	my $title = Sesse::pr0n::Templates::fetch_template($r, $template);
 	chomp $title;
-	$r->print("    <p>$title:\n");
+	$io->print("    <p>$title:\n");
 
 	for my $a (@$alternatives) {
 		my $text;
@@ -455,45 +458,45 @@ sub print_changes {
 			$newsettings{$var2} = $v2;
 		}
 
-		$r->print("      ");
+		$io->print("      ");
 
 		# Check if these settings are current (print only label)
 		if (eq_with_undef($settings->{$var1}, $newsettings{$var1}) &&
 		    eq_with_undef($settings->{$var2}, $newsettings{$var2})) {
-			$r->print($text);
+			$io->print($text);
 		} else {
-			Sesse::pr0n::Common::print_link($r, $text, "/$event/", \%newsettings, $defsettings);
+			Sesse::pr0n::Common::print_link($io, $text, "/$event/", \%newsettings, $defsettings);
 		}
-		$r->print("\n");
+		$io->print("\n");
 	}
-	$r->print("    </p>\n");
+	$io->print("    </p>\n");
 }
 
 sub print_thumbsize {
-	my ($r, $event, $settings, $defsettings) = @_;
+	my ($r, $io, $event, $settings, $defsettings) = @_;
 	my @alternatives = qw(80x64 120x96 160x128 240x192 320x256);
 
-	print_changes($r, $event, 'thumbsize', $settings, $defsettings,
+	print_changes($r, $io, $event, 'thumbsize', $settings, $defsettings,
 		      'thumbxres', 'thumbyres', \@alternatives);
 }
 sub print_viewres {
-	my ($r, $event, $settings, $defsettings) = @_;
+	my ($r, $io, $event, $settings, $defsettings) = @_;
 	my @alternatives = qw(320x256 512x384 640x480 800x600 1024x768 1152x864 1280x960 1400x1050 1600x1200 1920x1440 2048x1536 2304x1728);
 	chomp (my $unlimited = Sesse::pr0n::Templates::fetch_template($r, 'viewres-unlimited'));
 	chomp (my $original = Sesse::pr0n::Templates::fetch_template($r, 'viewres-original'));
 	push @alternatives, [ $unlimited, -2, -2 ];
 	push @alternatives, [ $original, -1, -1 ];
 
-	print_changes($r, $event, 'viewres', $settings, $defsettings,
+	print_changes($r, $io, $event, 'viewres', $settings, $defsettings,
 		      'xres', 'yres', \@alternatives);
 }
 
 sub print_pagelimit {
-	my ($r, $event, $settings, $defsettings) = @_;
+	my ($r, $io, $event, $settings, $defsettings) = @_;
 	
 	my $title = Sesse::pr0n::Templates::fetch_template($r, 'imgsperpage');
 	chomp $title;
-	$r->print("    <p>$title:\n");
+	$io->print("    <p>$title:\n");
 	
 	# Get choices
 	chomp (my $unlimited = Sesse::pr0n::Templates::fetch_template($r, 'imgsperpage-unlimited'));
@@ -509,49 +512,49 @@ sub print_pagelimit {
 			$newsettings{'num'} = $num;
 		}
 
-		$r->print("      ");
+		$io->print("      ");
 		if (eq_with_undef($settings->{'num'}, $newsettings{'num'})) {
-			$r->print($num);
+			$io->print($num);
 		} else {
-			Sesse::pr0n::Common::print_link($r, $num, "/$event/", \%newsettings, $defsettings);
+			Sesse::pr0n::Common::print_link($io, $num, "/$event/", \%newsettings, $defsettings);
 		}
-		$r->print("\n");
+		$io->print("\n");
 	}
-	$r->print("    </p>\n");
+	$io->print("    </p>\n");
 }
 
 sub print_infobox {
-	my ($r, $event, $settings, $defsettings) = @_;
+	my ($r, $io, $event, $settings, $defsettings) = @_;
 
 	chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'infobox'));
 	chomp (my $on = Sesse::pr0n::Templates::fetch_template($r, 'infobox-on'));
 	chomp (my $off = Sesse::pr0n::Templates::fetch_template($r, 'infobox-off'));
 
-        $r->print("    <p>$title:\n");
+        $io->print("    <p>$title:\n");
 
 	my %newsettings = %$settings;
 
 	if ($settings->{'infobox'} == 1) {
-		$r->print($on);
+		$io->print($on);
 	} else {
 		$newsettings{'infobox'} = 1;
-		Sesse::pr0n::Common::print_link($r, $on, "/$event/", \%newsettings, $defsettings);
+		Sesse::pr0n::Common::print_link($io, $on, "/$event/", \%newsettings, $defsettings);
 	}
 
-	$r->print(' ');
+	$io->print(' ');
 
 	if ($settings->{'infobox'} == 0) {
-		$r->print($off);
+		$io->print($off);
 	} else {
 		$newsettings{'infobox'} = 0;
-		Sesse::pr0n::Common::print_link($r, $off, "/$event/", \%newsettings, $defsettings);
+		Sesse::pr0n::Common::print_link($io, $off, "/$event/", \%newsettings, $defsettings);
 	}
 	
-	$r->print('</p>');
+	$io->print('</p>');
 }
 
 sub print_nextprev {
-	my ($r, $event, $where, $settings, $defsettings) = @_;
+	my ($r, $io, $event, $where, $settings, $defsettings) = @_;
 	my $start = $settings->{'start'};
 	my $num = $settings->{'num'};
 	my $dbh = Sesse::pr0n::Common::get_dbh();
@@ -561,8 +564,8 @@ sub print_nextprev {
 
 	# determine total number
 	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE vhost=? $where",
-		undef, $r->get_server_name)
-		or dberror($r, "image enumeration");
+		undef, Sesse::pr0n::Common::get_server_name($r))
+		or return dberror($r, "image enumeration");
 	my $num_images = $ref->{'num_images'};
 
 	return if ($start == 1 && $start + $num >= $num_images);
@@ -572,7 +575,7 @@ sub print_nextprev {
 		$end = $num_images;
 	}
 
-	$r->print("    <p class=\"nextprev\">\n");
+	$io->print("    <p class=\"nextprev\">\n");
 
 	# Previous
 	if ($start > 1) {
@@ -589,12 +592,12 @@ sub print_nextprev {
 		$newsettings{'start'} = $newstart;
 		chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'prevpage'));
 		chomp (my $accesskey = Sesse::pr0n::Templates::fetch_template($r, 'prevaccesskey'));
-		Sesse::pr0n::Common::print_link($r, "$title ($newstart-$newend)\n", "/$event/", \%newsettings, $defsettings, $accesskey);
+		Sesse::pr0n::Common::print_link($io, "$title ($newstart-$newend)\n", "/$event/", \%newsettings, $defsettings, $accesskey);
 	}
 
 	# This
 	chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'thispage'));
-	$r->print("    $title ($start-$end)\n");
+	$io->print("    $title ($start-$end)\n");
 
 	# Next
 	if ($end < $num_images) {
@@ -608,57 +611,57 @@ sub print_nextprev {
 		$newsettings{'start'} = $newstart;
 		chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'nextpage'));
 		chomp (my $accesskey = Sesse::pr0n::Templates::fetch_template($r, 'nextaccesskey'));
-		Sesse::pr0n::Common::print_link($r, "$title ($newstart-$newend)", "/$event/", \%newsettings, $defsettings, $accesskey);
+		Sesse::pr0n::Common::print_link($io, "$title ($newstart-$newend)", "/$event/", \%newsettings, $defsettings, $accesskey);
 	}
 
-	$r->print("    </p>\n");
+	$io->print("    </p>\n");
 }
 
 sub print_selected {
-	my ($r, $event, $settings, $defsettings) = @_;
+	my ($r, $io, $event, $settings, $defsettings) = @_;
 
 	chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'show'));
 	chomp (my $all = Sesse::pr0n::Templates::fetch_template($r, 'show-all'));
 	chomp (my $sel = Sesse::pr0n::Templates::fetch_template($r, 'show-selected'));
 
-        $r->print("    <p>$title:\n");
+        $io->print("    <p>$title:\n");
 
 	my %newsettings = %$settings;
 
 	if ($settings->{'all'} == 0) {
-		$r->print($sel);
+		$io->print($sel);
 	} else {
 		$newsettings{'all'} = 0;
-		Sesse::pr0n::Common::print_link($r, $sel, "/$event/", \%newsettings, $defsettings);
+		Sesse::pr0n::Common::print_link($io, $sel, "/$event/", \%newsettings, $defsettings);
 	}
 
-	$r->print(' ');
+	$io->print(' ');
 
 	if ($settings->{'all'} == 1) {
-		$r->print($all);
+		$io->print($all);
 	} else {
 		$newsettings{'all'} = 1;
-		Sesse::pr0n::Common::print_link($r, $all, "/$event/", \%newsettings, $defsettings);
+		Sesse::pr0n::Common::print_link($io, $all, "/$event/", \%newsettings, $defsettings);
 	}
 	
-	$r->print('</p>');
+	$io->print('</p>');
 }
 
 sub print_fullscreen {
-	my ($r, $event, $settings, $defsettings) = @_;
+	my ($r, $io, $event, $settings, $defsettings) = @_;
 
 	chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'fullscreen'));
 
 	my %newsettings = %$settings;
 	$newsettings{'fullscreen'} = 1;
 
-        $r->print("    <p>");
-	Sesse::pr0n::Common::print_link($r, $title, "/$event/", \%newsettings, $defsettings);
-	$r->print("</p>\n");
+        $io->print("    <p>");
+	Sesse::pr0n::Common::print_link($io, $title, "/$event/", \%newsettings, $defsettings);
+	$io->print("</p>\n");
 }
 
 sub print_fullscreen_fromhere {
-	my ($r, $event, $settings, $defsettings, $start) = @_;
+	my ($r, $io, $event, $settings, $defsettings, $start) = @_;
 
 	chomp (my $title = Sesse::pr0n::Templates::fetch_template($r, 'fullscreen-fromhere'));
 
@@ -666,9 +669,9 @@ sub print_fullscreen_fromhere {
 	$newsettings{'fullscreen'} = 1;
 	$newsettings{'start'} = $start;
 
-        $r->print("    <span class=\"fsfromhere\">");
-	Sesse::pr0n::Common::print_link($r, $title, "/$event/", \%newsettings, $defsettings);
-	$r->print("</span>\n");
+        $io->print("    <span class=\"fsfromhere\">");
+	Sesse::pr0n::Common::print_link($io, $title, "/$event/", \%newsettings, $defsettings);
+	$io->print("</span>\n");
 }
 	
 1;

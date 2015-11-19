@@ -87,10 +87,11 @@
       
     <p>pr0n currently runs on two Intel E5-2650v3 (2x10 cores at 2.30GHz) with 64GB RAM and
       SATA disks, with some SSDs in front for cache. (The server does a lot of other stuff besides running pr0n, of
-      course.) pr0n itself is a custom-made system by myself, tightly coupled
-      into <a href="http://www.apache.org/">Apache</a> 2.4,
-      <a href="http://perl.apache.org/">mod_perl</a> 2.0,
-      <a href="http://www.imagemagick.org/">ImageMagick</a> 6.x
+      course.) pr0n itself is a custom-made system by myself,
+      a <a href="http://search.cpan.org/~miyagawa/PSGI-1.102/PSGI.pod">PSGI</a>
+      app server running under <a href="http://search.cpan.org/dist/Starlet/">Starlet</a>
+      behind <a href="https://www.varnish-cache.org/">Varnish</a> 4.1,
+      using <a href="http://www.imagemagick.org/">ImageMagick</a> 6.x
       (as well as various other Perl modules) and
       <a href="http://git.sesse.net/?p=qscale">qscale</a>, using
       <a href="http://www.postgresql.org/">PostgreSQL</a> 9.4 as the back-end
@@ -148,7 +149,7 @@
       on IRC as Sesse on EFnet, IRCnet, Freenode or OFTC.</p>
 
     <hr />
-    <p class="footer">pr0n v2.81,
+    <p class="footer">pr0n v3.00-pre,
       &copy; 2004&ndash;2015 <a href="http://www.sesse.net/">Steinar H. Gunderson</a>.</p>
   </body>
 </html>

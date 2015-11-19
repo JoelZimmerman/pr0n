@@ -6,17 +6,12 @@ use Sesse::pr0n::Overload;
 use Sesse::pr0n::QscaleProxy;
 use Sesse::pr0n::Templates;
 
-use Apache2::RequestRec (); # for $r->content_type
-use Apache2::RequestIO ();  # for $r->print
-use Apache2::Const -compile => ':common';
-use Apache2::Log;
-use ModPerl::Util;
-
 use Carp;
 use Encode;
 use DBI;
 use DBD::Pg;
 use Image::Magick;
+use IO::String;
 use POSIX;
 use Digest::SHA;
 use Digest::HMAC_SHA1;
@@ -39,7 +34,7 @@ BEGIN {
 		require Sesse::pr0n::Config_local;
 	};
 
-	$VERSION     = "v2.81";
+	$VERSION     = "v3.00-pre";
 	@ISA         = qw(Exporter);
 	@EXPORT      = qw(&error &dberror);
 	%EXPORT_TAGS = qw();
@@ -50,7 +45,7 @@ BEGIN {
 		or die "Couldn't connect to PostgreSQL database: " . DBI->errstr;
 	our $mimetypes = new MIME::Types;
 	
-	Apache2::ServerUtil->server->log_error("Initializing pr0n $VERSION");
+	print STDERR "Initializing pr0n $VERSION\n";
 }
 END {
 	our $dbh;
@@ -66,42 +61,46 @@ sub error {
 		$status = 500;
 		$title = "Internal server error";
 	}
+
+	my $res = Plack::Response->new($status);
+	my $io = IO::String->new;
 	
         $r->content_type('text/html; charset=utf-8');
-	$r->status($status);
 
-        header($r, $title);
-	$r->print("    <p>Error: $err</p>\n");
-        footer($r);
+	header($r, $io, $title);
+	$io->print("    <p>Error: $err</p>\n");
+	footer($r, $io);
 
-	$r->log->error($err);
-	$r->log->error("Stack trace follows: " . Carp::longmess());
+	log_error($r, $err);
+	log_error($r, "Stack trace follows: " . Carp::longmess());
 
-	ModPerl::Util::exit();
+	$io->setpos(0);
+	$res->body($io);
+	return $res;
 }
 
 sub dberror {
 	my ($r,$err) = @_;
-	error($r, "$err (DB error: " . $dbh->errstr . ")");
+	return error($r, "$err (DB error: " . $dbh->errstr . ")");
 }
 
 sub header {
-	my ($r,$title) = @_;
+	my ($r, $io, $title) = @_;
 
 	$r->content_type("text/html; charset=utf-8");
 
 	# Fetch quote if we're itk-bilder.samfundet.no
 	my $quote = "";
-	if ($r->get_server_name eq 'itk-bilder.samfundet.no') {
+	if (Sesse::pr0n::Common::get_server_name($r) eq 'itk-bilder.samfundet.no') {
 		$quote = LWP::Simple::get("http://itk.samfundet.no/include/quotes.cli.php");
 		$quote = "Error: Could not fetch quotes." if (!defined($quote));
 	}
-	Sesse::pr0n::Templates::print_template($r, "header", { title => $title, quotes => $quote });
+	Sesse::pr0n::Templates::print_template($r, $io, "header", { title => $title, quotes => $quote });
 }
 
 sub footer {
-	my ($r) = @_;
-	Sesse::pr0n::Templates::print_template($r, "footer",
+	my ($r, $io) = @_;
+	Sesse::pr0n::Templates::print_template($r, $io, "footer",
 		{ version => $Sesse::pr0n::Common::VERSION });
 }
 
@@ -183,20 +182,20 @@ sub pretty_unescape {
 }
 
 sub print_link {
-	my ($r, $title, $baseurl, $param, $defparam, $accesskey) = @_;
+	my ($io, $title, $baseurl, $param, $defparam, $accesskey) = @_;
 	my $str = "<a href=\"$baseurl" . get_query_string($param, $defparam) . "\"";
 	if (defined($accesskey) && length($accesskey) == 1) {
 		$str .= " accesskey=\"$accesskey\"";
 	}
 	$str .= ">$title</a>";
-	$r->print($str);
+	$io->print($str);
 }
 
 sub get_dbh {
 	# Check that we are alive
 	if (!(defined($dbh) && $dbh->ping)) {
 		# Try to reconnect
-		Apache2::ServerUtil->server->log_error("Lost contact with PostgreSQL server, trying to reconnect...");
+		print STDERR "Lost contact with PostgreSQL server, trying to reconnect...\n";
 		unless ($dbh = DBI->connect("dbi:Pg:dbname=pr0n;host=" . $Sesse::pr0n::Config::db_host,
 			$Sesse::pr0n::Config::db_username, $Sesse::pr0n::Config::db_password)) {
 			$dbh = undef;
@@ -207,15 +206,10 @@ sub get_dbh {
 	return $dbh;
 }
 
-sub get_base {
-	my $r = shift;
-	return $r->dir_config('ImageBase');
-}
-				
 sub get_disk_location {
 	my ($r, $id) = @_;
         my $dir = POSIX::floor($id / 256);
-	return get_base($r) . "images/$dir/$id.jpg";
+	return $Sesse::pr0n::Config::image_base . "images/$dir/$id.jpg";
 }
 
 sub get_cache_location {
@@ -223,14 +217,14 @@ sub get_cache_location {
         my $dir = POSIX::floor($id / 256);
 
 	if ($infobox eq 'both') {
-		return get_base($r) . "cache/$dir/$id-$width-$height.jpg";
+		return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height.jpg";
 	} elsif ($infobox eq 'nobox') {
-		return get_base($r) . "cache/$dir/$id-$width-$height-nobox.jpg";
+		return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-nobox.jpg";
 	} else {
 		if ($dpr == 1) {
-			return get_base($r) . "cache/$dir/$id-$width-$height-box.png";
+			return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-box.png";
 		} else {
-			return get_base($r) . "cache/$dir/$id-$width-$height-box\@$dpr.png";
+			return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-box\@$dpr.png";
 		}
 	}
 }
@@ -239,15 +233,15 @@ sub ensure_disk_location_exists {
 	my ($r, $id) = @_;
 	my $dir = POSIX::floor($id / 256);
 
-	my $img_dir = get_base($r) . "/images/$dir/";
+	my $img_dir = $Sesse::pr0n::Config::image_base . "/images/$dir/";
 	if (! -d $img_dir) {
-		$r->log->info("Need to create new image directory $img_dir");
+		log_info($r, "Need to create new image directory $img_dir");
 		mkdir($img_dir) or die "Couldn't create new image directory $img_dir";
 	}
 
-	my $cache_dir = get_base($r) . "/cache/$dir/";
+	my $cache_dir = $Sesse::pr0n::Config::image_base . "/cache/$dir/";
 	if (! -d $cache_dir) {
-		$r->log->info("Need to create new cache directory $cache_dir");
+		log_info($r, "Need to create new cache directory $cache_dir");
 		mkdir($cache_dir) or die "Couldn't create new image directory $cache_dir";
 	}
 }
@@ -256,7 +250,7 @@ sub get_mipmap_location {
 	my ($r, $id, $width, $height) = @_;
         my $dir = POSIX::floor($id / 256);
 
-	return get_base($r) . "cache/$dir/$id-mipmap-$width-$height.jpg";
+	return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-mipmap-$width-$height.jpg";
 }
 
 sub update_image_info {
@@ -342,25 +336,25 @@ sub check_access {
 	
 	#return qw(sesse Sesse);
 
-	my $auth = $r->headers_in->{'authorization'};
+	my $auth = $r->header('authorization');
 	if (!defined($auth)) {
-		output_401($r);
 		return undef;
 	} 
 	if ($auth =~ /^Basic ([a-zA-Z0-9+\/]+=*)$/) {
 		return check_basic_auth($r, $1);
 	}	
-	output_401($r);
 	return undef;
 }
 
-sub output_401 {
-	my ($r, %options) = @_;
-	$r->content_type('text/plain; charset=utf-8');
-	$r->status(401);
-	$r->headers_out->{'www-authenticate'} = 'Basic realm="pr0n.sesse.net"';
+sub generate_401 {
+	my ($r) = @_;
+	my $res = Plack::Response->new(401);
+	$res->content_type('text/plain; charset=utf-8');
+	$res->status(401);
+	$res->header('WWW-Authenticate' => 'Basic realm="pr0n.sesse.net"');
 
-	$r->print("Need authorization\n");
+	$res->body("Need authorization\n");
+	return $res;
 }
 
 sub check_basic_auth {
@@ -370,7 +364,7 @@ sub check_basic_auth {
 	my ($user, $takenby) = extract_takenby($raw_user);
 
 	my $ref = $dbh->selectrow_hashref('SELECT sha1password,cryptpassword FROM users WHERE username=? AND vhost=?',
-		undef, $user, $r->get_server_name);
+		undef, $user, Sesse::pr0n::Common::get_server_name($r));
 	my ($sha1_matches, $bcrypt_matches) = (0, 0);
 	if (defined($ref) && defined($ref->{'sha1password'})) {
 		$sha1_matches = (Digest::SHA::sha1_base64($pass) eq $ref->{'sha1password'});
@@ -381,11 +375,10 @@ sub check_basic_auth {
 
 	if (!defined($ref) || (!$sha1_matches && !$bcrypt_matches)) {
 		$r->content_type('text/plain; charset=utf-8');
-		$r->log->warn("Authentication failed for $user/$takenby");
-		output_401($r);
+		log_warn($r, "Authentication failed for $user/$takenby");
 		return undef;
 	}
-	$r->log->info("Authentication succeeded for $user/$takenby");
+	log_info($r, "Authentication succeeded for $user/$takenby");
 
 	# Make sure we can use bcrypt authentication in the future with this password.
 	# Also remove old-style SHA1 password when we migrate.
@@ -394,9 +387,9 @@ sub check_basic_auth {
 		my $hash = "\$2a\$07\$" . Crypt::Eksblowfish::Bcrypt::en_base64($salt);
 		my $cryptpassword = Crypt::Eksblowfish::Bcrypt::bcrypt($pass, $hash);
 		$dbh->do('UPDATE users SET sha1password=NULL,cryptpassword=? WHERE username=? AND vhost=?',
-			undef, $cryptpassword, $user, $r->get_server_name)
+			undef, $cryptpassword, $user, Sesse::pr0n::Common::get_server_name($r))
 			or die "Couldn't update: " . $dbh->errstr;
-		$r->log->info("Updated bcrypt hash for $user");
+		log_info($r, "Updated bcrypt hash for $user");
 	}
 
 	return ($user, $takenby);
@@ -535,7 +528,7 @@ sub make_mipmap {
 			} else {
 				$cimg = $img->Clone();
 			}
-			$r->log->info("Making mipmap for $id: " . $mmres->[0] . " x " . $mmres->[1]);
+			log_info($r, "Making mipmap for $id: " . $mmres->[0] . " x " . $mmres->[1]);
 			$cimg->Resize(width=>$mmres->[0], height=>$mmres->[1], filter=>'Lanczos', 'sampling-factor'=>'1x1');
 			$cimg->Strip();
 			my $err = $cimg->write(
@@ -605,7 +598,7 @@ sub read_original_image {
 	}
 	
 	if ($err) {
-		$r->log->warn("$physical_fname: $err");
+		log_warn($r, "$physical_fname: $err");
 		$err =~ /(\d+)/;
 		if ($1 >= 400) {
 			undef $magick;
@@ -642,7 +635,7 @@ sub ensure_cached {
 		# If we are in overload mode (aka Slashdot mode), refuse to generate
 		# new thumbnails.
 		if (Sesse::pr0n::Overload::is_in_overload($r)) {
-			$r->log->warn("In overload mode, not scaling $id to $xres x $yres");
+			log_warn($r, "In overload mode, not scaling $id to $xres x $yres");
 			error($r, 'System is in overload mode, not doing any scaling');
 		}
 
@@ -692,7 +685,7 @@ sub ensure_cached {
 			}
 				
 			$err = $img->write(filename => $cachename, quality => 90, depth => 8);
-			$r->log->info("New infobox cache: $width x $height for $id.jpg");
+			log_info($r, "New infobox cache: $width x $height for $id.jpg");
 			
 			return ($cachename, 'image/png');
 		}
@@ -757,12 +750,12 @@ sub ensure_cached {
 
 			($xres, $yres) = ($nxres, $nyres);
 
-			$r->log->info("New cache: $nwidth x $nheight for $id.jpg");
+			log_info($r, "New cache: $nwidth x $nheight for $id.jpg");
 		}
 		
 		undef $img;
 		if ($err) {
-			$r->log->warn("$fname: $err");
+			log_warn($r, "$fname: $err");
 			$err =~ /(\d+)/;
 			if ($1 >= 400) {
 				#@$magick = ();
@@ -773,7 +766,7 @@ sub ensure_cached {
 	
 	# Update the SQL database if it doesn't contain the required info
 	if (!defined($dbwidth) && defined($new_dbwidth)) {
-		$r->log->info("Updating width/height for $id: $new_dbwidth x $new_dbheight");
+		log_info($r, "Updating width/height for $id: $new_dbwidth x $new_dbheight");
 		update_image_info($r, $id, $new_dbwidth, $new_dbheight);
 	}
 
@@ -963,7 +956,7 @@ sub gcd {
 }
 
 sub add_new_event {
-	my ($r, $dbh, $id, $date, $desc) = @_;
+	my ($r, $res, $dbh, $id, $date, $desc) = @_;
 	my @errors = ();
 
 	if (!defined($id) || $id =~ /^\s*$/ || $id !~ /^([a-zA-Z0-9-]+)$/) {
@@ -980,14 +973,14 @@ sub add_new_event {
 		return @errors;
 	}
 		
-	my $vhost = $r->get_server_name;
+	my $vhost = Sesse::pr0n::Common::get_server_name($r);
 	$dbh->do("INSERT INTO events (event,date,name,vhost) VALUES (?,?,?,?)",
 		undef, $id, $date, $desc, $vhost)
 		or return ("Kunne ikke sette inn ny hendelse" . $dbh->errstr);
 	$dbh->do("INSERT INTO last_picture_cache (vhost,event,last_picture) VALUES (?,?,NULL)",
 		undef, $vhost, $id)
 		or return ("Kunne ikke sette inn ny cache-rad" . $dbh->errstr);
-	purge_cache($r, "/");
+	purge_cache($r, $res, "/");
 
 	return ();
 }
@@ -1011,12 +1004,12 @@ sub guess_charset {
 # regex tacked onto a request into something useful. The elements given in
 # should not be regexes, though, as e.g. Squid will not be able to handle that.
 sub purge_cache {
-	my ($r, @elements) = @_;
+	my ($r, $res, @elements) = @_;
 	return if (scalar @elements == 0);
 
 	my @pe = ();
 	for my $elem (@elements) {
-		$r->log->info("Purging $elem");
+		log_info($r, "Purging $elem");
 		(my $e = $elem) =~ s/[.+*|()]/\\$&/g;
 		push @pe, $e;
 	}
@@ -1028,7 +1021,7 @@ sub purge_cache {
 		$regex .= "(" . join('|', @pe) . ")";
 	}
 	$regex .= "(\\?.*)?\$";
-	$r->headers_out->{'X-Pr0n-Purge'} = $regex;
+	$res->header('X-Pr0n-Purge' => $regex);
 }
 				
 # Find a list of all cache URLs for a given image, given what we have on disk.
@@ -1046,7 +1039,7 @@ sub get_all_cache_urls {
 	my $filename = $ref->{'filename'};
 	$q->finish;
 
-	my $base = get_base($r) . "cache/$dir";
+	my $base = $Sesse::pr0n::Config::image_base . "cache/$dir";
 	for my $file (<$base/$id-*>) {
 		my $fname = File::Basename::basename($file);
 		if ($fname =~ /^$id-mipmap-.*\.jpg$/) {
@@ -1062,11 +1055,52 @@ sub get_all_cache_urls {
 		} elsif ($fname =~ /^$id-(\d+)-(\d+)-box\.png$/) {
 			push @ret, "/$event/$1x$2/box/$filename";
 		} else {
-			$r->log->warn("Couldn't find a purging URL for $fname");
+			log_warn($r, "Couldn't find a purging URL for $fname");
 		}
 	}
 
 	return @ret;
+}
+
+sub set_last_modified {
+	my ($res, $mtime) = @_;
+
+	my $str = POSIX::strftime("%a, %d %b %Y %H:%M:%S %Z", localtime($mtime));
+	$res->headers({ 'Last-Modified' => $str });
+}
+
+sub get_server_name {
+	my $r = shift;
+	my $host = $r->env->{'HTTP_HOST'};
+	$host =~ s/:.*//;
+	return $host;
+}
+
+sub log_info {
+	my ($r, $msg) = @_;
+	if (defined($r->logger)) {
+		$r->logger->({ level => 'info', message => $msg });
+	} else {
+		print STDERR "[INFO] $msg\n";
+	}
+}
+
+sub log_warn {
+	my ($r, $msg) = @_;
+	if (defined($r->logger)) {
+		$r->logger->({ level => 'warn', message => $msg });
+	} else {
+		print STDERR "[WARN] $msg\n";
+	}
+}
+
+sub log_error {
+	my ($r, $msg) = @_;
+	if (defined($r->logger)) {
+		$r->logger->({ level => 'error', message => $msg });
+	} else {
+		print STDERR "[ERROR] $msg\n";
+	}
 }
 
 1;

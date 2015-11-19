@@ -16,7 +16,7 @@ BEGIN {
 		$has_qscale = 1;
 	};
 	if ($@) {
-		Apache2::ServerUtil->server->log_error("Could not load the qscale module ($@); continuing with ImageMagick only.");
+		print STDERR "Could not load the qscale module ($@); continuing with ImageMagick only.\n";
 	}
 }
 
