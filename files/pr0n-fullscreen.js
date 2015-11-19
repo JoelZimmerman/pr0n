@@ -2,43 +2,13 @@ var req;
 
 function init_ajax()
 {
-	req = false;
-
-	if (window.XMLHttpRequest) {
-		// Mozilla/Safari
-		try {
-			req = new XMLHttpRequest();
-		} catch(e) {
-			req = false;
-		}
-	} else if (window.ActiveXObject) {
-		// IE/Windows
-		try {
-			req = new ActiveXObject("Msxml2.XMLHTTP");
-		} catch(e) {
-			try {
-				req = new ActiveXObject("Microsoft.XMLHTTP");
-			} catch(e) {
-				req = false;
-			}
-		}
-	}
+	req = new XMLHttpRequest();
 }
 
 function find_width()
 {
-	if (typeof(window.innerWidth) == 'number') {
-		// non-IE
-		var dpr = find_dpr();
-		return [window.innerWidth * dpr, window.innerHeight * dpr];
-	} else if (document.documentElement && (document.documentElement.clientWidth || document.documentElement.clientHeight)) {
-		// IE 6+ in 'standards compliant mode'
-		return [document.documentElement.clientWidth, document.documentElement.clientHeight];
-	} else if (document.body && (document.body.clientWidth || document.body.clientHeight)) {
-		// IE 4-compatible
-		return [document.body.clientWidth, document.body.clientHeight];
-	}
-	return [null,null];
+	var dpr = find_dpr();
+	return [window.innerWidth * dpr, window.innerHeight * dpr];
 }
 
 function find_dpr()
@@ -452,23 +422,6 @@ function key_up(which) {
 		select_image(global_image_list[global_image_num][0], global_image_list[global_image_num][1], 0);
 	} else {
 		check_for_hash_change();
-	}
-}
-
-// enable the horrible horrible IE PNG hack
-function ie_png_hack()
-{
-	var vstr = navigator.appVersion.split("MSIE");
-	var v = parseFloat(vstr[1]);
-	if (v >= 5.5 && v < 7.0 && document.body.filters) {
-		var next = document.getElementById("next");
-		next.outerHTML = "<span id=\"next\" style=\"display: inline-block; position: absolute; bottom: 0px; right: 0px; width: 50px; height: 50px; filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + next.src + "')\" onmousedown=\"if (can_go_next()) set_opacity('next', 1.0)\" onmouseup=\"if (can_go_next()) { set_opacity('next', 0.7); go_next(); }\" onmouseout=\"if (can_go_next()) { set_opacity('next', 0.7); }\" />";
-		
-		var previous = document.getElementById("previous");
-		previous.outerHTML = "<span id=\"previous\" style=\"display: inline-block; position: absolute; bottom: 0px; right: 0px; width: 50px; height: 50px; filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + previous.src + "')\" onmousedown=\"if (can_go_previous()) set_opacity('previous', 1.0)\" onmouseup=\"if (can_go_previous()) { set_opacity('previous', 0.7); go_previous(); }\" onmouseout=\"if (can_go_previous()) { set_opacity('previous', 0.7); }\" />";
-		
-		var close = document.getElementById("close");
-		close.outerHTML = "<span id=\"close\" style=\"display: inline-block; position: absolute; top: 0px; right: 0px; width: 50px; height: 50px; filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + close.src + "')\" onmousedown=\"set_opacity('close', 1.0)\" onmouseup=\"set_opacity('close', 0.7); do_close();\" onmouseout=\"set_opacity('close', 0.7);\" />";
 	}
 }
 
