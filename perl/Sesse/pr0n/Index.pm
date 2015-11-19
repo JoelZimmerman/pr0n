@@ -41,8 +41,8 @@ sub handler {
 
 	# Read the appropriate settings from the query string into the settings hash
 	my %defsettings = (
-		thumbxres => 80,
-		thumbyres => 64,
+		thumbxres => 320,
+		thumbyres => 256,
 		xres => -1,
 		yres => -1,
 		start => 1,
@@ -220,7 +220,6 @@ sub handler {
 			Sesse::pr0n::Templates::print_template($r, $io, "overloadmode");
 		}
 
-		print_thumbsize($r, $io, $event, \%settings, \%defsettings);
 		print_viewres($r, $io, $event, \%settings, \%defsettings);
 		print_pagelimit($r, $io, $event, \%settings, \%defsettings);
 		print_infobox($r, $io, $event, \%settings, \%defsettings);
@@ -451,13 +450,6 @@ sub print_changes {
 	$io->print("    </p>\n");
 }
 
-sub print_thumbsize {
-	my ($r, $io, $event, $settings, $defsettings) = @_;
-	my @alternatives = qw(80x64 120x96 160x128 240x192 320x256);
-
-	print_changes($r, $io, $event, 'thumbsize', $settings, $defsettings,
-		      'thumbxres', 'thumbyres', \@alternatives);
-}
 sub print_viewres {
 	my ($r, $io, $event, $settings, $defsettings) = @_;
 	my @alternatives = qw(320x256 512x384 640x480 800x600 1024x768 1152x864 1280x960 1400x1050 1600x1200 1920x1440 2048x1536 2304x1728);
