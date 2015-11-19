@@ -9,18 +9,11 @@ sub handler {
 	my $r = shift;
 	my $dbh = Sesse::pr0n::Common::get_dbh();
 
-	my ($event, $abspath, $datesort, $tag);
+	my ($event, $abspath, $datesort);
 	if ($r->path_info =~ /^\/\+all\/?/) {
 		$event = '+all';
 		$abspath = 1;
-		$tag = undef; 
 
-		$datesort = 'DESC NULLS LAST';
-	} elsif ($r->path_info =~ /^\/\+tags\/([a-zA-Z0-9-]+)\/?$/) {
-		$tag = $1;
-		$event = "+tags/$tag";
-		$abspath = 1;
-		
 		$datesort = 'DESC NULLS LAST';
 	} else {
 		# Find the event
@@ -28,7 +21,6 @@ sub handler {
 			or return error($r, "Could not extract event");
 		$event = $1;
 		$abspath = 0;
-		$tag = undef;
 		$datesort = 'ASC NULLS LAST';
 	}
 
@@ -66,10 +58,7 @@ sub handler {
 	);
 	
 	my $where;
-	if (defined($tag)) {
-		my $tq = $dbh->quote($tag);
-		$where = " AND id IN ( SELECT image FROM tags WHERE tag=$tq )";
-	} elsif ($event eq '+all') {
+	if ($event eq '+all') {
 		$where = '';
 	} else {
 		$where = ' AND event=' . $dbh->quote($event);
@@ -151,7 +140,7 @@ sub handler {
 
 	my ($date, $name);
 
-	if ($event eq '+all' || defined($tag)) {
+	if ($event eq '+all') {
 		$ref = $dbh->selectrow_hashref("SELECT EXTRACT(EPOCH FROM MAX(last_update)) AS last_update FROM last_picture_cache WHERE vhost=?",
 			undef, Sesse::pr0n::Common::get_server_name($r))
 			or return error($r, "Could not list events", 404, "File not found");
@@ -191,12 +180,7 @@ sub handler {
 	if ($settings{'fullscreen'}) {
 		$res->content_type("text/html; charset=utf-8");
 
-		if (defined($tag)) {
-			my $title = Sesse::pr0n::Templates::process_template($res, $io, "tag-title", { tag => $tag });
-			Sesse::pr0n::Templates::print_template($r, $io, "fullscreen-header", { title => $title });
-		} else {
-			Sesse::pr0n::Templates::print_template($r, $io, "fullscreen-header", { title => "$name [$event]" });
-		}
+		Sesse::pr0n::Templates::print_template($r, $io, "fullscreen-header", { title => "$name [$event]" });
 
 		my @files = ();
 		while (my $ref = $q->fetchrow_hashref()) {
@@ -227,12 +211,7 @@ sub handler {
 			infobox => $infobox
 		});
 	} else {
-		if (defined($tag)) {
-			my $title = Sesse::pr0n::Templates::process_template($r, $io, "tag-title", { tag => $tag });
-			Sesse::pr0n::Common::header($r, $io, $title);
-		} else {
-			Sesse::pr0n::Common::header($r, $io, "$name [$event]");
-		}
+		Sesse::pr0n::Common::header($r, $io, "$name [$event]");
 		if (defined($date)) {
 			Sesse::pr0n::Templates::print_template($r, $io, "date", { date => $date });
 		}

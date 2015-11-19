@@ -91,14 +91,6 @@ CREATE TABLE exif_info (
 CREATE INDEX exif_info_key ON exif_info ( key );
 CLUSTER exif_info_key ON exif_info;
 
-CREATE TABLE tags (
-    image integer NOT NULL REFERENCES images (id) ON DELETE CASCADE,
-    tag varchar NOT NULL,
-
-    PRIMARY KEY ( image, tag )
-);
-CREATE INDEX tags_tag ON tags ( tag );
-
 GRANT INSERT ON TABLE deleted_images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE events TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE fake_files TO pr0n;
@@ -107,5 +99,4 @@ GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE shadow_files TO pr0n;
 GRANT SELECT,UPDATE ON TABLE users TO pr0n;
 GRANT SELECT,INSERT,DELETE ON TABLE exif_info TO pr0n;
-GRANT SELECT,INSERT,DELETE ON TABLE tags TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE last_picture_cache TO pr0n;

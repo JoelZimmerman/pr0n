@@ -304,25 +304,6 @@ sub update_image_info {
 			 undef, $width, $height, $datetime, $model, $lens, $id)
 			or die "Couldn't update width/height in SQL: $!";
 		
-		# Tags
-		my @tags = $exiftool->GetValue('Keywords', 'ValueConv');
-		if (scalar @tags == 0) {
-			# This is XMP-dc:Subject, an RDF bag of tags.
-			@tags = $exiftool->GetValue('Subject', 'ValueConv');
-		}
-		$dbh->do('DELETE FROM tags WHERE image=?',
-			undef, $id)
-			or die "Couldn't delete old tag information in SQL: $!";
-
-		$q = $dbh->prepare('INSERT INTO tags (image,tag) VALUES (?,?)')
-			or die "Couldn't prepare inserting tag information: $!";
-
-
-		for my $tag (@tags) {
-			$q->execute($id, guess_charset($tag))
-				or die "Couldn't insert tag information in database: $!";
-		}
-
 		# update the last_picture cache as well (this should of course be done
 		# via a trigger, but this is less complicated :-) )
 		$dbh->do('UPDATE last_picture_cache SET last_picture=GREATEST(last_picture, ?),last_update=CURRENT_TIMESTAMP WHERE (vhost,event)=(SELECT vhost,event FROM images WHERE id=?)',

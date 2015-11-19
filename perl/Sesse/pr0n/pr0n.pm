@@ -16,7 +16,7 @@ sub handler {
 	my $r = shift;
 
 	my $uri = $r->path_info;
-	if ($uri eq '/' || $uri =~ /^\/\+tags\/?$/) {
+	if ($uri eq '/') {
 		return Sesse::pr0n::Listing::handler($r);
 	} elsif ($uri eq '/robots.txt' ||
 		 $uri eq '/pr0n.css' ||
@@ -67,8 +67,7 @@ sub handler {
 	} elsif ($uri =~ m#^/newevent$#) {
 		return Sesse::pr0n::NewEvent::handler($r);
 	} elsif ($uri =~ /^\/[a-zA-Z0-9-]+\/?$/ ||
-		 $uri =~ /^\/\+all\/?$/ ||
-		 $uri =~ /^\/\+tags\/[a-zA-Z0-9-]+\/?$/) {
+		 $uri =~ /^\/\+all\/?$/) {
 		return Sesse::pr0n::Index::handler($r);
 	} elsif ($uri =~ m#^/[a-zA-Z0-9-]+/(\d+x\d+(\@\d+(\.\d+)?)?/|original/)((?:no)?box/)?[a-zA-Z0-9._()-]+$#) {
 		return Sesse::pr0n::Image::handler($r);
