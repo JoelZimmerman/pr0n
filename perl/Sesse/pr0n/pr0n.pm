@@ -21,7 +21,6 @@ sub handler {
 	} elsif ($uri eq '/robots.txt' ||
 		 $uri eq '/pr0n.css' ||
 		 $uri eq '/skoyen.css' ||
-		 $uri eq '/blah.png' ||
 		 $uri eq '/faq.html' ||
 		 $uri eq '/pr0n-fullscreen.css' ||
 		 $uri eq '/pr0n-fullscreen-ie.css' ||
@@ -29,8 +28,6 @@ sub handler {
 		 $uri eq '/previous.png' ||
 		 $uri eq '/next.png' ||
 		 $uri eq '/close.png' ||
-		 $uri eq '/wizard.js' ||
-		 $uri eq '/wizard.css' ||
 		 $uri eq '/pr0n.ico' ||
 		 $uri =~ m#^/usage/([a-zA-Z0-9_.]+)$#) {
 		$uri =~ s#^/##;
