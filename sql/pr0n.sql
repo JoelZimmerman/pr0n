@@ -73,9 +73,8 @@ CREATE TABLE shadow_files (
 
 CREATE TABLE users (
     username character varying NOT NULL,
-    sha1password character(27),
     vhost character varying NOT NULL,
-    cryptpassword character varying
+    cryptpassword character varying NOT NULL
 );
 
 -- Mainly used for manual queries -- usually too slow to be very useful

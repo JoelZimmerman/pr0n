@@ -13,8 +13,6 @@ use DBD::Pg;
 use Image::Magick;
 use IO::String;
 use POSIX;
-use Digest::SHA;
-use Digest::HMAC_SHA1;
 use MIME::Base64;
 use MIME::Types;
 use LWP::Simple;
@@ -342,34 +340,15 @@ sub check_basic_auth {
 	my ($raw_user, $pass) = split /:/, MIME::Base64::decode_base64($auth);
 	my ($user, $takenby) = extract_takenby($raw_user);
 
-	my $ref = $dbh->selectrow_hashref('SELECT sha1password,cryptpassword FROM users WHERE username=? AND vhost=?',
+	my $ref = $dbh->selectrow_hashref('SELECT cryptpassword FROM users WHERE username=? AND vhost=?',
 		undef, $user, Sesse::pr0n::Common::get_server_name($r));
-	my ($sha1_matches, $bcrypt_matches) = (0, 0);
-	if (defined($ref) && defined($ref->{'sha1password'})) {
-		$sha1_matches = (Digest::SHA::sha1_base64($pass) eq $ref->{'sha1password'});
-	}
-	if (defined($ref) && defined($ref->{'cryptpassword'})) {
-		$bcrypt_matches = (Crypt::Eksblowfish::Bcrypt::bcrypt($pass, $ref->{'cryptpassword'}) eq $ref->{'cryptpassword'});
-	}
-
-	if (!defined($ref) || (!$sha1_matches && !$bcrypt_matches)) {
+	my $bcrypt_matches = 0;
+	if (!defined($ref) || Crypt::Eksblowfish::Bcrypt::bcrypt($pass, $ref->{'cryptpassword'}) ne $ref->{'cryptpassword'}) {
 		$r->content_type('text/plain; charset=utf-8');
 		log_warn($r, "Authentication failed for $user/$takenby");
 		return undef;
 	}
 	log_info($r, "Authentication succeeded for $user/$takenby");
-
-	# Make sure we can use bcrypt authentication in the future with this password.
-	# Also remove old-style SHA1 password when we migrate.
-	if (!$bcrypt_matches) {
-		my $salt = get_pseudorandom_bytes(16);  # Doesn't need to be cryptographically secur.
-		my $hash = "\$2a\$07\$" . Crypt::Eksblowfish::Bcrypt::en_base64($salt);
-		my $cryptpassword = Crypt::Eksblowfish::Bcrypt::bcrypt($pass, $hash);
-		$dbh->do('UPDATE users SET sha1password=NULL,cryptpassword=? WHERE username=? AND vhost=?',
-			undef, $cryptpassword, $user, Sesse::pr0n::Common::get_server_name($r))
-			or die "Couldn't update: " . $dbh->errstr;
-		log_info($r, "Updated bcrypt hash for $user");
-	}
 
 	return ($user, $takenby);
 }
