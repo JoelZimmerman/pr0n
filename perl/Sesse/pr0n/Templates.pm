@@ -85,7 +85,7 @@ sub process_template {
 
 sub print_template {
 	my ($r, $io, $template, $args) = @_;
-	$io->print(process_template($r, $template, $args));
+	$io->print(Encode::encode_utf8(process_template($r, $template, $args)));
 }
 
 1;
