@@ -274,8 +274,8 @@ function relayout()
 		prepare_preload(img, global_image_num + 1);
 	}
 
-	set_opacity("previous", can_go_previous() ? global_default_opacity : 0.1);
-	set_opacity("next", can_go_next() ? global_default_opacity : 0.1);
+	set_opacity("previous", can_go_previous() ? global_default_opacity : global_disabled_opacity);
+	set_opacity("next", can_go_next() ? global_default_opacity : global_disabled_opacity);
 	set_opacity("close", global_default_opacity);
 	set_opacity("options", global_default_opacity);
 }
@@ -291,9 +291,9 @@ function go_previous()
 		set_opacity("previous", global_default_opacity);
 		prepare_preload(img, global_image_num - 1);
 	} else {
-		set_opacity("previous", 0.1);
+		set_opacity("previous", global_disabled_opacity);
 	}
-	set_opacity("next", can_go_next() ? global_default_opacity : 0.1);
+	set_opacity("next", can_go_next() ? global_default_opacity : global_disabled_opacity);
 }
 
 function go_next()
@@ -307,9 +307,9 @@ function go_next()
 		set_opacity("next", global_default_opacity);
 		prepare_preload(img, global_image_num + 1);
 	} else {
-		set_opacity("next", 0.1);
+		set_opacity("next", global_disabled_opacity);
 	}
-	set_opacity("previous", can_go_previous() ? global_default_opacity : 0.1);
+	set_opacity("previous", can_go_previous() ? global_default_opacity : global_disabled_opacity);
 }
 
 function do_close()
@@ -391,14 +391,14 @@ function key_down(which)
 {
 	if (which == 39) {   // right
 		if (can_go_next()) {
-			set_opacity("next", 0.99);
+			set_opacity("next", global_highlight_opacity);
 		}
 	} else if (which == 37) {   // left
 		if (can_go_previous()) {
-			set_opacity("previous", 0.99);
+			set_opacity("previous", global_highlight_opacity);
 		}
 	} else if (which == 27) {   // escape
-		set_opacity("close", 0.99);
+		set_opacity("close", global_higlight_opacity);
 	} else {
 		check_for_hash_change();
 	}
@@ -446,11 +446,15 @@ function check_for_hash_change() {
 
 function toggle_immersive() {
 	if (global_default_opacity == 0.7) {
+		global_disabled_opacity = 0.0;
 		global_default_opacity = 0.0;
+		global_highlight_opacity = 0.2;
 		global_infobox = false;
 		document.getElementById('immersivetoggle').innerHTML = 'Show decorations';
 	} else {
+		global_disabled_opacity = 0.1;
 		global_default_opacity = 0.7;
+		global_highlight_opacity = 1.0;
 		global_infobox = true;
 		document.getElementById('immersivetoggle').innerHTML = 'Hide all decorations';
 	}
