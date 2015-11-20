@@ -56,7 +56,7 @@ sub fetch_template {
 	my $newcache = {};
 
 	my $base = $Sesse::pr0n::Config::template_base;
-	open TEMPLATE, "<$base/$dir/$template"
+	open TEMPLATE, "<:utf8", "$base/$dir/$template"
 		or ($dir ne 'default' and open TEMPLATE, "<$base/default/$template")
 		or Sesse::pr0n::Common::error($r, "Couldn't open $dir/$template: $!");
 
