@@ -5,16 +5,16 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="no">
   <head>
     <title>svurr :: galleri :: %TITLE%</title>
-    <link rel="stylesheet" type="text/css" href="http://www.svurr.com/style" />
+    <link rel="stylesheet" type="text/css" href="//www.svurr.com/style" />
   </head>
   <body>
     <div class="navbar">
-      <a href="http://www.svurr.com/index">forsiden</a> ::
-      <a href="http://www.svurr.com/hvaskjer">hva skjer</a> ::
-      <a href="http://www.svurr.com/kalender">kalender</a> ::
-      <a href="http://www.svurr.com/nyheter">nyheter</a> ::
+      <a href="//www.svurr.com/index">forsiden</a> ::
+      <a href="//www.svurr.com/hvaskjer">hva skjer</a> ::
+      <a href="//www.svurr.com/kalender">kalender</a> ::
+      <a href="//www.svurr.com/nyheter">nyheter</a> ::
       galleri ::
-      <a href="http://www.svurr.com/media">multimedia</a>
+      <a href="//www.svurr.com/media">multimedia</a>
    </div>
    <div class="main">
      <h1>%TITLE%</h1>
