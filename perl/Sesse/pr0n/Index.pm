@@ -343,8 +343,8 @@ sub handler {
 			# Add fullscreen link.
 			my %fssettings = %settings;
 			$fssettings{'fullscreen'} = 1;
-			$fssettings{'start'} = $img_num;
 			my $fsquery = Sesse::pr0n::Common::get_query_string(\%fssettings, \%defsettings);
+			$fsquery .= '#' . $img_num;
 
 			my $filename = $ref->{'filename'};
 			my $uri = $filename;
