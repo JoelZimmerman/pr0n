@@ -128,7 +128,8 @@ sub get_query_string {
 	my $first = 1;
 	my $str = "";
 
-	while (my ($key, $value) = each %$param) {
+	for my $key (sort keys %$param) {
+		my $value = $param->{$key};
 		next unless defined($value);
 		next if (defined($defparam->{$key}) && $value == $defparam->{$key});
 
