@@ -314,7 +314,11 @@ function go_next()
 
 function do_close()
 {
-	window.location = global_return_url;
+	if (global_image_num > 0) {
+		window.location = global_return_url + '#' + (global_image_num + 1);
+	} else {
+		window.location = global_return_url;
+	}
 }
 
 function toggle_optionmenu()

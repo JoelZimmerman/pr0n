@@ -364,7 +364,7 @@ sub handler {
 			} else {
 				$io->print("     ");
 			}
-			$io->print("<a href=\"$prefix$uri\" onclick=\"location.href='$prefix$fsquery';return false;\"><img src=\"$prefix${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
+			$io->print("<a href=\"$prefix$uri\" id=\"$img_num\" onclick=\"location.href='$prefix$fsquery';return false;\"><img src=\"$prefix${thumbxres}x${thumbyres}/$filename\" alt=\"\"$imgsz /></a>\n");
 		
 			if ($rot == 1) {
 				$io->print("      90 <input type=\"checkbox\" name=\"rot-" .
