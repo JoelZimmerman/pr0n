@@ -2,10 +2,6 @@
 var global_return_url = "%RETURNURL%";
 var global_image_num = parse_image_num(%START%);
 var global_select = %SEL%;
-var global_disabled_opacity = 0.1;
-var global_default_opacity = 0.7;
-var global_highlight_opacity = 1.0;
-var global_infobox = true;
 // end generated
     </script>
   </head>

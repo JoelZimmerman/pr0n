@@ -1,3 +1,10 @@
+(function() {
+
+var global_disabled_opacity = 0.1;
+var global_default_opacity = 0.7;
+var global_highlight_opacity = 1.0;
+var global_infobox = true;
+
 function find_width()
 {
 	var dpr = find_dpr();
@@ -429,6 +436,7 @@ function parse_image_num(default_value) {
 		return default_value;
 	}
 }
+window['parse_image_num'] = parse_image_num;
 
 function check_for_hash_change() {
 	var num = parse_image_num(-1);
@@ -486,3 +494,5 @@ window.onload = function() {
 	options.onmouseup = function() { set_opacity('options', global_default_opacity); toggle_optionmenu(); };
 	options.onmouseout = function() { set_opacity('options', global_default_opacity); };
 };
+
+})();
