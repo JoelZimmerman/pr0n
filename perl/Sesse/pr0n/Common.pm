@@ -1007,7 +1007,7 @@ sub set_last_modified {
 	my ($res, $mtime) = @_;
 
 	my $str = POSIX::strftime("%a, %d %b %Y %H:%M:%S GMT", gmtime($mtime));
-	$res->headers({ 'Last-Modified' => $str });
+	$res->header('Last-Modified' => $str);
 }
 
 sub get_server_name {
