@@ -9,13 +9,13 @@ var global_infobox = true;
 // end generated
     </script>
   </head>
-  <body onresize="relayout();" onload="init_ajax(); relayout(); setInterval('check_for_hash_change()', 1000);" onkeydown="key_down(event.keyCode);" onkeyup="key_up(event.keyCode);" onhashchange="check_for_hash_change();" onclick="check_for_hash_change();">
+  <body>
     <div>
       <div class="container" id="main"><div id="iehack"></div></div>
-      <img id="previous" src="/previous.png" alt="&lt;-" onmousedown="if (can_go_previous()) set_opacity('previous', global_highlight_opacity)" onmouseup="if (can_go_previous()) { set_opacity('previous', global_default_opacity); go_previous(); }" onmouseout="if (can_go_previous()) { set_opacity('previous', global_default_opacity); }" />
-      <img id="next" src="/next.png" alt="-&gt;" onmousedown="if (can_go_next()) set_opacity('next', global_highlight_opacity)" onmouseup="if (can_go_next()) { set_opacity('next', global_default_opacity); go_next(); }" onmouseout="if (can_go_next()) { set_opacity('next', global_default_opacity); }" />
-      <img id="close" src="/close.png" alt="x" onmousedown="set_opacity('close', global_highlight_opacity)" onmouseup="set_opacity('close', global_default_opacity); do_close();" onmouseout="set_opacity('close', global_default_opacity);" />
-      <img id="options" src="/options.png" alt="=" onmousedown="set_opacity('options', global_highlight_opacity)" onmouseup="set_opacity('options', global_default_opacity); toggle_optionmenu();" onmouseout="set_opacity('options', global_default_opacity);" />
+      <img id="previous" src="/previous.png" alt="&lt;-" />
+      <img id="next" src="/next.png" alt="-&gt;" />
+      <img id="close" src="/close.png" alt="x" />
+      <img id="options" src="/options.png" alt="=" />
       <div id="optionmenu"><p><a id="origdownload">Download original image</a></p><p><a id="immersivetoggle" href="javascript:toggle_optionmenu();toggle_immersive();">Hide all decorations</a></p></div>
     </div>
   </body>

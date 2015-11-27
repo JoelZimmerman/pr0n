@@ -1,10 +1,3 @@
-var req;
-
-function init_ajax()
-{
-	req = new XMLHttpRequest();
-}
-
 function find_width()
 {
 	var dpr = find_dpr();
@@ -374,16 +367,13 @@ function fade_text(opacity)
 
 function select_image(evt, filename, selected)
 {
-	if (!req) {
-		return;
-	}
-
 	if (selected) {
 		draw_text("Selecting " + filename + "...");
 	} else {
 		draw_text("Unselecting " + filename + "...");
 	}
 	
+	var req = new XMLHttpRequest();
 	req.open("POST", window.location.origin + "/select", false);
 	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	req.send("event=" + evt + "&filename=" + filename + "&selected=" + selected);
@@ -464,3 +454,35 @@ function toggle_immersive() {
 	}
 	relayout();
 }
+
+window.onload = function() {
+	relayout();
+	setInterval(check_for_hash_change, 1000);
+
+	var body = document.body;
+	body.onresize = function() { relayout(); };
+	body.onkeydown = function() { key_down(event.keyCode); };
+	body.onkeyup = function() { key_up(event.keyCode); };
+	body.onhashchange = function() { check_for_hash_change(); };
+	body.onclick = function() { check_for_hash_change(); };
+
+	var previous = document.getElementById('previous');
+	previous.onmousedown = function() { if (can_go_previous()) { set_opacity('previous', global_highlight_opacity); } };
+	previous.onmouseup = function() { if (can_go_previous()) { set_opacity('previous', global_default_opacity); go_previous(); } };
+	previous.onmouseout = function() { if (can_go_previous()) { set_opacity('previous', global_default_opacity); } };
+
+	var next = document.getElementById('next');
+	next.onmousedown = function() { if (can_go_next()) { set_opacity('next', global_highlight_opacity); } };
+	next.onmouseup = function() { if (can_go_next()) { set_opacity('next', global_default_opacity); go_next(); } };
+	next.onmouseout = function() { if (can_go_next()) { set_opacity('next', global_default_opacity); } };
+
+	var close = document.getElementById('close');
+	close.onmousedown = function() { set_opacity('close', global_highlight_opacity); };
+	close.onmouseup = function() { set_opacity('close', global_default_opacity); do_close(); };
+	close.onmouseout = function() { set_opacity('close', global_default_opacity); };
+
+	var options = document.getElementById('options');
+	options.onmousedown = function() { set_opacity('options', global_highlight_opacity); };
+	options.onmouseup = function() { set_opacity('options', global_default_opacity); toggle_optionmenu(); };
+	options.onmouseout = function() { set_opacity('options', global_default_opacity); };
+};
