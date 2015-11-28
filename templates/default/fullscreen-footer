@@ -12,7 +12,11 @@ var global_select = %SEL%;
       <img id="next" src="/next.png" alt="-&gt;" />
       <img id="close" src="/close.png" alt="x" />
       <img id="options" src="/options.png" alt="=" />
-      <div id="optionmenu"><p><a id="origdownload">Download original image</a></p><p><a id="immersivetoggle" href="javascript:toggle_optionmenu();toggle_immersive();">Hide all decorations</a></p></div>
+      <div id="optionmenu">
+        <p><a id="origdownload">Download original image</a></p>
+        <p id="fulldownload"><a id="fulldownloadlink">Download full-resolution image</a></p>
+        <p><a id="immersivetoggle" href="javascript:toggle_optionmenu();toggle_immersive();">Hide all decorations</a></p>
+      </div>
     </div>
   </body>
 </html>

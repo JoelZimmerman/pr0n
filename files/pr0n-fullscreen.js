@@ -143,6 +143,18 @@ function display_image(width, height, evt, filename, element_id)
 		// Update the "download original" link.
 		var original_url = window.location.origin + "/" + evt + "/original/" + filename;
 		document.getElementById("origdownload").href = original_url;
+
+		// If it's a raw image, show a JPEG link.
+		var fulldownload = document.getElementById("fulldownload");
+		if (filename.match(/\.(nef|cr2)$/i)) {
+			fulldownload.style.display = "block";
+			var full_url = window.location.origin + "/" + evt + "/" + filename;
+			document.getElementById("fulldownloadlink").href = full_url;
+			origdownload.innerHTML = "Download original image (RAW)";
+		} else {
+			fulldownload.style.display = "none";
+			origdownload.innerHTML = "Download original image";
+		}
 	}
 
 	if (global_infobox) {

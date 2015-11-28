@@ -71,6 +71,10 @@ img, #text {
 	height: 20px; */
 }
 
+#fulldownload {
+	display: none;
+}
+
 /* IE5/6 madness */
 html {
 	overflow: hidden;
