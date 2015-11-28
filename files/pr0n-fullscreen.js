@@ -139,9 +139,11 @@ function display_image(width, height, evt, filename, element_id)
 	img.style.transformOrigin = "top left";
 	img.style.transform = "scale(" + (1.0 / dpr) + ")";
 
-	// Update the "download original" link.
-	var original_url = window.location.origin + "/" + evt + "/original/" + filename;
-	document.getElementById("origdownload").href = original_url;
+	if (element_id == "image") {
+		// Update the "download original" link.
+		var original_url = window.location.origin + "/" + evt + "/original/" + filename;
+		document.getElementById("origdownload").href = original_url;
+	}
 
 	if (global_infobox) {
 		var url;
