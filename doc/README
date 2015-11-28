@@ -13,7 +13,7 @@ backend pr0n {
 }
 
 sub vcl_recv {
-    if (req.http.host == "pr0n.sesse.net") {
+    if (req.http.host ~ "^pr0n\.sesse\.net(:[0-9]+)?$") {
         set req.backend_hint = pr0n;
     }
 }
@@ -30,7 +30,7 @@ sub vcl_deliver {
 }
 
 sub vcl_backend_response {
-    if (bereq.http.host == "pr0n.sesse.net") {
+    if (bereq.http.host ~ "^pr0n\.sesse\.net(:[0-9]+)?$") {
         set beresp.ttl = 1w;
         set beresp.http.x-varnish-host = bereq.http.host;
         set beresp.http.x-varnish-url = bereq.url;
