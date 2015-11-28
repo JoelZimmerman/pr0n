@@ -331,6 +331,7 @@ function toggle_optionmenu()
 		set_opacity("options", 0.7);
 	}
 }
+window['toggle_optionmenu'] = toggle_optionmenu;
 
 function draw_text(msg)
 {
@@ -462,6 +463,7 @@ function toggle_immersive() {
 	}
 	relayout();
 }
+window['toggle_immersive'] = toggle_immersive;
 
 window.onload = function() {
 	relayout();
