@@ -569,15 +569,13 @@ sub read_original_image {
 }
 
 sub ensure_cached {
-	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $dpr, $xres, $yres, @otherres) = @_;
+	my ($r, $filename, $id, $dbwidth, $dbheight, $dpr, $xres, $yres, @otherres) = @_;
 
 	my ($new_dbwidth, $new_dbheight);
 
 	my $fname = get_disk_location($r, $id);
-	if (!$infobox) {
-		unless (defined($xres) && (!defined($dbwidth) || !defined($dbheight) || $xres < $dbwidth || $yres < $dbheight || $xres == -1)) {
-			return ($fname, undef);
-		}
+	unless (defined($xres) && (!defined($dbwidth) || !defined($dbheight) || $xres < $dbwidth || $yres < $dbheight || $xres == -1)) {
+		return ($fname, undef);
 	}
 
 	my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox, $dpr);
@@ -588,56 +586,6 @@ sub ensure_cached {
 		if (Sesse::pr0n::Overload::is_in_overload($r)) {
 			log_warn($r, "In overload mode, not scaling $id to $xres x $yres");
 			error($r, 'System is in overload mode, not doing any scaling');
-		}
-
-		# If we're being asked for the box, make a new image with it.
-		# We don't care about @otherres since each of these images are
-		# already pretty cheap to generate, but we need the exact width so we can make
-		# one in the right size.
-		if ($infobox) {
-			my ($img, $width, $height);
-
-			# This is slow, but should fortunately almost never happen, so don't bother
-			# special-casing it.
-			if (!defined($dbwidth) || !defined($dbheight)) {
-				$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, 0);
-				$new_dbwidth = $width = $img->Get('columns');
-				$new_dbheight = $height = $img->Get('rows');
-			} else {
-				$img = Image::Magick->new;
-				$width = $dbwidth;
-				$height = $dbheight;
-			}
-			
-			if (defined($xres) && defined($yres)) {
-				($width, $height) = scale_aspect($width, $height, $xres, $yres);
-			}
-			$height = 24 * $dpr;
-			$img->Set(size=>($width . "x" . $height));
-			$img->Read('xc:white');
-				
-			my $info = Image::ExifTool::ImageInfo($fname);
-			if (make_infobox($img, $info, $r, $dpr)) {
-				$img->Quantize(colors=>16, dither=>'False');
-
-				# Since the image is grayscale, ImageMagick overrides us and writes this
-				# as grayscale anyway, but at least we get rid of the alpha channel this
-				# way.
-				$img->Set(type=>'Palette');
-			} else {
-				# Not enough room for the text, make a tiny dummy transparent infobox
-				@$img = ();
-				$img->Set(size=>"1x1");
-				$img->Read('null:');
-
-				$width = 1;
-				$height = 1;
-			}
-				
-			$err = $img->write(filename => $cachename, quality => 90, depth => 8);
-			log_info($r, "New infobox cache: $width x $height for $id.jpg");
-			
-			return ($cachename, 'image/png');
 		}
 
 		my $img;
@@ -712,6 +660,70 @@ sub ensure_cached {
 
 	return ($cachename, 'image/jpeg');
 }
+
+sub ensure_infobox_cached {
+	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $dpr, $xres, $yres) = @_;
+
+	my ($new_dbwidth, $new_dbheight);
+
+	my $fname = get_disk_location($r, $id);
+	my $cachename = get_cache_location($r, $id, $xres, $yres, 1, $dpr);
+	my $err;
+	if (! -r $cachename or (-M $cachename > -M $fname)) {
+		# If we are in overload mode (aka Slashdot mode), refuse to generate
+		# new thumbnails.
+		if (Sesse::pr0n::Overload::is_in_overload($r)) {
+			log_warn($r, "In overload mode, not scaling $id to $xres x $yres");
+			error($r, 'System is in overload mode, not doing any scaling');
+		}
+
+		# We need the exact width so we can make one in the right size.
+		my ($width, $height);
+
+		# This is slow, but should fortunately almost never happen, so don't bother
+		# special-casing it.
+		if (!defined($dbwidth) || !defined($dbheight)) {
+			my $img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, 0);
+			$new_dbwidth = $width = $img->Get('columns');
+			$new_dbheight = $height = $img->Get('rows');
+		} else {
+			$width = $dbwidth;
+			$height = $dbheight;
+		}
+		my $img = Image::Magick->new;
+
+		if (defined($xres) && defined($yres)) {
+			($width, $height) = scale_aspect($width, $height, $xres, $yres);
+		}
+		$height = 24 * $dpr;
+		$img->Set(size=>($width . "x" . $height));
+		$img->Read('xc:white');
+
+		my $info = Image::ExifTool::ImageInfo($fname);
+		if (make_infobox($img, $info, $r, $dpr)) {
+			$img->Quantize(colors=>16, dither=>'False');
+
+			# Since the image is grayscale, ImageMagick overrides us and writes this
+			# as grayscale anyway, but at least we get rid of the alpha channel this
+			# way.
+			$img->Set(type=>'Palette');
+		} else {
+			# Not enough room for the text, make a tiny dummy transparent infobox
+			@$img = ();
+			$img->Set(size=>"1x1");
+			$img->Read('null:');
+
+			$width = 1;
+			$height = 1;
+		}
+
+		$err = $img->write(filename => $cachename, quality => 90, depth => 8);
+		log_info($r, "New infobox cache: $width x $height for $id.jpg");
+
+		return ($cachename, 'image/png');
+	}
+}
+
 
 sub get_mimetype_from_filename {
 	my $filename = shift;

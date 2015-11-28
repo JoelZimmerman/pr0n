@@ -51,7 +51,12 @@ sub handler {
 	$dbheight = $ref->{'height'};
 
 	# Scale if we need to do so
-	my ($fname, $mime_type) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $infobox, $dpr, $xres, $yres);
+	my ($fname, $mime_type);
+	if ($infobox) {
+		($fname, $mime_type) = Sesse::pr0n::Common::ensure_infobox_cached($r, $filename, $id, $dbwidth, $dbheight, $dpr, $xres, $yres);
+	} else {
+		($fname, $mime_type) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $dpr, $xres, $yres);
+	}
 
 	# Output the image to the user
 	my $res = Plack::Response->new(200);

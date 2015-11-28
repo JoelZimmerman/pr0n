@@ -101,7 +101,6 @@ while (my $ref = $q->fetchrow_hashref) {
 	if (!$regen_mipmaps) {
 		@files = grep { !/mipmap/ } @files;
 	}
-	my @bothres = ();
 	my @boxres = ();
 	my @noboxres = ();
 	my $any_old = 0;
@@ -110,9 +109,7 @@ while (my $ref = $q->fetchrow_hashref) {
 		if ($mtime < $threshold) {
 			$any_old = 1;
 		}
-		if ($c =~ /$id-(\d+)-(\d+)\.jpg/ || $c =~ /$id-(-1)-(-1)\.jpg/) {
-			push @bothres, [$1, $2];
-		} elsif ($c =~ /$id-(\d+)-(\d+)-nobox\.jpg/ || $c =~ /$id-(-1)-(-1)-nobox\.jpg/) {
+		if ($c =~ /$id-(\d+)-(\d+)-nobox\.jpg/ || $c =~ /$id-(-1)-(-1)-nobox\.jpg/) {
 			push @noboxres, [$1, $2];
 		} elsif ($c =~ /$id-(\d+)-(\d+)-box\.png/ || $c =~ /$id-(-1)-(-1)-box\.png/) {
 			push @boxres, [$1, $2];
@@ -120,14 +117,11 @@ while (my $ref = $q->fetchrow_hashref) {
 	}
 	next unless $any_old;
 	unlink (@files);
-	if (scalar @bothres > 0) {
-		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 'both', 1, sort_res(@bothres));
-	}
 	if (scalar @noboxres > 0) {
-		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 'nobox', 1, sort_res(@noboxres));
+		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 1, sort_res(@noboxres));
 	}
 	if (scalar @boxres > 0) {
-		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 'box', 1, sort_res(@boxres));
+		Sesse::pr0n::Common::ensure_infobox_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 1, sort_res(@boxres));
 	}
 	
 	my @newfiles = glob("../cache/$dir/$id-*.jpg");
