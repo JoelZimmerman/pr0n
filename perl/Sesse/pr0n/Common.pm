@@ -212,14 +212,14 @@ sub get_disk_location {
 }
 
 sub get_cache_location {
-	my ($r, $id, $width, $height) = @_;
+	my ($id, $width, $height) = @_;
         my $dir = POSIX::floor($id / 256);
 
 	return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-nobox.jpg";
 }
 
 sub get_infobox_cache_location {
-	my ($r, $id, $width, $height, $dpr) = @_;
+	my ($id, $width, $height, $dpr) = @_;
         my $dir = POSIX::floor($id / 256);
 
 	if ($dpr == 1) {
@@ -581,7 +581,7 @@ sub ensure_cached {
 		return ($fname, undef);
 	}
 
-	my $cachename = get_cache_location($r, $id, $xres, $yres);
+	my $cachename = get_cache_location($id, $xres, $yres);
 	my $err;
 	if (! -r $cachename or (-M $cachename > -M $fname)) {
 		# If we are in overload mode (aka Slashdot mode), refuse to generate
@@ -596,7 +596,7 @@ sub ensure_cached {
 
 		while (defined($xres) && defined($yres)) {
 			my ($nxres, $nyres) = (shift @otherres, shift @otherres);
-			my $cachename = get_cache_location($r, $id, $xres, $yres);
+			my $cachename = get_cache_location($id, $xres, $yres);
 			
 			my $cimg;
 			if (defined($nxres) && defined($nyres)) {
@@ -670,7 +670,7 @@ sub ensure_infobox_cached {
 	my ($new_dbwidth, $new_dbheight);
 
 	my $fname = get_disk_location($r, $id);
-	my $cachename = get_infobox_cache_location($r, $id, $xres, $yres, $dpr);
+	my $cachename = get_infobox_cache_location($id, $xres, $yres, $dpr);
 	my $err;
 	if (! -r $cachename or (-M $cachename > -M $fname)) {
 		# If we are in overload mode (aka Slashdot mode), refuse to generate
