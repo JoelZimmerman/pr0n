@@ -603,7 +603,6 @@ sub ensure_cached {
 				$img = read_original_image($r, $filename, $id, $dbwidth, $dbheight, 0);
 				$new_dbwidth = $width = $img->Get('columns');
 				$new_dbheight = $height = $img->Get('rows');
-				@$img = ();
 			} else {
 				$img = Image::Magick->new;
 				$width = $dbwidth;
