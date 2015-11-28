@@ -118,7 +118,7 @@ while (my $ref = $q->fetchrow_hashref) {
 	next unless $any_old;
 	unlink (@files);
 	if (scalar @noboxres > 0) {
-		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 1, sort_res(@noboxres));
+		Sesse::pr0n::Common::ensure_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, sort_res(@noboxres));
 	}
 	if (scalar @boxres > 0) {
 		Sesse::pr0n::Common::ensure_infobox_cached($r, $ref->{'filename'}, $id, $ref->{'width'}, $ref->{'height'}, 1, sort_res(@boxres));

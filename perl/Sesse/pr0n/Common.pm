@@ -212,17 +212,20 @@ sub get_disk_location {
 }
 
 sub get_cache_location {
-	my ($r, $id, $width, $height, $infobox, $dpr) = @_;
+	my ($r, $id, $width, $height) = @_;
         my $dir = POSIX::floor($id / 256);
 
-	if ($infobox) {
-		if ($dpr == 1) {
-			return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-box.png";
-		} else {
-			return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-box\@$dpr.png";
-		}
+	return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-nobox.jpg";
+}
+
+sub get_infobox_cache_location {
+	my ($r, $id, $width, $height, $dpr) = @_;
+        my $dir = POSIX::floor($id / 256);
+
+	if ($dpr == 1) {
+		return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-box.png";
 	} else {
-		return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-nobox.jpg";
+		return $Sesse::pr0n::Config::image_base . "cache/$dir/$id-$width-$height-box\@$dpr.png";
 	}
 }
 
@@ -569,7 +572,7 @@ sub read_original_image {
 }
 
 sub ensure_cached {
-	my ($r, $filename, $id, $dbwidth, $dbheight, $dpr, $xres, $yres, @otherres) = @_;
+	my ($r, $filename, $id, $dbwidth, $dbheight, $xres, $yres, @otherres) = @_;
 
 	my ($new_dbwidth, $new_dbheight);
 
@@ -578,7 +581,7 @@ sub ensure_cached {
 		return ($fname, undef);
 	}
 
-	my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox, $dpr);
+	my $cachename = get_cache_location($r, $id, $xres, $yres);
 	my $err;
 	if (! -r $cachename or (-M $cachename > -M $fname)) {
 		# If we are in overload mode (aka Slashdot mode), refuse to generate
@@ -593,7 +596,7 @@ sub ensure_cached {
 
 		while (defined($xres) && defined($yres)) {
 			my ($nxres, $nyres) = (shift @otherres, shift @otherres);
-			my $cachename = get_cache_location($r, $id, $xres, $yres, $infobox, $dpr);
+			my $cachename = get_cache_location($r, $id, $xres, $yres);
 			
 			my $cimg;
 			if (defined($nxres) && defined($nyres)) {
@@ -662,12 +665,12 @@ sub ensure_cached {
 }
 
 sub ensure_infobox_cached {
-	my ($r, $filename, $id, $dbwidth, $dbheight, $infobox, $dpr, $xres, $yres) = @_;
+	my ($r, $filename, $id, $dbwidth, $dbheight, $dpr, $xres, $yres) = @_;
 
 	my ($new_dbwidth, $new_dbheight);
 
 	my $fname = get_disk_location($r, $id);
-	my $cachename = get_cache_location($r, $id, $xres, $yres, 1, $dpr);
+	my $cachename = get_infobox_cache_location($r, $id, $xres, $yres, $dpr);
 	my $err;
 	if (! -r $cachename or (-M $cachename > -M $fname)) {
 		# If we are in overload mode (aka Slashdot mode), refuse to generate
@@ -719,11 +722,10 @@ sub ensure_infobox_cached {
 
 		$err = $img->write(filename => $cachename, quality => 90, depth => 8);
 		log_info($r, "New infobox cache: $width x $height for $id.jpg");
-
-		return ($cachename, 'image/png');
 	}
-}
 
+	return ($cachename, 'image/png');
+}
 
 sub get_mimetype_from_filename {
 	my $filename = shift;
@@ -745,7 +747,7 @@ sub make_infobox {
 		$info->{'ExposureProgram'} =~ /shutter\b.*\bpriority/i);
 	my $manual_aperture = (defined($info->{'ExposureProgram'}) &&
 		$info->{'ExposureProgram'} =~ /aperture\b.*\bpriority/i);
-	if ($info->{'ExposureProgram'} =~ /manual/i) {
+	if (defined($info->{'ExposureProgram'}) && $info->{'ExposureProgram'} =~ /manual/i) {
 		$manual_shutter = 1;
 		$manual_aperture = 1;
 	}

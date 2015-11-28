@@ -55,7 +55,7 @@ sub handler {
 	if ($infobox) {
 		($fname, $mime_type) = Sesse::pr0n::Common::ensure_infobox_cached($r, $filename, $id, $dbwidth, $dbheight, $dpr, $xres, $yres);
 	} else {
-		($fname, $mime_type) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $dpr, $xres, $yres);
+		($fname, $mime_type) = Sesse::pr0n::Common::ensure_cached($r, $filename, $id, $dbwidth, $dbheight, $xres, $yres);
 	}
 
 	# Output the image to the user
