@@ -7,6 +7,7 @@ ExecStart=/usr/bin/start_server --port=127.0.0.1:5015 -- plackup -I/srv/pr0n.ses
 Type=simple
 Restart=on-failure
 ExecReload=/bin/kill -HUP $MAINPID
+User=pr0n
 
 [Install]
 WantedBy=multi-user.target
