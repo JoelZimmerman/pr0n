@@ -1,8 +1,7 @@
 #! /usr/bin/perl
 
 #
-# Small multithreaded pr0n uploader, based partially on dave from HTTP::DAV.
-# Use like
+# Small multithreaded pr0n uploader. Use like
 #
 #   pr0n-upload.pl http://pr0n.sesse.net/webdav/upload/random/ *.JPG
 #
@@ -11,9 +10,11 @@
 
 use strict;
 use warnings;
-use HTTP::DAV;
+use LWP::UserAgent;
 use threads;
 use Thread::Queue;
+use File::Spec;
+use URI;
 
 my $threads = 40;
 my $running_threads :shared = 0;
@@ -23,11 +24,12 @@ my @failed :shared = ();
 
 # Enqueue all the images.
 my $url = shift @ARGV;
+$url .= '/' if ($url !~ m#/$#);
 $queue->enqueue(@ARGV);
 
 # Fetch username and password, and check that they actually work.
 my ($user, $pass) = get_credentials();
-my $dav = init_dav($url, $user, $pass);
+my $ua = init_ua($url, $user, $pass);
 
 # Fire up the worker threads, and wait for them to finish.
 my @threads = ();
@@ -50,28 +52,45 @@ if (scalar @failed != 0 && scalar @succeeded != 0) {
 sub upload_thread {
 	$running_threads++;
 
-	my $dav = init_dav($url, $user, $pass);
+	my $ua = init_ua($url, $user, $pass);
 	while (my $filename = $queue->dequeue_nb) {
-		if ($dav->put(-local => $filename, -url => $url)) {
+		my (undef, undef, $basename) = File::Spec->splitpath($filename);
+		my $newurl = $url . $basename;
+		my $req = HTTP::Request->new(PUT => $newurl);
+		{
+			local $/ = undef;
+			open my $fh, "<", $filename
+				or die "Couldn't find $filename: $!";
+			$req->content(<$fh>);
+			close $fh;
+		}
+
+		my $res = $ua->request($req);
+		if ($res->is_success) {
 			push @succeeded, $filename;
 		} else {
 			push @failed, $filename;
-			warn "Couldn't upload $filename: " . $dav->message . "\n";
+			warn "Couldn't upload $filename: " . $res->message . "\n";
 		}
 	}
 	
 	$running_threads--;
 }
 
-sub init_dav {
+sub init_ua {
 	my ($url, $user, $pass) = @_;
-	my $ua = HTTP::DAV::UserAgent->new();
-	$ua->agent('pr0n-uploader/v1.0 (perldav)');
-	my $dav = HTTP::DAV->new(-useragent=>$ua);
-	$dav->credentials(-user=>$user, -pass=>$pass, -url=>$url, -realm=>'pr0n.sesse.net');
-	$dav->open(-url => $url)
-		or die "Couldn't open $url: " . $dav->message . "\n";
-	return $dav;
+	my $ua = LWP::UserAgent->new;
+	$ua->agent('pr0n-uploader/v1.0');
+	my $urlobj = URI->new($url);
+	my $hostport = $urlobj->host . ':' . $urlobj->port;
+	$ua->credentials($hostport, 'pr0n.sesse.net', $user, $pass);
+
+	# Check that it works.
+	my $req = HTTP::Request->new(PROPFIND => $url);
+	my $res = $ua->request($req);
+	die "$url: " . $res->status_line if (!$res->is_success);
+
+	return $ua;
 }
 
 sub get_credentials {
