@@ -53,24 +53,6 @@ CREATE TABLE deleted_images (
     lens character varying
 );
 
-CREATE TABLE fake_files (
-    vhost character varying NOT NULL,
-    event character varying NOT NULL,
-    filename character varying NOT NULL,
-    expires_at timestamp without time zone NOT NULL,
-
-    PRIMARY KEY ( vhost, event, filename ),
-    FOREIGN KEY (vhost,event) REFERENCES events (vhost,event)
-);
-
-CREATE TABLE shadow_files (
-    vhost character varying NOT NULL,
-    event character varying NOT NULL,
-    filename character varying NOT NULL,
-    id integer NOT NULL,
-    expires_at timestamp without time zone NOT NULL
-);
-
 CREATE TABLE users (
     username character varying NOT NULL,
     vhost character varying NOT NULL,
@@ -92,10 +74,8 @@ CLUSTER exif_info_key ON exif_info;
 
 GRANT INSERT ON TABLE deleted_images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE events TO pr0n;
-GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE fake_files TO pr0n;
 GRANT SELECT,UPDATE ON TABLE imageid_seq TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE images TO pr0n;
-GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE shadow_files TO pr0n;
 GRANT SELECT,UPDATE ON TABLE users TO pr0n;
 GRANT SELECT,INSERT,DELETE ON TABLE exif_info TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE last_picture_cache TO pr0n;
