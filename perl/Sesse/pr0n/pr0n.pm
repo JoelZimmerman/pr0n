@@ -6,6 +6,7 @@ use Sesse::pr0n::Rotate;
 use Sesse::pr0n::Select;
 use Sesse::pr0n::WebDAV;
 use Sesse::pr0n::NewEvent;
+use Sesse::pr0n::Upload;
 use IO::File::WithPath;
 
 package Sesse::pr0n::pr0n;
@@ -63,6 +64,8 @@ sub handler {
 		return Sesse::pr0n::Select::handler($r);
 	} elsif ($uri =~ m#^/newevent$#) {
 		return Sesse::pr0n::NewEvent::handler($r);
+	} elsif ($uri =~ /^\/upload\/[a-zA-Z0-9-]+\/?$/) {
+		return Sesse::pr0n::Upload::handler($r);
 	} elsif ($uri =~ /^\/[a-zA-Z0-9-]+\/?$/ ||
 		 $uri =~ /^\/\+all\/?$/) {
 		return Sesse::pr0n::Index::handler($r);

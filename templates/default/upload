@@ -1,0 +1,77 @@
+    <p><label><input type="checkbox" id="autorename" /> Automatically rename bad or duplicate filenames</p>
+    <p>
+      <input type="file" id="fileinput" multiple="multiple" accept="image/*" />
+      <button id="upload">Upload</button>
+    </p>
+
+    <table style="margin-top: 1em">
+      <thead>
+        <tr><th>Filename</th><th>Size</th><th>Status</th></tr>
+      </thead>
+      <tbody id="files">
+      </tbody>
+    </table>
+
+<script>
+//<![CDATA[
+document.getElementById('upload').addEventListener('click', function() {
+	var files = document.getElementById('fileinput').files;
+	var tbody = document.getElementById('files');
+	tbody.innerHTML = '';
+	for (var i = 0; i < files.length; ++i) {
+		var tr = document.createElement('tr');
+
+		var td_filename = document.createElement('td');
+		td_filename.appendChild(document.createTextNode(files[i].name));
+		tr.appendChild(td_filename);
+
+		var td_size = document.createElement('td');
+		td_size.appendChild(document.createTextNode(files[i].size));
+		tr.appendChild(td_size);
+
+		var td_status = document.createElement('td');
+		tr.appendChild(td_status);
+
+		tbody.appendChild(tr);
+	}
+	upload(files, 0);
+}, false);
+
+var upload = function(files, file_index) {
+	var file = files[file_index];
+	var url = window.location.origin + '/webdav/upload/%EVENT%/';
+	if (document.getElementById('autorename').checked) {
+		url += 'autorename/';
+	}
+	url += file.name;
+	var xhr = new XMLHttpRequest();
+	var tr = document.getElementById('files').getElementsByTagName('tr')[file_index];
+	var td_status = tr.getElementsByTagName('td')[2];
+	//var fd = new FormData();
+	console.log("uploading: " + url);
+	if (xhr.upload) {
+		xhr.upload.addEventListener("progress", function(evt) {
+			var kb = Math.floor(evt.loaded / 1024);
+			var pct = (100.0 * evt.loaded / evt.total);
+			td_status.innerHTML = kb + ' kB (' + pct.toFixed(1) + ' %)';
+		});
+	}
+	xhr.open("PUT", url, true);
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState != 4) {
+			return;
+		}
+		td_status.innerHTML = '';
+		td_status.appendChild(document.createTextNode(xhr.status + ' (' + xhr.responseText + ')'));
+		if (xhr.status != 201) {
+			td_status.style.color = 'red';
+			td_status.style.fontWeight = 'bold';
+		}
+		if (file_index + 1 < files.length) {
+			upload(files, file_index + 1);
+		}
+	};
+	xhr.send(file);
+}
+//]]>
+</script>
