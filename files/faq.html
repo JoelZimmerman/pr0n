@@ -75,7 +75,7 @@
       Also, it has dynamical rescaling (of good quality — proper,
       sharp thumbnails, no crappy nearest-neighbor scaling) of both thumbnails
       and images (most client-side scaling sucks quality-wise, unfortunately),
-      an easy-to-use <a href="http://www.webdav.org/">WebDAV</a>-based upload
+      an easy-to-use HTML5 upload
       interface, cache awareness and in general good performance (being a set
       of persistent, optimized Perl modules; I've seen it throw out over 300
       hits a second even without the Squid in front, but I won't guarantee it
@@ -99,8 +99,7 @@
       <a href="http://www.debian.org/">Debian</a> jessie.</p>
 
     <p>The Perl modules aren't really that big — we're talking about only
-      approx. 3000 lines of code (of which ~20% is the WebDAV part; I should
-      really make that a bit cleaner once). Most of the real work is done by
+      approx. 2600 lines of code. Most of the real work is done by
       the software on which pr0n builds on.</p>
 
     <h2>How much data is there in there, anyway?</h2>
@@ -129,19 +128,6 @@
       "previous" and "next" buttons instead of just getting directly to
       the images :-) If you really have a novel or cool feature, feel
       free to contact me (see below).</p>
-
-    <h2>Is the upload WebDAV server RFC-compliant?</h2>
-
-    <p>Unfortunately, no. When and if somebody makes a sane framework for
-      making WebDAV servers I can use, it probably will, but ATM it's just
-      too much work for what I need it for. It would be a lot easier if
-      I only had to support WebDAV level 1, but due to silly restrictions
-      in Mac OS X' WebDAV client I have to support WebDAV level 2 as well,
-      and, well, most of that is faked. ;-) In addition, there are multiple
-      minor features in the system (like autorenaming files on name clashes)
-      that just aren't easy to adapt to WebDAV. The WebDAV service is
-      restricted, though, so I guess rather few people will get hurt just
-      because I'm not fully compliant ;-)</p>
 
     <h2>How do I get in touch with you?</h2>
 
