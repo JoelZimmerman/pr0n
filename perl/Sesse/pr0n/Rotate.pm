@@ -15,10 +15,10 @@ sub handler {
 
 	my @to_purge = ();
 
-	Sesse::pr0n::Common::header($r, "Rotation/deletion results");
-
 	my $res = Plack::Response->new(200);
 	my $io = IO::String->new;
+
+	Sesse::pr0n::Common::header($r, $io, "Rotation/deletion results");
 
 	{
 		# Enable transactions and error raising temporarily
