@@ -39,7 +39,7 @@ document.getElementById('upload').addEventListener('click', function() {
 
 var upload = function(files, file_index) {
 	var file = files[file_index];
-	var url = window.location.origin + '/webdav/upload/%EVENT%/';
+	var url = window.location.origin + '/upload/%EVENT%/';
 	if (document.getElementById('autorename').checked) {
 		url += 'autorename/';
 	}

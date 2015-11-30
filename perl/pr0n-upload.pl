@@ -86,7 +86,7 @@ sub init_ua {
 	$ua->credentials($hostport, 'pr0n.sesse.net', $user, $pass);
 
 	# Check that it works.
-	my $req = HTTP::Request->new(PROPFIND => $url);
+	my $req = HTTP::Request->new(OPTIONS => $url);
 	my $res = $ua->request($req);
 	die "$url: " . $res->status_line if (!$res->is_success);
 

@@ -4,9 +4,9 @@ use Sesse::pr0n::Index;
 use Sesse::pr0n::Image;
 use Sesse::pr0n::Rotate;
 use Sesse::pr0n::Select;
-use Sesse::pr0n::WebDAV;
 use Sesse::pr0n::NewEvent;
 use Sesse::pr0n::Upload;
+use Sesse::pr0n::UploadForm;
 use IO::File::WithPath;
 
 package Sesse::pr0n::pr0n;
@@ -52,8 +52,6 @@ sub handler {
 		$res->content_type('text/html; charset=utf-8');
 		$res->content(IO::File::WithPath->new($Sesse::pr0n::Config::image_base . 'files/newevent.html'));
 		return $res;
-	} elsif ($uri =~ m#^/webdav#) {
-		return Sesse::pr0n::WebDAV::handler($r);
 	} elsif ($uri =~ m#^/usage/([a-zA-Z0-9.-]+)$#) {
 		my $res = Plack::Response->new(200);
 		$res->content(IO::File::WithPath->new($Sesse::pr0n::Config::image_base . "usage/$1"));
@@ -64,8 +62,10 @@ sub handler {
 		return Sesse::pr0n::Select::handler($r);
 	} elsif ($uri =~ m#^/newevent$#) {
 		return Sesse::pr0n::NewEvent::handler($r);
-	} elsif ($uri =~ /^\/upload\/[a-zA-Z0-9-]+\/?$/) {
+	} elsif ($uri =~ /^\/upload\// && ($r->method eq 'OPTIONS' || $r->method eq 'PUT')) {
 		return Sesse::pr0n::Upload::handler($r);
+	} elsif ($uri =~ /^\/upload\/[a-zA-Z0-9-]+\/?$/) {
+		return Sesse::pr0n::UploadForm::handler($r);
 	} elsif ($uri =~ /^\/[a-zA-Z0-9-]+\/?$/ ||
 		 $uri =~ /^\/\+all\/?$/) {
 		return Sesse::pr0n::Index::handler($r);
