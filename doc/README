@@ -15,6 +15,9 @@ backend pr0n {
 sub vcl_recv {
     if (req.http.host ~ "^pr0n\.sesse\.net(:[0-9]+)?$") {
         set req.backend_hint = pr0n;
+        if (req.method == "PUT") {
+            return (pipe);
+        }
     }
 }
 
