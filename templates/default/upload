@@ -1,4 +1,5 @@
     <p><label><input type="checkbox" id="autorename" /> Automatically rename bad or duplicate filenames</p>
+    <p>Number of parallel uploads: <input size="2" id="numuploads" value="4" /></p>
     <p>
       <input type="file" id="fileinput" multiple="multiple" accept="image/*" />
       <button id="upload">Upload</button>
@@ -14,6 +15,8 @@
 
 <script>
 //<![CDATA[
+var file_index = 0;
+
 document.getElementById('upload').addEventListener('click', function() {
 	var files = document.getElementById('fileinput').files;
 	var tbody = document.getElementById('files');
@@ -34,18 +37,29 @@ document.getElementById('upload').addEventListener('click', function() {
 
 		tbody.appendChild(tr);
 	}
-	upload(files, 0);
+	file_index = 0;
+	var numuploads = parseInt(document.getElementById('numuploads').value);
+
+	for (var i = 0; i < numuploads; ++i) {
+		upload_next(files);
+	}
 }, false);
 
-var upload = function(files, file_index) {
-	var file = files[file_index];
+var upload_next = function(files) {
+	if (file_index >= files.length) {
+		return;
+	}
+
+	var local_file_index = file_index++;
+
+	var file = files[local_file_index];
 	var url = window.location.origin + '/upload/%EVENT%/';
 	if (document.getElementById('autorename').checked) {
 		url += 'autorename/';
 	}
 	url += file.name;
 	var xhr = new XMLHttpRequest();
-	var tr = document.getElementById('files').getElementsByTagName('tr')[file_index];
+	var tr = document.getElementById('files').getElementsByTagName('tr')[local_file_index];
 	var td_status = tr.getElementsByTagName('td')[2];
 	//var fd = new FormData();
 	console.log("uploading: " + url);
@@ -67,9 +81,7 @@ var upload = function(files, file_index) {
 			td_status.style.color = 'red';
 			td_status.style.fontWeight = 'bold';
 		}
-		if (file_index + 1 < files.length) {
-			upload(files, file_index + 1);
-		}
+		upload_next(files);
 	};
 	xhr.send(file);
 }
