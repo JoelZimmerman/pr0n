@@ -378,7 +378,7 @@ function fade_text(opacity)
 		if (opacity < 0.0) {
 			opacity = 0.0;
 		}
-		setTimeout("fade_text(" + opacity + ")", 30);
+		setTimeout(function() { fade_text(opacity); }, 30);
 	} else {
 		var text = document.getElementById("text");
 		if (text !== null) {
@@ -400,7 +400,7 @@ function select_image(evt, filename, selected)
 	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	req.send("event=" + evt + "&filename=" + filename + "&selected=" + selected);
 
-	setTimeout("fade_text(0.99)", 30);
+	setTimeout(function() { fade_text(0.99); }, 30);
 }
 
 function key_down(which)
