@@ -42,7 +42,7 @@ sub handler {
 	# main listing
 #		my $q = $dbh->prepare('SELECT t1.id,t1.date,t1.name FROM events t1 LEFT JOIN images t2 ON t1.id=t2.event WHERE t1.vhost=? GROUP BY t1.id,t1.date,t1.name ORDER BY COALESCE(MAX(t2.date),\'1970-01-01 00:00:00\'),t1.id') or
 #			dberror($r, "Couldn't list events");
-	my $q = $dbh->prepare('SELECT event,date,name FROM events e JOIN last_picture_cache c USING (vhost,event) WHERE vhost=? ORDER BY last_picture DESC NULLS LAST')
+	my $q = $dbh->prepare('SELECT event,date,name FROM events e JOIN last_picture_cache c USING (vhost,event) WHERE vhost=? AND NOT hidden ORDER BY last_picture DESC NULLS LAST')
 		or return dberror($r, "Couldn't list events");
 	$q->execute(Sesse::pr0n::Common::get_server_name($r))
 		or return dberror($r, "Couldn't get events");

@@ -3,6 +3,7 @@ CREATE TABLE events (
     "date" character varying NOT NULL,
     name character varying NOT NULL,
     vhost character varying NOT NULL,
+    hidden boolean NOT NULL DEFAULT false,
 
     PRIMARY KEY (vhost, event)
 );
