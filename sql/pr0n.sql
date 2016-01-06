@@ -34,8 +34,16 @@ CREATE TABLE images (
     selected boolean DEFAULT false,
     model character varying,
     lens character varying,
+    is_render boolean NOT NULL DEFAULT false,  -- Is this a render of another picture? (If so, don't show it separately.)
+    render_id integer,  -- If not NULL, show this picture instead of ourselves for all JPEG-creation purposes.
 
-    FOREIGN KEY (vhost,event) REFERENCES events (vhost,event)
+    FOREIGN KEY (vhost,event) REFERENCES events (vhost,event),
+    FOREIGN KEY (vhost,event,render_id) REFERENCES images (vhost,event,id),
+
+    -- Redundant with the primary key, but the foreign key needs it.
+    UNIQUE (vhost,event,id),
+
+    CHECK (NOT (is_render AND (render_id IS NOT NULL)))
 );
 CREATE UNIQUE INDEX unique_filenames ON images USING btree (vhost, event, filename);
 
@@ -52,6 +60,8 @@ CREATE TABLE deleted_images (
     selected boolean,
     model character varying,
     lens character varying
+    is_render boolean NOT NULL,
+    render_id integer,
 );
 
 CREATE TABLE users (

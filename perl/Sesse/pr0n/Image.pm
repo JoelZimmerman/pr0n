@@ -42,9 +42,17 @@ sub handler {
 	#} else {
 	
 	# Look it up in the database
-	my $ref = $dbh->selectrow_hashref('SELECT id,width,height FROM images WHERE event=? AND vhost=? AND filename=?',
+	my $ref = $dbh->selectrow_hashref('SELECT id,render_id,width,height FROM images WHERE event=? AND vhost=? AND filename=?',
 		undef, $event, Sesse::pr0n::Common::get_server_name($r), $filename);
 	return error($r, "Could not find $event/$filename", 404, "File not found") unless (defined($ref));
+
+	if (defined($xres) && defined($yres) && defined($ref->{'render_id'}) && !$infobox) {
+		# We have a render, we're not asked for the original, and we do not have infobox.
+		$ref = $dbh->selectrow_hashref('SELECT id,filename,width,height FROM images WHERE id=?', 
+			undef, $ref->{'render_id'});
+		return error($r, "Could not find render of $event/$filename", 404, "File not found") unless (defined($ref));
+		$filename = $ref->{'filename'};
+	}
 
 	$id = $ref->{'id'};
 	$dbwidth = $ref->{'width'};

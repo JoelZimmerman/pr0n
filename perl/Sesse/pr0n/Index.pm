@@ -63,8 +63,8 @@ sub handler {
 		$where = ' AND event=' . $dbh->quote($event);
 	}
 	
-	# Any NEF files => default to processing
-	my $ref = $dbh->selectrow_hashref("SELECT * FROM images WHERE vhost=? $where AND ( LOWER(filename) LIKE '%.nef' OR LOWER(filename) LIKE '%.cr2' ) LIMIT 1",
+	# Any NEF files with no non-NEF renders => default to processing
+	my $ref = $dbh->selectrow_hashref("SELECT * FROM images WHERE vhost=? $where AND ( LOWER(filename) LIKE '%.nef' OR LOWER(filename) LIKE '%.cr2' ) AND render_id IS NULL LIMIT 1",
 		undef, Sesse::pr0n::Common::get_server_name($r))
 		and $defsettings{'xres'} = $defsettings{'yres'} = undef;
 	
@@ -156,13 +156,13 @@ sub handler {
 	# }
 	
 	# Count the number of selected images.
-	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE vhost=? $where AND selected=\'t\'", undef, Sesse::pr0n::Common::get_server_name($r));
+	$ref = $dbh->selectrow_hashref("SELECT COUNT(*) AS num_selected FROM images WHERE vhost=? $where AND selected AND NOT is_render", undef, Sesse::pr0n::Common::get_server_name($r));
 	my $num_selected = $ref->{'num_selected'};
 
 	# Find all images related to this event.
 	my $limit = (defined($start) && defined($num) && !$settings{'fullscreen'}) ? (" LIMIT $num OFFSET " . ($start-1)) : "";
 
-	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE vhost=? $where ORDER BY (date - INTERVAL '6 hours')::date $datesort,takenby,date,filename $limit")
+	my $q = $dbh->prepare("SELECT *, (date - INTERVAL '6 hours')::date AS day FROM images WHERE vhost=? $where AND NOT is_render ORDER BY (date - INTERVAL '6 hours')::date $datesort,takenby,date,filename $limit")
 		or return dberror($r, "prepare()");
 	$q->execute(Sesse::pr0n::Common::get_server_name($r))
 		or return dberror($r, "image enumeration");
@@ -225,6 +225,7 @@ sub handler {
 					COUNT(*) AS num
 				FROM images
 				WHERE vhost=? $where
+				AND NOT is_render
 				GROUP BY 1,2
 				ORDER BY 1,2")
 				or die "Couldn't prepare to find equipment: $!";
@@ -455,7 +456,7 @@ sub print_nextprev {
 	return unless (defined($start) && defined($num));
 
 	# determine total number
-	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE vhost=? $where",
+	my $ref = $dbh->selectrow_hashref("SELECT count(*) AS num_images FROM images WHERE vhost=? $where AND NOT is_render",
 		undef, Sesse::pr0n::Common::get_server_name($r))
 		or return dberror($r, "image enumeration");
 	my $num_images = $ref->{'num_images'};
