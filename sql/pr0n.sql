@@ -77,11 +77,10 @@ CREATE TABLE exif_info (
     key varchar NOT NULL,
     value varchar NOT NULL,
 
-    PRIMARY KEY ( image, key )
+    PRIMARY KEY ( key, image )
 );
 
-CREATE INDEX exif_info_key ON exif_info ( key );
-CLUSTER exif_info_key ON exif_info;
+CLUSTER exif_info_pkey ON exif_info;
 
 GRANT INSERT ON TABLE deleted_images TO pr0n;
 GRANT INSERT,SELECT,UPDATE,DELETE ON TABLE events TO pr0n;
