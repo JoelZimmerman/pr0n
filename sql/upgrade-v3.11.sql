@@ -11,5 +11,4 @@ alter table deleted_images add column render_id integer;
 
 drop index exif_info_key;
 alter table exif_info drop constraint exif_info_pkey;
-alter table exif_info create primary key ( key, image );
-cluster exif_info_pkey on exif_info;
+alter table exif_info add primary key ( image, key );

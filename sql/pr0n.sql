@@ -77,7 +77,7 @@ CREATE TABLE exif_info (
     key varchar NOT NULL,
     value varchar NOT NULL,
 
-    PRIMARY KEY ( key, image )
+    PRIMARY KEY ( image, key )
 );
 
 CLUSTER exif_info_pkey ON exif_info;
