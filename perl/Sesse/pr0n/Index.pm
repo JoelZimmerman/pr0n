@@ -122,9 +122,8 @@ sub handler {
 		}
 	}
 	if (defined($author)) {
-		my $aq = $dbh->quote($author);
-
-		$where .= " AND takenby=$aq";
+		my @authors = split /,/, $author;
+		$where .= " AND takenby IN (" . join(', ', map { $dbh->quote($_) } @authors) . ")";
 	}
 
 	if (defined($num) && $num == -1) {
