@@ -20,6 +20,9 @@ sub handler {
 		or return error($r, "Could not extract event");
 	my $event = $1;
 
+	my ($user,$takenby) = Sesse::pr0n::Common::check_access($r);
+	return Sesse::pr0n::Common::generate_401($r) if (!defined($user));
+
 	my $res = Plack::Response->new(200);
 	$res->content_type("text/html; charset=utf-8");
 	my $io = IO::String->new;
