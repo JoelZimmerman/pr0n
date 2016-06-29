@@ -26,6 +26,9 @@ function find_dpr()
  * pick_image_size, below.
  */
 var fixed_sizes = [
+	[ 3840, 2880 ],
+	[ 3200, 2400 ],
+	[ 2800, 2100 ],
 	[ 2304, 1728 ],
 	[ 2048, 1536 ],
 	[ 1920, 1440 ],
