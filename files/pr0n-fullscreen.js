@@ -488,8 +488,8 @@ window.onload = function() {
 
 	var body = document.body;
 	body.onresize = function() { relayout(); };
-	body.onkeydown = function() { key_down(event.keyCode); };
-	body.onkeyup = function() { key_up(event.keyCode); };
+	body.onkeydown = function(evt) { key_down(evt.keyCode); };
+	body.onkeyup = function(evt) { key_up(evt.keyCode); };
 	body.onhashchange = function() { check_for_hash_change(); };
 	body.onclick = function() { check_for_hash_change(); };
 
