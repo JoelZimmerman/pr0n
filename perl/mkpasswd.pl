@@ -19,6 +19,6 @@ print STDERR "\n";
 Term::ReadKey::ReadMode(0);
 
 my $salt = Sesse::pr0n::Common::get_pseudorandom_bytes(16);  # Doesn't need to be cryptographically secur.
-my $hash = "\$2a\$07\$" . Crypt::Eksblowfish::Bcrypt::en_base64($salt);
+my $hash = "\$2a\$08\$" . Crypt::Eksblowfish::Bcrypt::en_base64($salt);
 print Crypt::Eksblowfish::Bcrypt::bcrypt($pass, $hash), "\n";
 
