@@ -504,6 +504,12 @@ function set_swipe_pos(x, transition)
 {
 	x = Math.max(x, -window.innerWidth);
 	x = Math.min(x,  window.innerWidth);
+	if (!can_go_previous()) {
+		x = Math.min(x, window.innerWidth / 8);
+	}
+	if (!can_go_next()) {
+		x = Math.max(x, -window.innerWidth / 8);
+	}
 
 	var dpr = find_dpr();
 	var main = document.getElementById("main");
@@ -535,10 +541,10 @@ function end_swipe(e)
 {
 	if (swiping) {
 		var new_x = (e.changedTouches[0].pageX - swipe_start_x);
-		if (new_x < -window.innerWidth / 4) {
+		if (new_x < -window.innerWidth / 4 && can_go_next()) {
 			set_swipe_pos(-window.innerWidth, "transform 0.1s ease-out");
 			setTimeout(function() { go_next(); }, 100);
-		} else if (new_x > window.innerWidth / 4) {
+		} else if (new_x > window.innerWidth / 4 && can_go_previous()) {
 			set_swipe_pos(window.innerWidth, "transform 0.1s ease-out");
 			setTimeout(function() { go_previous(); }, 100);
 		} else {
