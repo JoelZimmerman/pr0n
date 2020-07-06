@@ -89,24 +89,6 @@ function pick_image_size(screen_size, image_size)
 	return [ 80, 64 ];
 }
 
-function replace_image_element(url, element_id, parent_node)
-{
-	var img = document.getElementById(element_id);
-	if (img !== null) {
-		if (img.src === url) {
-			return img;
-		}
-		img.parentNode.removeChild(img);
-	}
-
-	img = document.createElement("img");
-	img.id = element_id;
-	img.alt = "";
-	img.src = url;
-	parent_node.appendChild(img);
-	return img;
-}
-
 function rename_element(old_name, new_name)
 {
 	// Remove any element that's in the way.
@@ -122,27 +104,73 @@ function rename_element(old_name, new_name)
 	return elem;
 }
 
-function display_image(width, height, evt, filename, element_id)
+function display_image(url, backend_width, backend_height, elem_id, offset, preload)
 {
-	var url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/" + filename;
-	var main = document.getElementById("main");
-	var preload = document.getElementById("preload");
-	var dpr = find_dpr();
-	var img;
-	// See if we have a preload going on that we can reuse.
-	if (element_id == "image" && preload !== null && preload.src == url) {
-		rename_element("preload_box", "image_box");
-		img = rename_element("preload", "image");
-	} else {
-		img = replace_image_element(url, element_id, main);
+	// See if this image already exists in the DOM; if not, add it.
+	var img = document.getElementById(elem_id);
+	if (img === null) {
+		img = document.createElement("img");
+		img.id = elem_id;
+		img.alt = "";
+		img.className = preload ? "fsbox" : "fsimg";
 	}
 	img.style.position = "absolute";
-	img.style.left = "0px";
-	img.style.top = "0px";
 	img.style.transformOrigin = "top left";
-	img.style.transform = "scale(" + (1.0 / dpr) + ")";
+	document.getElementById("main").appendChild(img);
 
-	if (element_id == "image") {
+	if (offset === 0) {
+		img.src = url;
+		position_image(img, backend_width, backend_height, offset, preload);
+	} else {
+		// This is a preload, so wait for the main image to be ready.
+		// The test for .complete is an old IE hack, which I don't know if is relevant anymore.
+		var main_img = document.getElementById(global_image_num);
+		if (main_img === null || main_img.complete) {
+			img.src = url;
+		} else {
+			main_img.addEventListener('load', function() { img.src = url; }, false);
+		}
+
+		// Seemingly one needs to delay position_image(), or Firefox will set the initial
+		// scroll offset completely off.
+		setTimeout(function() { position_image(img, backend_width, backend_height, offset, preload); }, 1);
+	}
+}
+
+function display_image_num(num, offset)
+{
+	var screen_size = find_width();
+	var adjusted_size;
+
+	if (global_image_list[num][2] == -1) {
+		// no size information, use our pessimal guess
+		adjusted_size = max_image_size(screen_size);
+	} else {
+		adjusted_size = pick_image_size(screen_size, [ global_image_list[num][2], global_image_list[num][3] ]);
+	}
+
+	var evt = global_image_list[num][0];
+	var filename = global_image_list[num][1];
+	var backend_width = adjusted_size[0];
+	var backend_height = adjusted_size[1];
+	var url = window.location.origin + "/" + evt + "/" + backend_width + "x" + backend_height + "/" + filename;
+	var elem_id = num;
+
+	display_image(url, adjusted_size[2], adjusted_size[3], elem_id, offset, false);
+
+	if (global_infobox) {
+		var url;
+		var dpr = find_dpr();
+		var elem_id = num + "_box";
+		if (dpr == 1) {
+			url = window.location.origin + "/" + evt + "/" + backend_width + "x" + backend_height + "/box/" + filename;
+		} else {
+			url = window.location.origin + "/" + evt + "/" + backend_width + "x" + backend_height + "@" + dpr.toFixed(2) + "/box/" + filename;
+		}
+		display_image(url, adjusted_size[2], adjusted_size[3], elem_id, offset, true);
+	}
+
+	if (offset === 0) {
 		// Update the "download original" link.
 		var original_url = window.location.origin + "/" + evt + "/original/" + filename;
 		document.getElementById("origdownload").href = original_url;
@@ -158,78 +186,10 @@ function display_image(width, height, evt, filename, element_id)
 			fulldownload.style.display = "none";
 			origdownload.innerHTML = "Download original image";
 		}
-	}
 
-	if (global_infobox) {
-		var url;
-		if (dpr == 1) {
-			url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/box/" + filename;
-		} else {
-			url = window.location.origin + "/" + evt + "/" + width + "x" + height + "@" + dpr.toFixed(2) + "/box/" + filename;
-		}
-		var boximg = replace_image_element(url, element_id + "_box", main);
-
-		boximg.style.position = "absolute";
-		boximg.style.left = "0px";
-		boximg.style.bottom = "-1px";
-		boximg.style.transformOrigin = "bottom left";
-		boximg.style.transform = "scale(" + (1.0 / dpr) + ")";
-	} else {
-		var boximg = document.getElementById(element_id + "_box");
-		if (boximg !== null) {
-			boximg.parentNode.removeChild(boximg);
-		}
-	}
-
-	return img;
-}
-
-function display_image_num(num, element_id)
-{
-	var screen_size = find_width();
-	var adjusted_size;
-
-	if (global_image_list[num][2] == -1) {
-		// no size information, use our pessimal guess
-		adjusted_size = max_image_size(screen_size);
-	} else {
-		adjusted_size = pick_image_size(screen_size, [ global_image_list[num][2], global_image_list[num][3] ]);
-	}
-
-	var img = display_image(adjusted_size[0], adjusted_size[1], global_image_list[num][0], global_image_list[num][1], element_id);
-	
-	if (element_id == "image") {
-		// we want to shrink the box as much as possible if we know the true
-		// size of the image
-		center_image(num);
-		
 		// replace the anchor part (if any) with the image number
 		window.location.hash = "#" + (num+1);
 	}
-
-	return img;
-}
-
-function prepare_preload(img, num)
-{
-	// cancel any pending preload
-	var preload = document.getElementById("preload");
-	if (preload !== null) {
-		preload.parentNode.removeChild(preload);
-	}
-	
-	var preload_box = document.getElementById("preload_box");
-	if (preload_box !== null) {
-		preload_box.parentNode.removeChild(preload_box);
-	}
-
-	// grmf -- IE doesn't fire onload if the image was loaded from cache, so check for
-	// completeness first; should at least be _somewhat_ better
-	if (img.complete) {
-		display_image_num(num, "preload");
-	} else {
-		img.onload = function() { display_image_num(num, "preload"); };
-	}	
 }
 
 function can_go_next()
@@ -256,40 +216,93 @@ function set_opacity(id, amount)
 	elem.style.opacity = amount;
 }
 
-function center_image(num)
+function position_image(img, backend_width, backend_height, offset, preload)
 {
 	var screen_size = find_width();
 	var dpr = find_dpr();
 	var width, height;
-	
-	if (global_image_list[num][2] == -1) {
+
+	if (backend_width == -1) {
 		// no size information, use our pessimal guess
 		var adjusted_size = max_image_size(screen_size);
 		width = adjusted_size[0];
 		height = adjusted_size[1];
 	} else {
 		// use the exact information
-		var adjusted_size = pick_image_size(screen_size, [ global_image_list[num][2], global_image_list[num][3] ]);
+		var adjusted_size = pick_image_size(screen_size, [ backend_width, backend_height ]);
 		width = adjusted_size[2];
 		height = adjusted_size[3];
 	}
 
+	var extra_x_offset = find_width()[0] * offset;
+	var left = (screen_size[0] - width) / 2;
+	var top = (screen_size[1] - height) / 2;
+
+	if (global_infobox) top -= dpr * (24/2);
+
 	// center the image on-screen
+	img.style.position = "absolute";
+	img.style.left = (left / dpr) + "px";
+	img.style.transform = "translate(" + extra_x_offset + "px,0px)";
+
+	if (preload) {
+		img.style.top = (top + height) / dpr + "px";
+	} else {
+		img.style.top = (top / dpr) + "px";
+		img.style.lineHeight = (height / dpr) + "px";
+		img.style.width = (width / dpr) + "px";
+		img.style.height = (height / dpr) + "px";
+	}
+}
+
+function update_shown_images()
+{
+	// Go through and remove all the elements that are not supposed to be there.
 	var main = document.getElementById("main");
-	main.style.position = "absolute";
-	main.style.left = (((screen_size[0] - width) / 2) / dpr) + "px";
-	main.style.top = (((screen_size[1] - height) / 2) / dpr) + "px";
-	main.style.width = (width / dpr) + "px";
-	main.style.height = (height / dpr) + "px";
-	main.style.lineHeight = (height / dpr) + "px";
+	var children = main.children;
+	var to_remove = [];
+	for (var i = 0; i < children.length; i++) {
+		var child = children[i];
+		var inum = null;
+		if (child.className === "fsimg") {
+			inum = parseInt(child.id);
+		} else if (child.className === "fsbox") {
+			inum = parseInt(child.id.replace("_box", ""));
+		} else {
+			continue;
+		}
+
+		// FIXME: For whatever reason, if we don't actually remove an item
+		// and then scroll it out of view, Chrome scrolls to it.
+		// So don't keep anything that's going to be a preload;
+		// we'll have to recreate the element entirely.
+		//if (inum !== global_image_num - 1 &&
+		//    inum !== global_image_num &&
+		//    inum !== global_image_num + 1) {
+		//	to_remove.push(child);
+		//}
+		if (inum !== global_image_num) {
+			to_remove.push(child);
+		}
+	}
+	for (let child of to_remove) {
+		child.parentNode.removeChild(child);
+	}
+
+	// Add any missing elements. Note that we add the main one first,
+	// so that the preloads have an element to fire onload off of.
+	display_image_num(global_image_num, 0);
+	if (can_go_previous()) {
+		display_image_num(global_image_num - 1, -1);
+	}
+	if (can_go_next()) {
+		display_image_num(global_image_num + 1, 1);
+	}
 }
 
 function relayout()
 {
-	var img = display_image_num(global_image_num, "image");
-	if (can_go_next()) {
-		prepare_preload(img, global_image_num + 1);
-	}
+	update_shown_images();
 
 	set_opacity("previous", can_go_previous() ? global_default_opacity : global_disabled_opacity);
 	set_opacity("next", can_go_next() ? global_default_opacity : global_disabled_opacity);
@@ -303,10 +316,10 @@ function go_previous()
 		return;
 	}
 
-	var img = display_image_num(--global_image_num, "image");
+	--global_image_num;
+	update_shown_images();
 	if (can_go_previous()) {
 		set_opacity("previous", global_default_opacity);
-		prepare_preload(img, global_image_num - 1);
 	} else {
 		set_opacity("previous", global_disabled_opacity);
 	}
@@ -319,10 +332,10 @@ function go_next()
 		return;
 	}
 
-	var img = display_image_num(++global_image_num, "image");
+	++global_image_num;
+	update_shown_images();
 	if (can_go_next()) {
 		set_opacity("next", global_default_opacity);
-		prepare_preload(img, global_image_num + 1);
 	} else {
 		set_opacity("next", global_disabled_opacity);
 	}

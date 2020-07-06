@@ -59,27 +59,10 @@ img, #text {
 	text-decoration: none;
 }
 
-#preload, #preload_box {
-	position: absolute;
-	left: -2000px;
-	top: -2000px;
-	width: 1px;
-	height: 1px; 
-/*	left: 10px;
-	top: 10px;
-	width: 20px;
-	height: 20px; */
-}
-
 #fulldownload {
 	display: none;
 }
 
-/* IE5/6 madness */
-html {
+html, body {
 	overflow: hidden;
-}
-body
-{
-	height: 100%;
 }

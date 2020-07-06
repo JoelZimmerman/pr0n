@@ -6,8 +6,7 @@ var global_select = %SEL%;
     </script>
   </head>
   <body>
-    <div>
-      <div class="container" id="main"></div>
+    <div id="main" class="container">
       <img id="previous" src="/previous.png" alt="&lt;-" />
       <img id="next" src="/next.png" alt="-&gt;" />
       <img id="close" src="/close.png" alt="x" />
