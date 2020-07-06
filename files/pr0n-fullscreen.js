@@ -497,9 +497,73 @@ function toggle_immersive() {
 }
 window['toggle_immersive'] = toggle_immersive;
 
+var swiping = false;
+var swipe_start_x = 0;
+
+function set_swipe_pos(x, transition)
+{
+	x = Math.max(x, -window.innerWidth);
+	x = Math.min(x,  window.innerWidth);
+
+	var dpr = find_dpr();
+	var main = document.getElementById("main");
+	var children = main.children;
+	var to_remove = [];
+	for (var i = 0; i < children.length; i++) {
+		var child = children[i];
+		if (child.className === "fsimg") {
+			var inum = parseInt(child.id);
+			var offset = inum - global_image_num;
+			child.style.transition = transition;
+			child.style.transform = "translate(" + (x + find_width()[0] * offset / dpr) + "px,0px)";
+		} else if (child.className === "fsbox") {
+			var inum = parseInt(child.id.replace("_box", ""));
+			var offset = inum - global_image_num;
+			child.style.transition = transition;
+			child.style.transform = "translate(" + (x + find_width()[0] * offset / dpr) + "px,0px) scale(" + (1.0 / dpr) + ")";
+		}
+	}
+}
+
+function start_swipe(e)
+{
+	swiping = true;
+	swipe_start_x = e.changedTouches[0].pageX;
+}
+
+function end_swipe(e)
+{
+	if (swiping) {
+		var new_x = (e.changedTouches[0].pageX - swipe_start_x);
+		if (new_x < -window.innerWidth / 4) {
+			set_swipe_pos(-window.innerWidth, "transform 0.1s ease-out");
+			setTimeout(function() { go_next(); }, 100);
+		} else if (new_x > window.innerWidth / 4) {
+			set_swipe_pos(window.innerWidth, "transform 0.1s ease-out");
+			setTimeout(function() { go_previous(); }, 100);
+		} else {
+			set_swipe_pos(0, "transform 0.1s ease-out");
+		}
+		swiping = false;
+	}
+}
+
+function swipe(e)
+{
+	if (swiping) {
+		var new_x = (e.changedTouches[0].pageX - swipe_start_x);
+		set_swipe_pos(new_x, null);
+	}
+	e.preventDefault();
+}
+
 window.onload = function() {
 	relayout();
 	setInterval(check_for_hash_change, 1000);
+
+	document.addEventListener('touchstart', start_swipe, false);
+	document.addEventListener('touchend', end_swipe, false);
+	document.addEventListener('touchmove', swipe, false)
 
 	var body = document.body;
 	body.onresize = function() { relayout(); };
