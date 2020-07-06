@@ -560,7 +560,6 @@ function swipe(e)
 		var new_x = (e.changedTouches[0].pageX - swipe_start_x);
 		set_swipe_pos(new_x, null);
 	}
-	e.preventDefault();
 }
 
 window.onload = function() {
