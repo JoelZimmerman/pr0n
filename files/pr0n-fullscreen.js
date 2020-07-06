@@ -133,7 +133,8 @@ function display_image(url, backend_width, backend_height, elem_id, offset, prel
 
 		// Seemingly one needs to delay position_image(), or Firefox will set the initial
 		// scroll offset completely off.
-		setTimeout(function() { position_image(img, backend_width, backend_height, offset, preload); }, 1);
+		img.style.display = 'none';
+		setTimeout(function() { position_image(img, backend_width, backend_height, offset, preload); img.style.display = null; }, 1);
 	}
 }
 
