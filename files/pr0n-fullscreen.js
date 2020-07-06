@@ -125,7 +125,7 @@ function rename_element(old_name, new_name)
 function display_image(width, height, evt, filename, element_id)
 {
 	var url = window.location.origin + "/" + evt + "/" + width + "x" + height + "/" + filename;
-	var main = document.getElementById("iehack");
+	var main = document.getElementById("main");
 	var preload = document.getElementById("preload");
 	var dpr = find_dpr();
 	var img;
