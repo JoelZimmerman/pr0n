@@ -169,6 +169,7 @@ function display_image_num(num, offset)
 			url = window.location.origin + "/" + evt + "/" + backend_width + "x" + backend_height + "@" + dpr.toFixed(2) + "/box/" + filename;
 		}
 		display_image(url, adjusted_size[2], adjusted_size[3], elem_id, offset, true);
+		document.getElementById(elem_id).style.transform += " scale(" + (1.0 / dpr) + ")";
 	}
 
 	if (offset === 0) {
