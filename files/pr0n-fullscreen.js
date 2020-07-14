@@ -414,7 +414,7 @@ function select_image(evt, filename, selected)
 	}
 	
 	var req = new XMLHttpRequest();
-	req.open("POST", window.location.origin + "/select", false);
+	req.open("POST", window.location.origin + "/select", true);
 	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	req.send("event=" + evt + "&filename=" + filename + "&selected=" + selected);
 
