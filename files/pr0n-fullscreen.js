@@ -381,11 +381,11 @@ function draw_text(msg)
 	text.style.font = "24px verdana, arial, sans-serif";
 	text.innerHTML = msg;
 
-	var main = document.getElementById("main");
-	main.appendChild(text);
+	document.getElementById("main").appendChild(text);
 
-	text.style.left = (main.clientWidth - text.clientWidth) / 2 + "px";
-	text.style.top = (main.clientHeight - text.clientHeight) / 2 + "px";
+	var screen_size = find_width();
+	text.style.left = (screen_size[0] - text.clientWidth) / 2 + "px";
+	text.style.top = (screen_size[1] - text.clientHeight) / 2 + "px";
 }
 
 function fade_text(opacity)
