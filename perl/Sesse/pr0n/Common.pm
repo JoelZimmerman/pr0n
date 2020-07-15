@@ -817,13 +817,13 @@ sub make_infobox {
 		$model =~ s/^\s+//;
 		$model =~ s/\s+$//;
 
-		push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+		push @parts, [ "\x{00A0}\x{2013}\x{00A0}", 0 ] if (scalar @parts > 0);
 		push @parts, [ $model, 0 ];
 	}
 	
 	# classic fields
 	if (scalar @classic_fields > 0) {
-		push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+		push @parts, [ "\x{00A0}\x{2013}\x{00A0}", 0 ] if (scalar @parts > 0);
 
 		my $first_elem = 1;
 		for my $field (@classic_fields) {
@@ -838,14 +838,14 @@ sub make_infobox {
 		    $info->{'Flash'} =~ /no flash/i ||
 		    $info->{'Flash'} =~ /not fired/i ||
 		    $info->{'Flash'} =~ /Off/)  {
-			push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+			push @parts, [ "\x{00A0}\x{2013}\x{00A0}", 0 ] if (scalar @parts > 0);
 			push @parts, [ "No flash", 0 ];
 		} elsif ($info->{'Flash'} =~ /fired/i ||
 		         $info->{'Flash'} =~ /On/) {
-			push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+			push @parts, [ "\x{00A0}\x{2013}\x{00A0}", 0 ] if (scalar @parts > 0);
 			push @parts, [ "Flash", 0 ];
 		} else {
-			push @parts, [ ' - ', 0 ] if (scalar @parts > 0);
+			push @parts, [ "\x{00A0}\x{2013}\x{00A0}", 0 ] if (scalar @parts > 0);
 			push @parts, [ $info->{'Flash'}, 0 ];
 		}
 	}
