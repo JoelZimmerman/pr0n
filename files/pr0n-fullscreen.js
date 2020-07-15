@@ -243,7 +243,9 @@ function position_image(img, backend_width, backend_height, offset, box)
 	var left = (screen_size[0] - width) / 2;
 	var top = (screen_size[1] - height) / 2;
 
-	if (global_infobox) top -= dpr * (24/2);
+	if (global_infobox) {
+		top = Math.max(top - dpr * (24/2), 0);
+	}
 
 	// center the image on-screen
 	img.style.position = "absolute";
@@ -251,7 +253,7 @@ function position_image(img, backend_width, backend_height, offset, box)
 	img.style.transform = "translate(" + extra_x_offset + "px,0px)";
 
 	if (box) {
-		img.style.top = (top + height) / dpr + "px";
+		img.style.top = Math.min(top + height, screen_size[1] - 24) / dpr + "px";
 	} else {
 		img.style.top = (top / dpr) + "px";
 		img.style.lineHeight = (height / dpr) + "px";
