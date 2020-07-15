@@ -26,7 +26,7 @@ sub handler {
 		}
 		$io->print("    <p>Rett opp i feilene over før du går videre.</p>\n");
 	} else {
-		$io->print("    <p>Hendelsen '$id' lagt til.</p>");
+		$io->print("    <p>Hendelsen '<a href=\"/upload/$id/\">$id</a>' lagt til.</p>");
 	}
 	
 	Sesse::pr0n::Common::footer($r, $io);
