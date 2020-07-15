@@ -104,7 +104,7 @@ function rename_element(old_name, new_name)
 	return elem;
 }
 
-function display_image(url, backend_width, backend_height, elem_id, offset, preload)
+function display_image(url, backend_width, backend_height, elem_id, offset, box)
 {
 	// See if this image already exists in the DOM; if not, add it.
 	var img = document.getElementById(elem_id);
@@ -112,7 +112,7 @@ function display_image(url, backend_width, backend_height, elem_id, offset, prel
 		img = document.createElement("img");
 		img.id = elem_id;
 		img.alt = "";
-		img.className = preload ? "fsbox" : "fsimg";
+		img.className = box ? "fsbox" : "fsimg";
 	}
 	img.style.position = "absolute";
 	img.style.transformOrigin = "top left";
@@ -120,7 +120,7 @@ function display_image(url, backend_width, backend_height, elem_id, offset, prel
 
 	if (offset === 0) {
 		img.src = url;
-		position_image(img, backend_width, backend_height, offset, preload);
+		position_image(img, backend_width, backend_height, offset, box);
 	} else {
 		// This is a preload, so wait for the main image to be ready.
 		// The test for .complete is an old IE hack, which I don't know if is relevant anymore.
@@ -134,7 +134,10 @@ function display_image(url, backend_width, backend_height, elem_id, offset, prel
 		// Seemingly one needs to delay position_image(), or Firefox will set the initial
 		// scroll offset completely off.
 		img.style.display = 'none';
-		setTimeout(function() { position_image(img, backend_width, backend_height, offset, preload); img.style.display = null; }, 1);
+		setTimeout(function() {
+			position_image(img, backend_width, backend_height, offset, box);
+			img.style.display = null;
+		}, 1);
 	}
 }
 
@@ -218,7 +221,7 @@ function set_opacity(id, amount)
 	elem.style.opacity = amount;
 }
 
-function position_image(img, backend_width, backend_height, offset, preload)
+function position_image(img, backend_width, backend_height, offset, box)
 {
 	var screen_size = find_width();
 	var dpr = find_dpr();
@@ -247,7 +250,7 @@ function position_image(img, backend_width, backend_height, offset, preload)
 	img.style.left = (left / dpr) + "px";
 	img.style.transform = "translate(" + extra_x_offset + "px,0px)";
 
-	if (preload) {
+	if (box) {
 		img.style.top = (top + height) / dpr + "px";
 	} else {
 		img.style.top = (top / dpr) + "px";
